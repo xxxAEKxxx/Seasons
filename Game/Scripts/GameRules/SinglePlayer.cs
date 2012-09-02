@@ -27,8 +27,7 @@ namespace CryGameCode
 
 		public override void OnRevive(EntityId actorId, Vec3 pos, Vec3 rot, int teamId)
 		{
-			Debug.LogAlways("SinglePlayer.OnRevive");
-			var player = Actor.Get<Player>(actorId);
+			var player = Actor.Get(actorId);
 
 			if(player == null)
 			{
@@ -36,7 +35,7 @@ namespace CryGameCode
 				return;
 			}
 
-			player.Init();
+			//player.Init();
 		}
 	}
 }

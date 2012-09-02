@@ -34,6 +34,30 @@
             This callback is called when this entity has finished spawning. The entity has been created and added to the list of entities.
             </summary>
         </member>
+        <member name="M:CryEngine.EntityBase.Link(System.String,CryEngine.EntityId,CryEngine.Quat,CryEngine.Vec3)">
+            <summary>
+            Links to another entity, becoming the parent. Any change to the parent object is propagated to all child (linked) objects.
+            </summary>
+            <param name="linkName"></param>
+            <param name="otherEntityId"></param>
+            <param name="relativeRot"></param>
+            <param name="relativePos"></param>
+            <returns></returns>
+        </member>
+        <member name="M:CryEngine.EntityBase.Unlink(CryEngine.EntityId)">
+            <summary>
+            Removes an entity link, see Link.
+            </summary>
+            <param name="otherEntityId"></param>
+        </member>
+        <member name="M:CryEngine.EntityBase.LoadLight(CryEngine.LightParams,System.Int32)">
+            <summary>
+            Loads a light source to the specified slot, or to the next available slot.
+            </summary>
+            <param name="parameters"></param>
+            <param name="slot"></param>
+            <returns>The slot where the light source was loaded, or -1 if loading failed.</returns>
+        </member>
         <member name="P:CryEngine.EntityBase.Position">
             <summary>
             Sets / gets the world space entity position.
@@ -101,6 +125,11 @@
             <summary>
             Determines if this is an AI actor class.
             Only applied when UseMonoActor is set to true.
+            </summary>
+        </member>
+        <member name="T:CryEngine.Texture">
+            <summary>
+            TODO
             </summary>
         </member>
         <member name="T:CryEngine.NativeActor">
@@ -570,6 +599,14 @@
             <param name="textBox"></param>
             <param name="count"></param>
         </member>
+        <member name="M:CryEngine.Extensions.WinFormsExtensions.ScrollTo(System.Windows.Forms.TextBoxBase,System.Int32)">
+            <summary>
+            Scrolls the contents of the text box to the given position.
+            The value is clamped to the length of the text.
+            </summary>
+            <param name="textBox"></param>
+            <param name="position"></param>
+        </member>
         <member name="T:CryEngine.Sandbox.SandboxExtensionAttribute">
             <summary>
             Defines a Sandbox extension.
@@ -956,6 +993,14 @@
             </summary>
             <param name="parent"></param>
         </member>
+        <member name="M:CryEngine.Entity.OnPropertyChanged(System.String,CryEngine.EntityPropertyType,System.String)">
+            <summary>
+            Called when the user changes a property from within the Editor.
+            </summary>
+            <param name="propertyName"></param>
+            <param name="propertyType"></param>
+            <param name="valueString"></param>
+        </member>
         <member name="M:CryEngine.Entity.LoadObject(System.String,System.Int32)">
             <summary>
             Loads a mesh for this entity. Can optionally load multiple meshes using entity slots.
@@ -1186,16 +1231,7 @@
             Represents a Lua ScriptTable.
             </summary>
         </member>
-        <member name="M:CryEngine.Lua.ScriptTable.CallMethod``1(System.String,System.Object[])">
-            <summary>
-            
-            </summary>
-            <typeparam name="T">Boolean, Integer, Float or String.</typeparam>
-            <param name="methodName"></param>
-            <param name="args"></param>
-            <returns></returns>
-        </member>
-        <member name="M:CryEngine.Lua.ScriptTable.GetValue``1(System.String)">
+        <member name="M:CryEngine.Lua.ScriptTable.GetValue(System.String)">
             <summary>
             Gets a value within the table.
             </summary>
@@ -1210,9 +1246,9 @@
             <param name="name"></param>
             <returns></returns>
         </member>
-        <member name="P:CryEngine.Lua.ScriptTable.IsSubtable">
+        <member name="P:CryEngine.Lua.ScriptTable.HandleRef">
             <summary>
-            Determines if this is a SmartScriptTable, retrieved from a ScriptTable.
+            Handle to the native IScriptTable object
             </summary>
         </member>
         <member name="T:CryEngine.Collision">
@@ -1577,18 +1613,18 @@
             <param name="sphere2">The second sphere to test.</param>
             <returns>The type of containment the two objects have.</returns>
         </member>
-        <member name="F:CryEngine.Script_Handling.ScriptReloadMessage.components">
+        <member name="F:CryEngine.Initialization.ScriptReloadMessage.components">
             <summary>
             Required designer variable.
             </summary>
         </member>
-        <member name="M:CryEngine.Script_Handling.ScriptReloadMessage.Dispose(System.Boolean)">
+        <member name="M:CryEngine.Initialization.ScriptReloadMessage.Dispose(System.Boolean)">
             <summary>
             Clean up any resources being used.
             </summary>
             <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         </member>
-        <member name="M:CryEngine.Script_Handling.ScriptReloadMessage.InitializeComponent">
+        <member name="M:CryEngine.Initialization.ScriptReloadMessage.InitializeComponent">
             <summary>
             Required method for Designer support - do not modify
             the contents of this method with the code editor.
@@ -4337,11 +4373,6 @@
             The individual results for the tests in this collection.
             </summary>
         </member>
-        <member name="T:CryEngine.Serialization.AppDomainSerializer">
-            <summary>
-            Handles serializing script instances for an app domain reload.
-            </summary>
-        </member>
         <member name="F:CryEngine.Math.ZeroTolerance">
             <summary>
             The value for which all absolute numbers smaller than are considered equal to zero.
@@ -5122,7 +5153,6 @@
         <member name="T:CryEngine.EntityPropertyType">
             <summary>
             Defines the list of supported editor types.
-            Bool is not currently functioning.
             </summary>
         </member>
         <member name="M:CryEngine.CVar.Register(System.String,System.Int32,System.String,CryEngine.CVarFlags)">
