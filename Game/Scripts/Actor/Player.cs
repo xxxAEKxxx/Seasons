@@ -2,8 +2,7 @@
 
 namespace CryGameCode.Actors
 {
-	[Actor(useMonoActor = false)]
-	class Player : Actor
+	class Player : NativeActor
 	{
 		public void Init()
 		{

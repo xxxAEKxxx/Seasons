@@ -521,8 +521,6 @@ bool CGame::CompleteInit()
 	DumpMemInfo("CGame::CompleteInit");
 #endif
 
-	gEnv->pMonoScriptSystem->RegisterFlownodes();
-
 	return true;
 }
 
@@ -539,6 +537,8 @@ void CGame::RegisterGameFlowNodes()
 			pFactory = pFactory->m_pNext;
 		}
 	}
+
+	gEnv->pMonoScriptSystem->RegisterFlownodes();
 }
 
 void CGame::ResetServerGameTokenSynch()

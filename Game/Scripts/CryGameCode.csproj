@@ -101,6 +101,7 @@
     <Compile Include="Actor\Player.cs" />
     <Compile Include="Entities\SpawnPoint.cs" />
     <Compile Include="FlowNodes\Material.cs" />
+    <Compile Include="GameRules\GameRulesNativeCallbacks.cs" />
     <Compile Include="GameRules\SinglePlayer.cs" />
     <Compile Include="Seasons\SeasonManager.cs" />
   </ItemGroup>

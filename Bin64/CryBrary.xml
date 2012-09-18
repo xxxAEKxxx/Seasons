@@ -58,6 +58,14 @@
             <param name="slot"></param>
             <returns>The slot where the light source was loaded, or -1 if loading failed.</returns>
         </member>
+        <member name="M:CryEngine.EntityBase.LoadObject(System.String,System.Int32)">
+            <summary>
+            Loads a mesh for this entity. Can optionally load multiple meshes using entity slots.
+            </summary>
+            <param name="name"></param>
+            <param name="slotNumber"></param>
+            <returns></returns>
+        </member>
         <member name="P:CryEngine.EntityBase.Position">
             <summary>
             Sets / gets the world space entity position.
@@ -108,6 +116,21 @@
             Gets / sets the entity flags.
             </summary>
         </member>
+        <member name="P:CryEngine.EntityBase.IsDestroyed">
+            <summary>
+            Set to true when the entity has been removed from the CryENGINE world.
+            </summary>
+        </member>
+        <member name="P:CryEngine.EntityBase.EntityHandleRef">
+            <summary>
+            IEntity handle
+            </summary>
+        </member>
+        <member name="P:CryEngine.EntityBase.AnimatedCharacterHandleRef">
+            <summary>
+            IAnimatedCharacter handle
+            </summary>
+        </member>
         <member name="M:CryEngine.Actor.InternalSpawn(CryEngine.ActorInfo,System.Int32)">
             <summary>
             Initializes the player.
@@ -115,16 +138,19 @@
             <param name="actorInfo"></param>
             <param name="channelId"></param>
         </member>
-        <member name="F:CryEngine.ActorAttribute.useMonoActor">
+        <member name="P:CryEngine.Attachment.AttachmentEntity">
             <summary>
-            Utilize the C++ Actor class contained within CryMono.dll
-            Otherwise the engine will require one created in the game dll. 
+            Used internally to allow repositioning attachments
             </summary>
         </member>
-        <member name="F:CryEngine.ActorAttribute.isAI">
+        <member name="F:CryEngine.ProjectSettings.BugReportLink">
             <summary>
-            Determines if this is an AI actor class.
-            Only applied when UseMonoActor is set to true.
+            Designates what link will be opened when the user presses 'Report Bug' in the exception form.
+            </summary>
+        </member>
+        <member name="F:CryEngine.ProjectSettings.ExceptionMessage">
+            <summary>
+            Message displayed in the exception form when an exception has been thrown.
             </summary>
         </member>
         <member name="T:CryEngine.Texture">
@@ -134,72 +160,7 @@
         </member>
         <member name="T:CryEngine.NativeActor">
             <summary>
-            Used for non-CryMono actors.
-            </summary>
-        </member>
-        <member name="F:CryEngine.Native.ViewParams.Position">
-            <summary>
-            view position
-            </summary>
-        </member>
-        <member name="F:CryEngine.Native.ViewParams.Rotation">
-            <summary>
-            view orientation
-            </summary>
-        </member>
-        <member name="F:CryEngine.Native.ViewParams.Nearplane">
-            <summary>
-            custom near clipping plane, 0 means use engine defaults
-            </summary>
-        </member>
-        <member name="F:CryEngine.Native.ViewParams.GroundOnly">
-            <summary>
-            view shake status
-            </summary>
-        </member>
-        <member name="F:CryEngine.Native.ViewParams.ShakingRatio">
-            <summary>
-            whats the amount of shake, from 0.0 to 1.0
-            </summary>
-        </member>
-        <member name="F:CryEngine.Native.ViewParams.CurrentShakeQuat">
-            <summary>
-            what the current angular shake
-            </summary>
-        </member>
-        <member name="F:CryEngine.Native.ViewParams.CurrentShakeShift">
-            <summary>
-            what is the current translational shake
-            </summary>
-        </member>
-        <member name="F:CryEngine.Native.ViewParams.TargetId">
-            <summary>
-            Who we're watching. 0 == nobody.
-            </summary>
-        </member>
-        <member name="F:CryEngine.Native.ViewParams.TargetPosition">
-            <summary>
-            Where the target was.
-            </summary>
-        </member>
-        <member name="F:CryEngine.Native.ViewParams.FrameTime">
-            <summary>
-            current dt.
-            </summary>
-        </member>
-        <member name="F:CryEngine.Native.ViewParams.AngleVelocity">
-            <summary>
-            previous rate of change of angle.
-            </summary>
-        </member>
-        <member name="F:CryEngine.Native.ViewParams.Velocity">
-            <summary>
-            previous rate of change of dist between target and camera.
-            </summary>
-        </member>
-        <member name="F:CryEngine.Native.ViewParams.Distance">
-            <summary>
-            previous dist of cam from target
+            Represents an actor with a custom IActor implementation outside of CryMono.dll.
             </summary>
         </member>
         <member name="T:CryEngine.Async.Jobs.AsyncJob`1">
@@ -842,7 +803,7 @@
         </member>
         <member name="T:CryEngine.NativeEntity">
             <summary>
-            Used for non-CryMono entities, i.e. Lua / C++ such.
+            Represents an entity registered outside of CryMono, e.g. in CryGame.dll.
             </summary>
         </member>
         <member name="T:CryEngine.Entity">
@@ -850,7 +811,7 @@
             The base class for all entities in the game world.
             </summary>
         </member>
-        <member name="M:CryEngine.Entity.Spawn``1(System.String,CryEngine.Vec3,System.Nullable{CryEngine.Vec3},System.Nullable{CryEngine.Vec3},System.Boolean,CryEngine.EntityFlags)">
+        <member name="M:CryEngine.Entity.Spawn``1(System.String,System.Nullable{CryEngine.Vec3},System.Nullable{CryEngine.Vec3},System.Nullable{CryEngine.Vec3},System.Boolean,CryEngine.EntityFlags)">
             <summary>
             Spawn a new instance of entity type T.
             </summary>
@@ -993,21 +954,13 @@
             </summary>
             <param name="parent"></param>
         </member>
-        <member name="M:CryEngine.Entity.OnPropertyChanged(System.String,CryEngine.EntityPropertyType,System.String)">
+        <member name="M:CryEngine.Entity.OnPropertyChanged(System.Reflection.MemberInfo,CryEngine.EntityPropertyType,System.Object)">
             <summary>
             Called when the user changes a property from within the Editor.
             </summary>
             <param name="propertyName"></param>
             <param name="propertyType"></param>
             <param name="valueString"></param>
-        </member>
-        <member name="M:CryEngine.Entity.LoadObject(System.String,System.Int32)">
-            <summary>
-            Loads a mesh for this entity. Can optionally load multiple meshes using entity slots.
-            </summary>
-            <param name="name"></param>
-            <param name="slotNumber"></param>
-            <returns></returns>
         </member>
         <member name="T:CryEngine.EntityPhysics">
             <summary>
@@ -1235,7 +1188,6 @@
             <summary>
             Gets a value within the table.
             </summary>
-            <typeparam name="T"></typeparam>
             <param name="name"></param>
             <returns></returns>
         </member>
@@ -4559,20 +4511,26 @@
             <param name="isEditor"></param>
             <param name="isDedicated"></param>
         </member>
-        <member name="M:CryEngine.Network.InitializeNetwork(System.Boolean,System.Boolean,System.Boolean)">
-            <summary>
-            Initializes variables which change, i.e. IsServer.
-            </summary>
-            <param name="isMultiplayer"></param>
-            <param name="isClient"></param>
-            <param name="isServer"></param>
-        </member>
         <member name="M:CryEngine.Input.RegisterAction(System.String,CryEngine.ActionMapEventDelegate)">
             <summary>
             Registers an event declared in the players actionmap. Without invoking this, Your KeyEventDelegate will never be invoked with the new action.
             </summary>
             <param name="actionName"></param>
             <param name="eventDelegate"></param>
+        </member>
+        <member name="M:CryEngine.Input.UnregisterAction(CryEngine.ActionMapEventDelegate)">
+            <summary>
+            Removes the delegate from
+            </summary>
+            <param name="eventDelegate"></param>
+            <returns>The number of removed actions</returns>
+        </member>
+        <member name="M:CryEngine.Input.UnregisterActions(System.Object)">
+            <summary>
+            Removes all actions linked to the specified object.
+            </summary>
+            <param name="owner"></param>
+            <returns>The number of removed actions</returns>
         </member>
         <member name="F:CryEngine.KeyEvent.OnPress">
             <summary>
@@ -5387,7 +5345,7 @@
             <remarks>Useful when exceptions are caught and data is still needed from them</remarks>
             <param name="ex"></param>
         </member>
-        <member name="M:CryEngine.Debug.DisplayException(System.Exception)">
+        <member name="M:CryEngine.Debug.DisplayException(System.Exception,System.Boolean)">
             <summary>
             Displays an exception via the CryMono exception form.
             </summary>
