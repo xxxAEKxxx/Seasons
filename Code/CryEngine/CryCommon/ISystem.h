@@ -90,7 +90,6 @@ struct ICodeCheckpointMgr;
 struct ISoftCodeMgr;
 struct IZLibCompressor;
 struct IOutputPrintSink;
-
 struct IMonoScriptSystem;
 
 struct ILocalMemoryUsage;
