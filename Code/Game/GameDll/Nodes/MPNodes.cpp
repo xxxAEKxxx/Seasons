@@ -274,6 +274,7 @@ class CFlowNode_MPGameType : public CFlowBaseNode<eNCT_Instanced>
 	enum OUTPUTS
 	{
 		EOP_DeathMatch = 0,
+		EOP_SinglePlayer,
 		EOP_GameRulesName,
 	};
 
@@ -306,6 +307,7 @@ public:
 		static const SOutputPortConfig out_ports[] = 
 		{
 			OutputPortConfig_Void( "DeathMatch", _HELP("Triggered on level load if DeathMatch game")),
+			OutputPortConfig_Void( "SinglePlayer", _HELP("Triggered on level load if it is a Singleplayer game")),
 			OutputPortConfig<string>("GameRulesName", _HELP("Outputs the current game rules name")),
 			{0}
 		};
@@ -342,6 +344,8 @@ public:
 			const char* gameRulesName = g_pGame->GetGameRules()->GetEntity()->GetClass()->GetName();
 			if(!strcmp(gameRulesName, "DeathMatch"))
 				ActivateOutput(&m_actInfo, EOP_DeathMatch, true);
+			if(!strcmp(gameRulesName, "SinglePlayer"))
+				ActivateOutput(&m_actInfo, EOP_SinglePlayer, true);
 			// output the name as well (for supporting any additional modes that might be added)
 			ActivateOutput(&m_actInfo, EOP_GameRulesName, string(gameRulesName));
 		}
@@ -351,5 +355,96 @@ protected:
 	SActivationInfo m_actInfo;
 };
 
+
+//----------------------------------------------------------------------------------------
+
+class CFlowNode_IsMultiplayer: public CFlowBaseNode<eNCT_Instanced>
+{
+	enum INPUTS
+	{
+		EIP_Get = 0,
+	};
+
+	enum OUTPUTS
+	{
+		EOP_True = 0,
+		EOP_False,
+	};
+
+public:
+	CFlowNode_IsMultiplayer( SActivationInfo * pActInfo )
+	{
+	}
+
+	~CFlowNode_IsMultiplayer()
+	{
+	}
+
+	IFlowNodePtr Clone(SActivationInfo* pActInfo)
+	{
+		return new CFlowNode_IsMultiplayer(pActInfo);
+	}
+
+	virtual void GetMemoryUsage(ICrySizer * s) const
+	{
+		s->Add(*this);
+	}
+
+	void GetConfiguration( SFlowNodeConfig& config )
+	{
+		static const SInputPortConfig in_ports[] = 
+		{
+			InputPortConfig_Void( "Get", _HELP("Activate this to retrigger relevent outputs")),
+			{0}
+		};
+		static const SOutputPortConfig out_ports[] = 
+		{
+			OutputPortConfig_Void( "True", _HELP("Triggered if Multiplayer game")),
+			OutputPortConfig_Void( "False", _HELP("Triggered if it is a Singleplayer game")),
+			{0}
+		};
+		config.pInputPorts = in_ports;
+		config.pOutputPorts = out_ports;
+		config.sDescription = _HELP("IsMultiplayer node");
+		config.SetCategory(EFLN_APPROVED);
+	}
+
+	void ProcessEvent( EFlowEvent event, SActivationInfo *pActInfo )
+	{
+		switch (event)
+		{
+		case eFE_Initialize:
+			{
+				m_actInfo = *pActInfo;
+			}
+			break;
+		case eFE_Activate:
+			{
+				if(IsPortActive(pActInfo, EIP_Get))
+				{
+					CheckMultiplayer();
+				}
+			}
+			break;
+		}
+	}
+
+	void CheckMultiplayer()
+	{
+		if(gEnv->bMultiplayer)
+		{
+				ActivateOutput(&m_actInfo, EOP_True, true);
+		}
+		else
+		{
+			ActivateOutput(&m_actInfo, EOP_False, true);
+		}
+	}
+
+protected:
+	SActivationInfo m_actInfo;
+};
+
 REGISTER_FLOW_NODE("Multiplayer:MP",	CFlowNode_MP);
+REGISTER_FLOW_NODE("Multiplayer:IsMultiplayer",	CFlowNode_IsMultiplayer);
 REGISTER_FLOW_NODE("Multiplayer:GameType", CFlowNode_MPGameType);

@@ -45,6 +45,10 @@
 #include "CustomReactionFunctions.h"
 #include <IBreakableManager.h>
 
+#include <MonoCommon.h>
+
+#include "Network/Lobby/GameLobby.h"
+
 int CGameRules::s_invulnID = 0;
 int CGameRules::s_barbWireID = 0;
 
@@ -59,7 +63,7 @@ CGameRules::CGameRules()
 	m_pMaterialManager(0),
 	m_onCollisionFunc(0),
 	m_pClientNetChannel(0),
-	m_pScript(nullptr),
+	m_pScript(0),
 	m_teamIdGen(0),
 	m_hitMaterialIdGen(0),
 	m_hitTypeIdGen(0),
@@ -68,19 +72,56 @@ CGameRules::CGameRules()
 	m_roundEndTime(0.0f),
 	m_preRoundEndTime(0.0f),
 	m_gameStartTime(0.0f),
+	m_gameStartedTime(0.0f),
 	m_pRadio(0),
 	m_pBattleDust(0),
   m_pVotingSystem(0),
 	m_ignoreEntityNextCollision(0),
 	m_timeOfDayInitialized(false),
 	m_processingHit(0),
+	m_bBlockPlayerAddition(false),
+	m_pMigratingPlayerInfo(NULL),
+	m_pHostMigrationItemInfo(NULL),
+	m_migratingPlayerMaxCount(0),
+	m_pHostMigrationParams(NULL),
+	m_pHostMigrationClientParams(NULL),
+	m_hostMigrationClientHasRejoined(false),
 	m_explosionScreenFX(true)
 {
+	m_timeLimit = g_pGameCVars->g_timelimit;
+
+	if (gEnv->bMultiplayer)
+	{
+		m_migratingPlayerMaxCount = MAX_PLAYER_LIMIT;
+
+		if (gEnv->pConsole)
+		{
+			ICVar* pMaxPlayers = gEnv->pConsole->GetCVar("sv_maxplayers");
+			if (pMaxPlayers)
+			{
+				m_migratingPlayerMaxCount = pMaxPlayers->GetIVal();
+			}
+		}
+		m_pMigratingPlayerInfo = new SMigratingPlayerInfo[m_migratingPlayerMaxCount];
+		CRY_ASSERT(m_pMigratingPlayerInfo != NULL);
+
+		m_hostMigrationItemMaxCount = m_migratingPlayerMaxCount * 8;		// Allow for 8 items per person
+		m_pHostMigrationItemInfo = new SHostMigrationItemInfo[m_hostMigrationItemMaxCount];
+		CRY_ASSERT(m_pHostMigrationItemInfo != NULL);
+
+		m_hostMigrationCachedEntities.reserve(128);
+	}
 }
 
 //------------------------------------------------------------------------
 CGameRules::~CGameRules()
 {
+	SAFE_DELETE_ARRAY(m_pMigratingPlayerInfo)
+	SAFE_DELETE_ARRAY(m_pHostMigrationItemInfo);
+
+	SAFE_DELETE(m_pHostMigrationParams);
+	SAFE_DELETE(m_pHostMigrationClientParams);
+
 	if (m_onCollisionFunc)
 	{
 		gEnv->pScriptSystem->ReleaseFunc(m_onCollisionFunc);
@@ -99,6 +140,14 @@ CGameRules::~CGameRules()
 	}
 
 	GetGameObject()->ReleaseActions(this);
+
+	gEnv->pNetwork->RemoveHostMigrationEventListener(this);
+
+	if (g_pGame->GetHostMigrationState() != CGame::eHMS_NotMigrating)
+	{
+		// Quitting game mid-migration (probably caused by a failed migration), re-enable timers so that the game isn't paused if we join a new one!
+		g_pGame->AbortHostMigration();
+	}
 
 	delete m_pRadio;
 
@@ -150,8 +199,8 @@ bool CGameRules::Init( IGameObject * pGameObject )
 
 	m_scriptHitInfo.Create(gEnv->pScriptSystem);
 	m_scriptExplosionInfo.Create(gEnv->pScriptSystem);
-	SmartScriptTable affected(gEnv->pScriptSystem);
-	m_scriptExplosionInfo->SetValue("AffectedEntities", affected);
+  SmartScriptTable affected(gEnv->pScriptSystem);
+  m_scriptExplosionInfo->SetValue("AffectedEntities", affected);
 	SmartScriptTable affectedObstruction(gEnv->pScriptSystem);
 	m_scriptExplosionInfo->SetValue("AffectedEntitiesObstruction", affectedObstruction);
   
@@ -159,7 +208,7 @@ bool CGameRules::Init( IGameObject * pGameObject )
 	//g_pGame->GetGameRulesScriptBind()->AttachTo(this);
 
 	SAFE_RELEASE(m_pScript);
-	m_pScript = gEnv->pMonoScriptSystem->InstantiateScript(GetEntity()->GetClass()->GetName(), eScriptFlag_GameRules);
+	m_pScript = GetMonoScriptSystem()->InstantiateScript(GetEntity()->GetClass()->GetName(), eScriptFlag_GameRules);
 
 	// setup animation time scaling (until we have assets that cover the speeds we need timescaling).
 	if (gEnv->pCharacterManager)
@@ -203,6 +252,14 @@ bool CGameRules::Init( IGameObject * pGameObject )
     m_pVotingSystem = new CVotingSystem;
 
 	g_pGame->GetHitDeathReactionsSystem().GetCustomReactionFunctions().InitCustomReactionsData();
+
+	gEnv->pNetwork->AddHostMigrationEventListener(this, "CGameRules");
+
+	if (g_pGame->GetHostMigrationState() != CGame::eHMS_NotMigrating)
+	{
+		// Quitting game mid-migration (probably caused by a failed migration), re-enable timers so that the game isn't paused if we join a new one!
+		g_pGame->AbortHostMigration();
+	}
 
 	return true;
 }
@@ -260,6 +317,29 @@ void CGameRules::PostInitClient(int channelId)
 		else
 			GetGameObject()->InvokeRMI(ClVotingStatus(),params,eRMI_ToClientChannel,channelId);
 	}
+
+	if (g_pGame->GetHostMigrationState() != CGame::eHMS_NotMigrating)
+	{
+		// Tell this client who else has made it
+		for (int i = 0; i < MAX_PLAYERS; ++ i)
+		{
+			TNetChannelID migratedChannelId = m_migratedPlayerChannels[i];
+			if (migratedChannelId)
+			{
+				IActor *pActor = GetActorByChannelId(migratedChannelId);
+				if (pActor)
+				{
+					EntityParams params;
+					params.entityId = pActor->GetEntityId();
+					GetGameObject()->InvokeRMIWithDependentObject(ClHostMigrationPlayerJoined(), params, eRMI_ToClientChannel|eRMI_NoLocalCalls, params.entityId, channelId);
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
 }
 
 //------------------------------------------------------------------------
@@ -309,6 +389,15 @@ void CGameRules::PostSerialize()
 //------------------------------------------------------------------------
 void CGameRules::Update( SEntityUpdateContext& ctx, int updateSlot )
 {
+	m_cachedServerTime = g_pGame->GetIGameFramework()->GetServerTime();
+
+	if (m_hostMigrationTimeSinceGameStarted.GetValue())
+	{
+		int64 initialValue = m_gameStartedTime.GetValue();
+		m_gameStartedTime = (m_cachedServerTime - m_hostMigrationTimeSinceGameStarted);
+		m_hostMigrationTimeSinceGameStarted.SetValue(0);
+	}
+
 	if (updateSlot!=0)
 		return;
 
@@ -460,7 +549,64 @@ void CGameRules::PostUpdate( float frameTime )
 //------------------------------------------------------------------------
 CActor *CGameRules::GetActorByChannelId(int channelId) const
 {
-	return static_cast<CActor *>(m_pGameFramework->GetIActorSystem()->GetActorByChannelId(channelId));
+	if (m_hostMigrationCachedEntities.empty())
+	{
+		return static_cast<CActor *>(m_pGameFramework->GetIActorSystem()->GetActorByChannelId(channelId));
+	}
+	else
+	{
+		CRY_ASSERT(g_pGame->GetHostMigrationState() != CGame::eHMS_NotMigrating);
+
+		CActor *pCachedActor = NULL;
+		CActor *pCurrentActor = NULL;
+
+		IActorSystem *pActorSystem = g_pGame->GetIGameFramework()->GetIActorSystem();
+		IActorIteratorPtr it = pActorSystem->CreateActorIterator();
+
+		while (IActor *pActor = it->Next())
+		{
+			if (pActor->GetChannelId() == channelId)
+			{
+				const bool bInRemoveList = stl::find(m_hostMigrationCachedEntities, pActor->GetEntityId());
+				if (bInRemoveList)
+				{
+					CRY_ASSERT(!pCachedActor);
+					pCachedActor = static_cast<CActor *>(pActor);
+				}
+				else
+				{
+					CRY_ASSERT(!pCurrentActor);
+					pCurrentActor = static_cast<CActor *>(pActor);
+				}
+			}
+		}
+
+		if (gEnv->bServer)
+		{
+			// Server: if we've got a cached one then we are a secondary server, this can give us a few frames of
+			// having a duplicated actor (pCurrentActor), we need to use the one that will be kept (pCachedActor).
+			if (pCachedActor)
+			{
+				return pCachedActor;
+			}
+			else
+			{
+				return pCurrentActor;
+			}
+		}
+		else
+		{
+			// Client: Use actor given to us by the server, if we haven't been given one then use the cached actor.
+			if (pCurrentActor)
+			{
+				return pCurrentActor;
+			}
+			else
+			{
+				return pCachedActor;
+			}
+		}
+	}
 }
 
 //------------------------------------------------------------------------
@@ -528,34 +674,101 @@ void CGameRules::OnDisconnect(EDisconnectionCause cause, const char *desc)
 	//int icause=(int)cause;
 	//CallScript(m_clientStateScript, "OnDisconnect", icause, desc);
 	m_pScript->CallMethod("OnDisconnect", cause, desc);
+	// BecomeRemotePlayer() will put the player camera into 3rd person view, but
+	// the player rig will still be first person (headless, not z sorted) so
+	// don't do it during host migration events
+	if (!g_pGame->IsGameSessionHostMigrating())
+	{
+		CActor *pLocalActor = static_cast<CActor*>(g_pGame->GetIGameFramework()->GetClientActor());
+		if (pLocalActor)
+		{
+			pLocalActor->BecomeRemotePlayer();
+		}
+	}
 }
 
 //------------------------------------------------------------------------
 bool CGameRules::OnClientConnect(int channelId, bool isReset)
 {
+	if (m_bBlockPlayerAddition)
+		return false;
+
 	if (!isReset)
 	{
 		m_channelIds.push_back(channelId);
 		g_pGame->GetServerSynchedStorage()->OnClientConnect(channelId);
 	}
 
-	m_pScript->CallMethod("OnClientConnect", channelId, isReset, GetPlayerName(channelId, true).c_str());
+	bool useExistingActor = false;
+	IActor *pActor = NULL;
 
-	CActor *pActor=GetActorByChannelId(channelId);
+	// Check if there's a migrating player for this channel
+	int migratingIndex = GetMigratingPlayerIndex(channelId);
+	if (migratingIndex >= 0)
+	{
+		useExistingActor = true;
+		pActor = g_pGame->GetIGameFramework()->GetIActorSystem()->GetActor(m_pMigratingPlayerInfo[migratingIndex].m_originalEntityId);
+		pActor->SetMigrating(true);
+		CryLog("CGameRules::OnClientConnect() migrating player, channelId=%i, name=%s", channelId, pActor->GetEntity()->GetName());
+	}
+
+	if (!useExistingActor)
+	{
+		string playerName;
+		if (gEnv->bServer && gEnv->bMultiplayer)
+		{
+			if (INetChannel *pNetChannel=m_pGameFramework->GetNetChannel(channelId))
+			{
+				playerName=pNetChannel->GetNickname();
+				if (!playerName.empty())
+					playerName=VerifyName(playerName);
+			}
+		}
+
+		m_pScript->CallMethod("OnClientConnect", channelId, isReset, playerName.c_str());
+
+		pActor=GetActorByChannelId(channelId);
+	}
+
 	if (pActor)
 	{
+		// Hide spawned actors until the client *enters* the game
+		pActor->GetEntity()->Hide(true);
+
 		//we need to pass team somehow so it will be reported correctly
 		int status[2];
 		status[0] = GetTeam(pActor->GetEntityId());
 		status[1] = pActor->GetSpectatorMode();
 		m_pGameplayRecorder->Event(pActor->GetEntity(), GameplayEvent(eGE_Connected, 0, m_pGameFramework->IsChannelOnHold(channelId)?1.0f:0.0f, (void*)status));
-		
-		//notify client he has entered the game
-		GetGameObject()->InvokeRMIWithDependentObject(ClEnteredGame(), NoParams(), eRMI_ToClientChannel, pActor->GetEntityId(), channelId);
-		
+				
 		if (isReset)
 		{
 			SetTeam(GetChannelTeam(channelId), pActor->GetEntityId());
+		}
+
+		//notify client he has entered the game
+		GetGameObject()->InvokeRMIWithDependentObject(ClEnteredGame(), NoParams(), eRMI_ToClientChannel, pActor->GetEntityId(), channelId);
+	}
+
+	if (migratingIndex != -1)
+	{
+		FinishMigrationForPlayer(migratingIndex);
+	}
+	else if (g_pGame->GetHostMigrationState() != CGame::eHMS_NotMigrating)
+	{
+		// This is a new client joining while we're migrating, need to tell them to pause game etc
+		const float timeSinceStateChange = g_pGame->GetTimeSinceHostMigrationStateChanged();
+		SMidMigrationJoinParams params(int(g_pGame->GetHostMigrationState()), timeSinceStateChange);
+		GetGameObject()->InvokeRMI(ClMidMigrationJoin(), params, eRMI_ToClientChannel, channelId);
+	}
+
+	CGameLobby* pGameLobby = g_pGame->GetGameLobby();
+	if (pGameLobby)
+	{
+		CryUserID userId = pGameLobby->GetUserIDFromChannelID(channelId);
+		if (userId.IsValid())
+		{
+			m_participatingUsers.insert(userId);
 		}
 	}
 
@@ -620,6 +833,10 @@ bool CGameRules::OnClientEnteredGame(int channelId, bool isReset)
 	if (!pActor)
 		return false;
 
+	// Ensure the actor is visible when entering the game (but not in the editor)
+	if (!gEnv->IsEditing())
+		pActor->GetEntity()->Hide(false);
+
 	string playerName = GetPlayerName(channelId);
 	RenameEntityParams params(pActor->GetEntityId(), playerName.c_str());
 	GetGameObject()->InvokeRMI(ClPlayerJoined(), params, eRMI_ToAllClients);
@@ -671,11 +888,61 @@ void CGameRules::OnItemDropped(EntityId itemId, EntityId actorId)
 //------------------------------------------------------------------------
 void CGameRules::OnItemPickedUp(EntityId itemId, EntityId actorId)
 {
-	//ScriptHandle itemIdHandle(itemId);
-	//ScriptHandle actorIdHandle(actorId);
-	//CallScript(m_serverStateScript, "OnItemPickedUp", itemIdHandle, actorIdHandle);
+	ScriptHandle itemIdHandle(itemId);
+	ScriptHandle actorIdHandle(actorId);
+	CallScript(m_serverStateScript, "OnItemPickedUp", itemIdHandle, actorIdHandle);
 
-	m_pScript->CallMethod("OnItemPickedUp", itemId, actorId);
+	if (actorId == g_pGame->GetIGameFramework()->GetClientActorId() && m_pHostMigrationClientParams)
+	{
+		if (!m_pHostMigrationClientParams->m_doneSetAmmo)
+		{
+			-- m_pHostMigrationClientParams->m_numExpectedItems;
+			if (!m_pHostMigrationClientParams->m_numExpectedItems)
+			{
+				CryLog("CGameRules::OnItemPickedUp, now received all expected items from host migration, setting ammo");
+				IActor *pActor = g_pGame->GetIGameFramework()->GetClientActor();
+				CRY_ASSERT(pActor);
+				if (pActor)
+				{
+					IInventory *pInventory = pActor->GetInventory();
+					for (int i = 0; i < m_pHostMigrationClientParams->m_numAmmoParams; ++ i)
+					{
+						CryLog("    %s : %i", m_pHostMigrationClientParams->m_pAmmoParams[i].m_pAmmoClass->GetName(), m_pHostMigrationClientParams->m_pAmmoParams[i].m_count);
+						// Set ammo locally so the HUD reports it correctly, we still have to tell the server though
+						pInventory->SetAmmoCount(m_pHostMigrationClientParams->m_pAmmoParams[i].m_pAmmoClass, m_pHostMigrationClientParams->m_pAmmoParams[i].m_count);
+						pInventory->RMIReqToServer_SetAmmoCount(m_pHostMigrationClientParams->m_pAmmoParams[i].m_pAmmoClass->GetName(), m_pHostMigrationClientParams->m_pAmmoParams[i].m_count);
+					}
+
+					EntityId currItemId = pInventory->GetCurrentItem();
+					IItem *pItem = g_pGame->GetIGameFramework()->GetIItemSystem()->GetItem(currItemId);
+					if (pItem && pItem->GetIWeapon())
+					{
+						// todo: ui
+					}
+
+					if (m_pHostMigrationClientParams->m_pHolsteredItemClass)
+					{
+						CryLog("  player had holstered item, class = '%s'", m_pHostMigrationClientParams->m_pHolsteredItemClass->GetName());
+						EntityId holsteredItemId = pInventory->GetItemByClass(m_pHostMigrationClientParams->m_pHolsteredItemClass);
+						if (holsteredItemId)
+						{
+							pInventory->SetHolsteredItem(holsteredItemId);
+						}
+						else
+						{
+							CryLog("  ERROR: holstered item not in inventory");
+						}
+					}
+				}
+
+				m_pHostMigrationClientParams->m_doneSetAmmo = true;
+				if (m_pHostMigrationClientParams->IsDone())
+				{
+					SAFE_DELETE(m_pHostMigrationClientParams);
+				}
+			}
+		}
+	}
 }
 
 //------------------------------------------------------------------------
@@ -724,7 +991,9 @@ void CGameRules::OnChatMessage(EChatMessageType type, EntityId sourceId, EntityI
 			else
 				teamFaction = 2;
 		}
-	}	
+	}
+
+	NOTIFY_UI_MP(OnChatRecieved(sourceId, teamFaction, msg));
 }
 
 //------------------------------------------------------------------------
@@ -787,6 +1056,12 @@ void CGameRules::OnVehicleSubmerged(EntityId id, float ratio)
 		CallScript(m_clientScript, "OnVehicleSubmerged", ScriptHandle(id), ratio);*/
 
 	m_pScript->CallMethod("OnVehicleSubmerged", id, ratio);
+}
+
+//------------------------------------------------------------------------
+void CGameRules::OnVehicleFlipped(EntityId id)
+{
+	m_pScript->CallMethod("OnVehicleFlipped", id);
 }
 
 //------------------------------------------------------------------------
@@ -912,11 +1187,6 @@ void CGameRules::RevivePlayer(CActor *pActor, const Vec3 &pos, const Ang3 &angle
 
 	if (IsFrozen(pActor->GetEntityId()))
 		FreezeEntity(pActor->GetEntityId(), false, false);
-
-	float health = 100;
-	if(!gEnv->bMultiplayer && pActor->IsClient())
-		health = g_pGameCVars->g_playerHealthValue;
-	pActor->SetMaxHealth(health);
 
 	if (!m_pGameFramework->IsChannelOnHold(pActor->GetChannelId()))
 		pActor->GetGameObject()->SetAspectProfile(eEA_Physics, eAP_Alive);
@@ -2334,7 +2604,7 @@ bool CGameRules::TestSpawnLocationWithEnvironment(EntityId spawnLocationId, Enti
 
 	geom_contact *pContact = 0;
 	float dst = gEnv->pPhysicalWorld->PrimitiveWorldIntersection(sphere.type, &sphere, end-sphere.center, ent_static|ent_terrain|ent_rigid|ent_sleeping_rigid|ent_living,
-		&pContact, 0, (geom_colltype_player<<rwi_colltype_bit)|rwi_stop_at_pierceable, 0, 0, 0, &pPlayerPhysics, pPlayerPhysics?1:0);
+		&pContact, 0, geom_colltype_player, 0, 0, 0, &pPlayerPhysics, pPlayerPhysics?1:0);
 
 	if(dst>0.001f)
 		return false;
@@ -2563,7 +2833,7 @@ EntityId CGameRules::GetPlayerSpawnGroup(CActor *pActor)
 	m_pScriptSystem->PushFuncParam(pActor->GetEntity()->GetScriptTable());
 	m_pScriptSystem->EndCall(ret);*/
 
-	return m_pScript->CallMethod("GetPlayerSpawnGroup", pActor->GetEntityId())->Unbox<EntityId>();
+	return m_pScript->CallMethod("GetPlayerSpawnGroup", pActor->GetEntityId())->Unbox<bool>();
 }
 
 //------------------------------------------------------------------------
@@ -2977,10 +3247,10 @@ void CGameRules::ForbiddenAreaWarning(bool active, int timer, EntityId targetId)
 }
 
 //------------------------------------------------------------------------
-
 void CGameRules::ResetGameTime()
 {
 	m_endTime.SetSeconds(0.0f);
+	m_gameStartedTime = m_cachedServerTime;
 
 	float timeLimit=g_pGameCVars->g_timelimit;
 	if (timeLimit>0.0f)
@@ -2998,19 +3268,19 @@ float CGameRules::GetRemainingGameTime() const
 //------------------------------------------------------------------------
 void CGameRules::SetRemainingGameTime(float seconds)
 {
-}
-//------------------------------------------------------------------------
-void CGameRules::ClearAllMigratingPlayers(void)
-{
-}
-//------------------------------------------------------------------------
-EntityId CGameRules::SetChannelForMigratingPlayer(const char* name, uint16 channelID)
-{
-	return 0;
-}
-//------------------------------------------------------------------------
-void CGameRules::StoreMigratingPlayer(IActor* pActor)
-{
+	if (!g_pGame->IsGameSessionHostMigrating() || !gEnv->bServer)
+	{
+		// This function should only ever be called as part of the host migration
+		// process, when the new server is being created
+		GameWarning("CGameRules::SetRemainingGameTime() should only be called by the new server during host migration");
+		return;
+	}
+
+	float currentTime = m_cachedServerTime.GetSeconds();
+	float timeLimit = MAX(m_timeLimit * 60.0f, currentTime + seconds);
+
+	// Set the start of the game at the appropriate point back in time...
+	m_gameStartedTime.SetSeconds(currentTime + seconds - timeLimit);
 }
 
 //------------------------------------------------------------------------
@@ -3117,9 +3387,8 @@ float CGameRules::GetRemainingStartTimer() const
 bool CGameRules::OnCollision(const SGameCollision& event)
 {
 	FUNCTION_PROFILER(GetISystem(), PROFILE_GAME);
-	// currently this function only calls server functions
-	// prevent unnecessary script callbacks on the client
-	if (!gEnv->bServer || !m_onCollisionFunc || IsDemoPlayback())
+
+	if (!m_onCollisionFunc || IsDemoPlayback())
 		return true; 
 
 	// filter out self-collisions
@@ -3474,7 +3743,7 @@ void CGameRules::CreateScriptExplosionInfo(SmartScriptTable &scriptExplosionInfo
 
 //------------------------------------------------------------------------
 
-void CGameRules::ShowScores(bool show)
+void CGameRules::EnableUpdateScores(bool show)
 {
 	//CallScript(m_script, "ShowScores", show);
 	m_pScript->CallMethod("ShowScores", show);
@@ -4215,4 +4484,81 @@ bool CGameRules::OnEndCutScene(IAnimSequence* pSeq)
 	m_cinematicInput.OnEndCutScene(pSeq->GetFlags());
 
 	return true;
+}
+
+//------------------------------------------------------------------------
+void CGameRules::AddEntityEventDoneListener( EntityId id )
+{
+	CRY_ASSERT(!stl::find(m_entityEventDoneListeners, id));
+	m_entityEventDoneListeners.push_back(id);
+	gEnv->pEntitySystem->AddEntityEventListener(id, ENTITY_EVENT_DONE, this);
+}
+
+//------------------------------------------------------------------------
+void CGameRules::RemoveEntityEventDoneListener( EntityId id )
+{
+	CRY_ASSERT(stl::find(m_entityEventDoneListeners, id));
+	stl::find_and_erase(m_entityEventDoneListeners, id);
+	gEnv->pEntitySystem->RemoveEntityEventListener(id, ENTITY_EVENT_DONE, this);
+}
+
+//------------------------------------------------------------------------
+void CGameRules::OnEntityEvent( IEntity *pEntity, SEntityEvent &event )
+{
+	if (!g_pGame || !g_pGame->GetGameRules())
+		return;
+
+	if (event.event == ENTITY_EVENT_DONE)
+	{
+		if (!gEnv->bServer)
+		{
+			CryLogAlways("[GameRules] OnEntityEvent ENTITY_EVENT_DONE %d(%s) GameRules %p", pEntity->GetId(), pEntity->GetName(), this);
+			//ClDoSetTeam(0, pEntity->GetId());
+			GetGameObject()->InvokeRMIWithDependentObject(ClSetTeam(), SetTeamParams(pEntity->GetId(), 0), eRMI_ToRemoteClients, pEntity->GetId());
+		}
+		else
+		{
+			SetTeam(0, pEntity->GetId());
+		}
+	}
+}
+
+//------------------------------------------------------------------------
+void CGameRules::ClearRemoveEntityEventListeners()
+{
+	int numEntities = m_entityEventDoneListeners.size();
+	for (int i = 0; i < numEntities; ++ i)
+	{
+		EntityId entityId = m_entityEventDoneListeners[i];
+		gEnv->pEntitySystem->RemoveEntityEventListener(entityId, ENTITY_EVENT_DONE, this);
+
+#if !defined(_RELEASE)
+		IEntity *pEntity = gEnv->pEntitySystem->GetEntity(entityId);
+		CryLogAlways("[GameRules] ClearRemoveEntityEventListeners RemoveEntityEventLister(%d(%s), ENTITY_EVENT_DONE, %p)", entityId, pEntity ? pEntity->GetName() : "null", this);
+#endif
+	}
+	m_entityEventDoneListeners.clear();
+}
+
+//------------------------------------------------------------------------
+bool CGameRules::IsRealActor(EntityId actorId) const
+{
+	if (g_pGame->GetHostMigrationState() == CGame::eHMS_NotMigrating)
+	{
+		return true;
+	}
+	else
+	{
+		// If we're host migrating, we may have 2 actors for the same person at this point.  Need to make sure we're the real one
+		IActor *pActor = g_pGame->GetIGameFramework()->GetIActorSystem()->GetActor(actorId);
+		if (pActor)
+		{
+			IActor *pChannelActor = g_pGame->GetGameRules()->GetActorByChannelId(pActor->GetChannelId());
+			if (pChannelActor == pActor)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 }

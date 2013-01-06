@@ -217,7 +217,7 @@ void CAmmoPickup::PickUp(EntityId pickerId, bool sound, bool select, bool keepHi
 			if(pSoundProxy)
 			{
 				//Execute sound at picker position
-				pSoundProxy->PlaySound(m_pickup_sound, pPicker->GetWorldPos(),FORWARD_DIRECTION, FLAG_SOUND_DEFAULT_3D, eSoundSemantic_Weapon);
+				pSoundProxy->PlaySound(m_pickup_sound, pPicker->GetWorldPos(),FORWARD_DIRECTION, FLAG_SOUND_DEFAULT_3D, 0, eSoundSemantic_Weapon);
 			}
 		}
 	}

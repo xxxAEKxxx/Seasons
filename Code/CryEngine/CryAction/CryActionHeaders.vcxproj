@@ -263,6 +263,8 @@
     <ClInclude Include="IViewSystem.h" />
     <ClInclude Include="IWeapon.h" />
     <ClInclude Include="IWorldQuery.h" />
+    <ClInclude Include="PlayerProfiles\PlayerProfile.h" />
+    <ClInclude Include="PlayerProfiles\PlayerProfileManager.h" />
     <ClInclude Include="VehicleSystem\VehicleModificationParams.h" />
     <ClInclude Include="VehicleSystem\VehicleParams.h" />
     <ClInclude Include="TestSystem\IGameStateRecorder.h" />

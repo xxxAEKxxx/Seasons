@@ -72,10 +72,13 @@ void CUIEntityDynTexTag::UnloadEventSystem()
 }
 
 ////////////////////////////////////////////////////////////////////////////
-void CUIEntityDynTexTag::UpdateView(const SViewParams &viewParams)
+void CUIEntityDynTexTag::OnUpdate(float fDeltaTime)
 {
+	const CCamera& cam = GetISystem()->GetViewCamera();
+	const Matrix34& camMat = cam.GetMatrix();
+
 	static const Quat rot90Deg = Quat::CreateRotationXYZ( Ang3(gf_PI * 0.5f, 0, 0) );
-	const Vec3 vSafeVec = viewParams.rotation.GetColumn1();
+	const Vec3 vSafeVec = camMat.GetColumn1();
 
 	for (TTags::iterator it = m_Tags.begin(); it != m_Tags.end(); ++it)
 	{
@@ -85,7 +88,7 @@ void CUIEntityDynTexTag::UpdateView(const SViewParams &viewParams)
 		{
 			const Vec3 offset = it->fLerp < 1 ? Vec3::CreateLerp(it->vOffset, it->vNewOffset, it->fLerp) : it->vOffset;
 			const Vec3& vPos = pOwner->GetWorldPos();
-			const Vec3 vFaceingPos = viewParams.position - vSafeVec * 1000.f;
+			const Vec3 vFaceingPos = camMat.GetTranslation() - vSafeVec * 1000.f;
 			const Vec3 vDir = (vPos - vFaceingPos).GetNormalizedSafe(vSafeVec);
 			const Vec3 vOffsetX = vDir.Cross(Vec3Constants<float>::fVec3_OneZ).GetNormalized() * offset.x;
 			const Vec3 vOffsetY = vDir * offset.y;
@@ -103,7 +106,7 @@ void CUIEntityDynTexTag::UpdateView(const SViewParams &viewParams)
 			if (it->fLerp < 1)
 			{
 				assert(it->fSpeed > 0);
-				it->fLerp += viewParams.frameTime * it->fSpeed;
+				it->fLerp += fDeltaTime * it->fSpeed;
 				it->vOffset = offset;
 			}
 		}

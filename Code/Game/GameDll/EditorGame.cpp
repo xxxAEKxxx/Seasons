@@ -57,8 +57,7 @@ void CEditorGame::ResetClient(IConsoleCmdArgs*)
 	if (value)
 	{
 		s_pEditorGame->ConfigureNetContext(true);
-		const char *pGameRulesName = GetGameRulesName();
-		s_pEditorGame->m_pGame->GetIGameFramework()->GetIGameRulesSystem()->CreateGameRules(pGameRulesName);
+		SetGameRules();
 	}
 	s_pEditorGame->EnablePlayer(value);
 	s_pEditorGame->HidePlayer(true);
@@ -80,8 +79,7 @@ void CEditorGame::ToggleMultiplayerGameRules()
 		pClass->LoadScript(true);
 	}
 
-	const char *pGameRulesName = GetGameRulesName();
-	s_pEditorGame->m_pGame->GetIGameFramework()->GetIGameRulesSystem()->CreateGameRules(pGameRulesName);
+	SetGameRules();
 
 	s_pEditorGame->EnablePlayer(value);
 	s_pEditorGame->HidePlayer(true);
@@ -145,7 +143,7 @@ bool CEditorGame::Init(ISystem *pSystem,IGameToEditorInterface *pGameToEditorInt
 	gEnv->bServer = true;
 	gEnv->bMultiplayer = false;
 
-#if !defined(XENON) && !defined(PS3)
+#if !defined(XENON) && !defined(PS3) && !defined(GRINGO)
 	gEnv->SetIsClient(true);
 #endif
 
@@ -342,8 +340,7 @@ void CEditorGame::OnBeforeLevelLoad()
 {
 	EnablePlayer(false);
 	ConfigureNetContext(true);
-	const char *pGameRulesName = GetGameRulesName();
-	m_pGame->GetIGameFramework()->GetIGameRulesSystem()->CreateGameRules(pGameRulesName);
+	SetGameRules();
 	m_pGame->GetIGameFramework()->GetILevelSystem()->OnLoadingStart(0);
 }
 
@@ -379,6 +376,8 @@ void CEditorGame::InitUIEnums(IGameToEditorInterface* pGTE)
 {
 	InitGlobalFileEnums(pGTE);
 	InitActionEnums(pGTE);
+	InitActionInputEnums(pGTE);
+	InitActionMapsEnums(pGTE);
 }
 
 void CEditorGame::InitGlobalFileEnums(IGameToEditorInterface* pGTE)
@@ -456,18 +455,110 @@ void CEditorGame::InitActionEnums(IGameToEditorInterface* pGTE)
 	}
 }
 
+void CEditorGame::InitActionMapsEnums(IGameToEditorInterface* pGTE)
+{
+	IActionMapManager* pAM = m_pGame->GetIGameFramework()->GetIActionMapManager();
+	IActionMapIteratorPtr iter = pAM->CreateActionMapIterator();
+	
+	const int numActionMaps = pAM->GetActionMapsCount();
+
+	if(numActionMaps == 0)
+		return;
+
+	const char** nameValueStrings = new const char*[numActionMaps];
+	int curEntryIndex = 0;
+	while (IActionMap* pMap = iter->Next())
+	{
+		nameValueStrings[curEntryIndex++] = pMap->GetName();
+
+		if (curEntryIndex > numActionMaps)
+		{
+			CryWarning(VALIDATOR_MODULE_GAME, VALIDATOR_WARNING, "[InitActionMapsEnums] Wrong number of Action Maps.");
+			break;
+		}
+	}
+
+	pGTE->SetUIEnums("action_maps", nameValueStrings, numActionMaps);
+
+	delete[] nameValueStrings;
+}
+
+void CEditorGame::InitActionInputEnums( IGameToEditorInterface* pGTE )
+{
+	CRY_ASSERT(pGTE);
+
+	IActionMapManager* pActionMapManager = g_pGame->GetIGameFramework()->GetIActionMapManager();
+	if (pActionMapManager)
+	{
+		struct SActionList : public IActionMapPopulateCallBack
+		{
+			explicit SActionList(int actionCount)
+				: m_maxNumNames(actionCount)
+				, m_nameCount(0)
+			{
+				m_allActionNames = new const char*[actionCount];
+			}
+
+			~SActionList()
+			{
+				SAFE_DELETE_ARRAY(m_allActionNames);
+			}
+
+			//IActionMapPopulateCallBack
+			virtual void AddActionName( const char* const pName )
+			{
+				assert(m_nameCount < m_maxNumNames);
+
+				if (m_nameCount < m_maxNumNames)
+				{
+					m_allActionNames[m_nameCount] = pName;
+					m_nameCount++;
+				}
+			}
+			//~IActionMapPopulateCallBack
+
+			const char** m_allActionNames;
+			int m_maxNumNames;
+			int m_nameCount;
+		};
+
+		int actionCount = pActionMapManager->GetActionsCount();
+		if (actionCount > 0)
+		{
+			SActionList actionList(actionCount);
+
+			pActionMapManager->EnumerateActions(&actionList);
+
+			pGTE->SetUIEnums("input_actions", actionList.m_allActionNames, actionList.m_nameCount);
+		}
+	}
+}
 
 IEquipmentSystemInterface* CEditorGame::GetIEquipmentSystemInterface()
 {
 	return m_pEquipmentSystemInterface;
 }
 
-const char * CEditorGame::GetGameRulesName()
+void CEditorGame::SetGameRules()
 {
-	const char *pGameRulesName = "SinglePlayer";
-	if (s_pEditorGame->m_bUsingMultiplayerGameRules)
+	IGameFramework* pGameFramework = g_pGame->GetIGameFramework();
+	IConsole* pConsole = gEnv->pConsole;
+
+	const char* szGameRules = NULL;
+
+	const char* szLevelName = pConsole->GetCVar("sv_map")->GetString();
+	ILevelInfo* pLevelInfo = pGameFramework->GetILevelSystem()->GetLevelInfo(szLevelName);
+	if (pLevelInfo)
 	{
-		pGameRulesName = "DeathMatch";
+		szGameRules = pLevelInfo->GetDefaultGameRules();
 	}
-	return pGameRulesName;
+
+	if (!szGameRules)
+	{
+		szGameRules = s_pEditorGame->m_bUsingMultiplayerGameRules ? "DeathMatch" : "SinglePlayer";
+	}
+
+	pGameFramework->GetIGameRulesSystem()->CreateGameRules(szGameRules);
+	
+	pConsole->GetCVar("sv_gamerules")->Set(szGameRules);
 }

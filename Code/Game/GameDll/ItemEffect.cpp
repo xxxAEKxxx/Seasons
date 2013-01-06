@@ -85,7 +85,7 @@ uint32 CItem::AttachEffect(int slot, uint32 id, bool attach, const char *effectN
 			tm.SetTranslation(offset);
 			pAttachment->AddBinding(pEffectAttachment);
 			pAttachment->SetAttRelativeDefault(QuatT(tm));
-			pEffectAttachment->CreateEffect(Matrix34(pAttachment->GetAttWorldAbsolute()));
+			pEffectAttachment->UpdateAttachment(pAttachment);
 			if (pEffectAttachment->GetEmitter())
 			{
 				if (prime)

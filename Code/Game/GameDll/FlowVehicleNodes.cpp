@@ -13,11 +13,13 @@ History:
 *************************************************************************/
 #include "StdAfx.h"
 #include "Game.h"
+#include "CryAction.h"
 #include "IVehicleSystem.h"
 #include "IFlowSystem.h"
 #include "Nodes/G2FlowBaseNode.h"
 #include "VehicleActionEntityAttachment.h"
 #include "GameCVars.h"
+#include "IItemSystem.h"
 
 class CVehicleActionEntityAttachment;
 
@@ -246,6 +248,540 @@ public:
 	}
 };
 
+//------------------------------------------------------------------------
+class CFlowPlayerVehicleGetSpeed
+	: public CFlowBaseNode<eNCT_Instanced>
+{
+public:
+
+	CFlowPlayerVehicleGetSpeed(SActivationInfo* pActivationInfo) {};
+	~CFlowPlayerVehicleGetSpeed() {}
+
+	enum InputPorts
+	{
+		eI_Activate = 0,
+	};
+
+	enum OutputPorts
+	{
+		eO_Speed = 0,
+	};
+
+	virtual void GetMemoryUsage(ICrySizer * s) const
+	{
+		s->Add(*this);
+	}
+
+	virtual IFlowNodePtr Clone( SActivationInfo *pActInfo )
+	{
+		return new CFlowPlayerVehicleGetSpeed(pActInfo);
+	}
+
+	virtual void GetConfiguration(SFlowNodeConfig& nodeConfig)
+	{
+		static const SInputPortConfig pInConfig[] = 
+		{
+			InputPortConfig_Void  ("Activate", _HELP("Activate")),
+			{0}
+		};
+			
+		static const SOutputPortConfig out_config[] = {
+			OutputPortConfig<float>( "Speed", "vehicle speed" ),
+			{0}
+		};
+
+		nodeConfig.sDescription = _HELP("Get speed of the players vehicle");
+		nodeConfig.pInputPorts = pInConfig;
+		nodeConfig.pOutputPorts = out_config;
+		nodeConfig.SetCategory(EFLN_ADVANCED);
+	}
+
+	virtual void ProcessEvent(EFlowEvent flowEvent, SActivationInfo* pActivationInfo)
+	{
+		if (flowEvent == eFE_Activate)
+		{
+			IActor* pActor = gEnv->pGameFramework->GetClientActor();
+			SVehicleStatus state;
+			if(pActor)
+			{
+				IVehicle* pVehicle = pActor->GetLinkedVehicle();
+				if(pVehicle)
+				{
+					state = pVehicle->GetStatus();
+				}
+			}
+			
+			ActivateOutput( pActivationInfo, eO_Speed, state.vel.len() );
+		}
+	}
+};
+
+//------------------------------------------------------------------------
+class CFlowNode_CameraThirdPersonAdjustment : public CFlowBaseNode<eNCT_Singleton>
+{
+public:
+	CFlowNode_CameraThirdPersonAdjustment( SActivationInfo * pActInfo ) 
+	{
+	};
+
+	virtual void GetMemoryUsage(ICrySizer * s) const
+	{
+		s->Add(*this);
+	}
+
+	enum EInputPorts
+	{
+		EIP_Enabled,
+		EIP_Disabled,
+		EIP_CamHeight,
+	};
+
+	virtual void GetConfiguration( SFlowNodeConfig &config )
+	{
+		static const SInputPortConfig in_config[] = {
+			InputPortConfig_AnyType( "Enabled",	"Enable Third Person Camera Adjustment" ),
+			InputPortConfig_AnyType( "Disabled","Disable Third Person Camera Adjustment" ),
+			InputPortConfig<float>( "Adjustment",	"Camera height adjustment" ),
+			{0}
+		};
+		config.pInputPorts = in_config;
+		config.SetCategory(EFLN_DEBUG);
+	}
+	virtual void ProcessEvent( EFlowEvent event,SActivationInfo *pActInfo )
+	{
+		switch (event)
+		{	
+			case eFE_Activate:
+			{
+				if (IsPortActive(pActInfo, EIP_Enabled) || IsPortActive(pActInfo, EIP_Disabled))
+				{
+					IGameFramework * pGF = gEnv->pGameFramework;
+
+					if(!pGF || !pGF->GetClientActor()->GetLinkedVehicle())
+						return;
+
+					EntityId playerVehicle = pGF->GetClientActor()->GetLinkedVehicle()->GetEntityId();
+					
+					if(IsPortActive(pActInfo,EIP_Enabled))
+					{
+						pGF->GetIVehicleSystem()->GetVehicle(playerVehicle)->SetCameraAdjustment(GetPortFloat(pActInfo,EIP_CamHeight));
+					}
+					else if(IsPortActive(pActInfo, EIP_Disabled))
+					{
+						pGF->GetIVehicleSystem()->GetVehicle(playerVehicle)->SetCameraAdjustment(0);
+					}
+				}
+			}
+			break;
+		}
+	}
+};
+
+//------------------------------------------------------------------------
+class CFlowPlayerVehicleToggleBoost : public CFlowBaseNode<eNCT_Instanced>
+{
+protected:
+	EntityId m_vehicleId;
+public:
+	CFlowPlayerVehicleToggleBoost( SActivationInfo * pActInfo ) 
+	{
+		m_vehicleId = 0;
+	};
+
+	virtual void GetMemoryUsage(ICrySizer * s) const
+	{
+		s->Add(*this);
+	}
+
+	enum EInputPorts
+	{
+		EIP_Enabled,
+		EIP_Disabled,
+	};
+
+	virtual void GetConfiguration( SFlowNodeConfig &config )
+	{
+		static const SInputPortConfig in_config[] = {
+			InputPortConfig_AnyType( "Enabled",	"Enable boosting on this vehicle" ),
+			InputPortConfig_AnyType( "Disabled","Disable boosting on this vehicle" ),
+			{0}
+		};
+
+		config.nFlags |= EFLN_TARGET_ENTITY;
+		config.pInputPorts = in_config;
+		config.SetCategory(EFLN_APPROVED);
+	}
+
+	IFlowNodePtr Clone( SActivationInfo * pActInfo )
+	{
+		return new CFlowPlayerVehicleToggleBoost(pActInfo);
+	}
+
+
+	virtual void ProcessEvent( EFlowEvent event,SActivationInfo *pActInfo )
+	{
+		switch (event)
+		{	
+		case eFE_SetEntityId:
+			{
+				if (IEntity* pEntity = pActInfo->pEntity)
+				{
+					IVehicleSystem* pVehicleSystem = gEnv->pGame->GetIGameFramework()->GetIVehicleSystem();
+					assert(pVehicleSystem);
+
+					if (IVehicle* pVehicle = pVehicleSystem->GetVehicle(pEntity->GetId()))
+						m_vehicleId = pEntity->GetId();
+				}
+				else
+				{
+					m_vehicleId = 0;
+				}
+			}
+			break;
+		case eFE_Activate:
+			{
+				if (IsPortActive(pActInfo, EIP_Enabled) || IsPortActive(pActInfo, EIP_Disabled))
+				{
+					IVehicleSystem* pVehicleSystem = gEnv->pGame->GetIGameFramework()->GetIVehicleSystem();
+					assert(pVehicleSystem);
+
+					IVehicle* pVehicle = pVehicleSystem->GetVehicle(m_vehicleId);
+					IVehicleMovement* pVehicleMovement = pVehicle->GetMovement();
+					
+					if(IsPortActive(pActInfo,EIP_Enabled))
+					{
+						pVehicleMovement->AllowBoosting(true);
+					}
+					else if(IsPortActive(pActInfo, EIP_Disabled))
+					{
+						pVehicleMovement->AllowBoosting(false);
+					}
+				}
+			}
+			break;
+		}
+	}
+};
+
+//////////////////////////////////////////////////////////////////////////
+class CFlowNode_VehicleDebugDraw : public CFlowBaseNode<eNCT_Instanced>
+{
+
+public:
+
+	enum EInputs 
+	{
+		IN_SHOW,
+		IN_SIZE,
+		IN_PARTS,
+	};
+
+	enum EOutputs 
+	{
+
+	};
+
+	CFlowNode_VehicleDebugDraw( SActivationInfo * pActInfo )
+	{
+
+	};
+
+	~CFlowNode_VehicleDebugDraw()
+	{
+
+	}
+	
+	IFlowNodePtr Clone( SActivationInfo * pActInfo )
+	{
+		return new CFlowNode_VehicleDebugDraw(pActInfo);
+	}
+	
+
+	virtual void GetMemoryUsage(ICrySizer * s) const
+	{
+		s->Add(*this);
+	}
+
+	virtual void GetConfiguration( SFlowNodeConfig &config )
+	{
+		static const SInputPortConfig in_config[] = 
+		{
+			InputPortConfig_Void   ( "Trigger", _HELP("show debug informations on screen") ),
+			InputPortConfig<float> ( "Size", 1.5f, _HELP("font size")),
+			InputPortConfig<string>( "vehicleParts_Parts", _HELP("select vehicle parts"), 0, _UICONFIG("ref_entity=entityId") ),
+			{0}
+		};
+
+		static const SOutputPortConfig out_config[] = 
+		{
+			{0}
+		};
+
+		config.nFlags |= EFLN_TARGET_ENTITY;
+		config.pInputPorts = in_config;
+		config.pOutputPorts = out_config;
+		config.SetCategory(EFLN_DEBUG);
+	}
+
+	string currentParam;
+	string currentSetting;
+
+	float column1;
+	float column2;
+	int loops;
+	
+	virtual void ProcessEvent( EFlowEvent event,SActivationInfo *pActInfo )
+	{
+		IVehicleSystem * pVehicleSystem = NULL;
+		IVehicle * pVehicle = NULL;
+
+		switch(event)
+		{
+			case eFE_Initialize:
+			{
+				pActInfo->pGraph->SetRegularlyUpdated(pActInfo->myID, false);
+				break;
+			}
+		
+			case eFE_Activate:
+			{
+				if (!pActInfo->pEntity)
+					return;
+
+				pVehicleSystem = gEnv->pGameFramework->GetIVehicleSystem();
+				pVehicle = pVehicleSystem->GetVehicle(pActInfo->pEntity->GetId());
+
+				if (!pVehicleSystem || !pVehicle)
+					return;
+
+				string givenString = GetPortString(pActInfo, IN_PARTS);
+				currentParam = givenString.substr(0,givenString.find_first_of(":"));
+				currentSetting = givenString.substr(givenString.find_first_of(":")+1,(givenString.length()-givenString.find_first_of(":")));
+
+				column1 = 10.f;
+				column2 = 100.f;
+
+				if (IsPortActive(pActInfo,IN_SHOW))
+					pActInfo->pGraph->SetRegularlyUpdated(pActInfo->myID, true);
+
+				break;
+			}
+		
+			case eFE_Update:
+			{
+				IRenderer * pRenderer = gEnv->pRenderer;
+
+				pVehicleSystem = gEnv->pGameFramework->GetIVehicleSystem();
+				pVehicle = pVehicleSystem->GetVehicle(pActInfo->pEntity->GetId());
+				
+				if(!pVehicleSystem || !pActInfo->pEntity || !pVehicle)
+					return;
+
+				pRenderer->Draw2dLabel(column1,10,GetPortFloat(pActInfo,IN_SIZE)+2.f,Col_Cyan,false,pActInfo->pEntity->GetName());
+
+				if(currentParam=="Seats")
+				{
+					loops = 0;
+
+					for(int i=0;i<pVehicle->GetSeatCount();i++)
+					{
+						IVehicleSeat * currentSeat;
+
+						if(currentSetting=="All")
+						{
+							currentSeat = pVehicle->GetSeatById(i+1);
+						}
+						else
+						{
+							currentSeat = pVehicle->GetSeatById(pVehicle->GetSeatId(currentSetting));
+							i = pVehicle->GetSeatCount()-1;
+						}
+
+						loops += 1;
+						
+						// column 1
+						string pMessage = ("%s:", currentSeat->GetSeatName());
+
+						if (column2<pMessage.size()*8*GetPortFloat(pActInfo, IN_SIZE))
+							column2=pMessage.size()*8*GetPortFloat(pActInfo, IN_SIZE);
+						
+						pRenderer->Draw2dLabel(column1,(15*(float(loops+1))*GetPortFloat(pActInfo,IN_SIZE)),GetPortFloat(pActInfo,IN_SIZE),Col_Cyan,false,pMessage);
+						
+						// column 2
+						if(currentSeat->GetPassenger(true))
+						{
+							pMessage = ("- %s", gEnv->pEntitySystem->GetEntity(currentSeat->GetPassenger(true))->GetName());
+							pRenderer->Draw2dLabel(column2,(15*(float(loops+1))*GetPortFloat(pActInfo,IN_SIZE)),GetPortFloat(pActInfo,IN_SIZE),Col_Cyan,false,pMessage);
+						}
+					}
+				}
+				
+				else if(currentParam=="Wheels")
+				{
+					pRenderer->Draw2dLabel(column1,50.f,GetPortFloat(pActInfo,IN_SIZE)+1.f,Col_Red,false,"!");
+				}
+
+				else if(currentParam=="Weapons")
+				{
+					loops = 0;
+
+					for(int i=0;i<pVehicle->GetWeaponCount();i++)
+					{
+						IItemSystem * pItemSystem = gEnv->pGameFramework->GetIItemSystem();
+						IWeapon * currentWeapon;
+						EntityId currentEntityId;
+						IItem * pItem;
+
+						if(currentSetting=="All")
+						{
+							currentEntityId = pVehicle->GetWeaponId(i+1);
+						}
+						else
+						{
+							currentEntityId = gEnv->pEntitySystem->FindEntityByName(currentSetting)->GetId();
+							i = pVehicle->GetWeaponCount()-1;
+						}
+
+						if(!pItemSystem->GetItem(currentEntityId))
+							return;
+						
+						pItem = pItemSystem->GetItem(currentEntityId);
+						currentWeapon = pItem->GetIWeapon();
+
+						loops += 1;
+
+						// column 1
+						string pMessageName = string().Format("%s", gEnv->pEntitySystem->GetEntity(currentEntityId)->GetName());
+						pRenderer->Draw2dLabel(column1,(15*(float(loops+1))*GetPortFloat(pActInfo,IN_SIZE)),GetPortFloat(pActInfo,IN_SIZE),Col_Cyan,false,pMessageName);
+
+						if (column2<pMessageName.size()*8*GetPortFloat(pActInfo, IN_SIZE))
+							column2=pMessageName.size()*8*GetPortFloat(pActInfo, IN_SIZE);
+
+						// column 2
+						string pMessageValue = string().Format("seat: %s firemode: %i", pVehicle->GetWeaponParentSeat(currentEntityId)->GetSeatName(), currentWeapon->GetCurrentFireMode()).c_str();
+						pRenderer->Draw2dLabel(column2,(15*(float(loops+1))*GetPortFloat(pActInfo,IN_SIZE)),GetPortFloat(pActInfo,IN_SIZE),Col_Cyan,false,pMessageValue);
+					}
+				}
+
+				else if(currentParam=="Components")
+				{
+					loops = 0;
+
+					for(int i=0;i<pVehicle->GetComponentCount();i++)
+					{
+						IVehicleComponent * currentComponent;
+
+						if(currentSetting=="All")
+						{
+							currentComponent = pVehicle->GetComponent(i);
+						}
+						else
+						{
+							currentComponent = pVehicle->GetComponent(currentSetting);
+							i = pVehicle->GetComponentCount()-1;
+						}
+
+						loops += 1;
+
+						ColorF labelColor;
+						labelColor = ColorF(currentComponent->GetDamageRatio(),(1.f-currentComponent->GetDamageRatio()),0.f);
+						
+						// column 1
+						string pMessageName = string().Format("%s", currentComponent->GetComponentName()).c_str();
+						pRenderer->Draw2dLabel(column1,(15*(float(loops+1))*GetPortFloat(pActInfo,IN_SIZE)),GetPortFloat(pActInfo,IN_SIZE),labelColor,false,pMessageName);
+
+						if (column2<pMessageName.size()*8*GetPortFloat(pActInfo, IN_SIZE))
+							column2=pMessageName.size()*8*GetPortFloat(pActInfo, IN_SIZE);
+
+						// column 2
+						string pMessageValue = string().Format("%5.2f (%3.2f)", currentComponent->GetDamageRatio()*currentComponent->GetMaxDamage(), currentComponent->GetDamageRatio()).c_str();
+						pRenderer->Draw2dLabel(column2,(15*(float(loops+1))*GetPortFloat(pActInfo,IN_SIZE)),GetPortFloat(pActInfo,IN_SIZE),labelColor,false,pMessageValue);
+					}
+				}
+
+				else
+				{
+					pRenderer->Draw2dLabel(column1,50.f,GetPortFloat(pActInfo,IN_SIZE)+1.f,Col_Red,false,"no component selected!");
+				}
+				break;
+			}
+		}
+	};
+};
+
+//------------------------------------------------------------------------
+class CFlowPlayerVehicleID
+	: public CFlowBaseNode<eNCT_Instanced>
+{
+public:
+
+	CFlowPlayerVehicleID(SActivationInfo* pActivationInfo) {};
+	~CFlowPlayerVehicleID() {}
+
+	enum InputPorts
+	{
+		eI_Get = 0,
+	};
+
+	enum OutputPorts
+	{
+		eO_Id = 0,
+	};
+
+	virtual void GetMemoryUsage(ICrySizer * s) const
+	{
+		s->Add(*this);
+	}
+
+	virtual IFlowNodePtr Clone( SActivationInfo *pActInfo )
+	{
+		return new CFlowPlayerVehicleID(pActInfo);
+	}
+
+	virtual void GetConfiguration(SFlowNodeConfig& nodeConfig)
+	{
+		static const SInputPortConfig pInConfig[] = 
+		{
+			InputPortConfig_Void  ("Get", _HELP("Get id")),
+			{0}
+		};
+
+		static const SOutputPortConfig out_config[] = {
+			OutputPortConfig<EntityId>( "Id", "vehicle id" ),
+			{0}
+		};
+
+		nodeConfig.sDescription = _HELP("Get id of the players vehicle");
+		nodeConfig.pInputPorts = pInConfig;
+		nodeConfig.pOutputPorts = out_config;
+		nodeConfig.SetCategory(EFLN_APPROVED);
+	}
+
+	virtual void ProcessEvent(EFlowEvent flowEvent, SActivationInfo* pActivationInfo)
+	{
+		if (flowEvent == eFE_Activate)
+		{
+			IActor* pActor = gEnv->pGameFramework->GetClientActor();
+			EntityId vehicleId;
+			if(pActor)
+			{
+				IVehicle* pVehicle = pActor->GetLinkedVehicle();
+				if(pVehicle)
+				{
+					vehicleId = pVehicle->GetEntityId();
+				}
+			}
+
+			ActivateOutput( pActivationInfo, eO_Id, vehicleId );
+		}
+	}
+};
 
 REGISTER_FLOW_NODE("Vehicle:EntityAttachment", CFlowVehicleEntityAttachment);
 REGISTER_FLOW_NODE("Game:SetVehicleAltitudeLimit", CFlowVehicleSetAltitudeLimit);
+REGISTER_FLOW_NODE("Game:GetPlayerVehicleSpeed", CFlowPlayerVehicleGetSpeed);
+REGISTER_FLOW_NODE("Game:LocalPlayerVehicleID", CFlowPlayerVehicleID);
+REGISTER_FLOW_NODE("Vehicle:ToggleBoost", CFlowPlayerVehicleToggleBoost);
+
+REGISTER_FLOW_NODE( "Vehicle:ThirdPersonCameraAdjustment", CFlowNode_CameraThirdPersonAdjustment );
+REGISTER_FLOW_NODE( "Vehicle:DebugDraw", CFlowNode_VehicleDebugDraw );

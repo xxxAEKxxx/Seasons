@@ -1698,64 +1698,71 @@ Vec3 CSingle::GetFireHelperDir() const
 
 namespace
 {
-  IPhysicalEntity* GetSkipPhysics(IEntity* pEntity)
-  {
-    IPhysicalEntity* pPhysics = pEntity->GetPhysics();    
-    if (pPhysics && pPhysics->GetType() == PE_LIVING)
-    {
-      if (ICharacterInstance* pCharacter = pEntity->GetCharacter(0)) 
-      {
-        if (IPhysicalEntity* pCharPhys = pCharacter->GetISkeletonPose()->GetCharacterPhysics())
-          pPhysics = pCharPhys;
-      }
-    }    
-    return pPhysics;
-  }
+	int AddSkipPhysics(IEntity* pEntity, IPhysicalEntity** pSkipEnts, int nMaxSkip, int nSkip)
+	{
+		if (pEntity)
+		{
+			IPhysicalEntity* pPhysics = pEntity->GetPhysics();
+			if (nSkip < nMaxSkip)
+			{
+				pSkipEnts[nSkip++] = pPhysics;
+			}
+
+			if (nSkip < nMaxSkip)
+			{
+				if (pPhysics && pPhysics->GetType() == PE_LIVING)
+				{
+					if (ICharacterInstance* pCharacter = pEntity->GetCharacter(0)) 
+					{
+						if (IPhysicalEntity* pCharPhys = pCharacter->GetISkeletonPose()->GetCharacterPhysics())
+							pSkipEnts[nSkip++] = pCharPhys;
+					}
+				}    
+			}
+		}
+		return nSkip;
+	}
 }
 
 //------------------------------------------------------------------------
 int CSingle::GetSkipEntities(CWeapon* pWeapon, IPhysicalEntity** pSkipEnts, int nMaxSkip)
 {
-  int nSkip = 0;
-  
-  if (CActor *pActor = pWeapon->GetOwnerActor())  
-  { 
-    if (IVehicle* pVehicle = pActor->GetLinkedVehicle())
-    {
-			if(nSkip < nMaxSkip)
-				if (IPhysicalEntity* pPhysics = GetSkipPhysics(pActor->GetEntity()))
+	int nSkip = 0;
+
+	if (CActor *pActor = pWeapon->GetOwnerActor())  
+	{ 
+		if (IVehicle* pVehicle = pActor->GetLinkedVehicle())
+		{
+			nSkip = AddSkipPhysics(pActor->GetEntity(), pSkipEnts, nMaxSkip, nSkip);
+
+			// skip vehicle and all child entities
+			IEntity* pVehicleEntity = pVehicle->GetEntity();
+
+			if (nSkip < nMaxSkip)
+				pSkipEnts[nSkip++] = pVehicleEntity->GetPhysics();
+
+			int count = pVehicleEntity->GetChildCount(); 
+			for (int i=0; i<count&&nSkip<nMaxSkip; ++i)
+			{
+				nSkip = AddSkipPhysics(pVehicleEntity->GetChild(i), pSkipEnts, nMaxSkip, nSkip);
+			}
+		}
+		else
+		{
+			nSkip = AddSkipPhysics(pActor->GetEntity(), pSkipEnts, nMaxSkip, nSkip);
+
+			if (nSkip < nMaxSkip)
+			{
+				if (IPhysicalEntity* pPhysics = pWeapon->GetEntity()->GetPhysics())
 					pSkipEnts[nSkip++] = pPhysics;
+			}
+		}
+	}  
 
-      // skip vehicle and all child entities
-      IEntity* pVehicleEntity = pVehicle->GetEntity();
-      
-      if (nSkip < nMaxSkip)
-        pSkipEnts[nSkip++] = pVehicleEntity->GetPhysics();
+	// If this ASSERT fires, it means the passed skip array was too small.  Try increasing it.
+	CRY_ASSERT_MESSAGE(nSkip < nMaxSkip, "out of space in Skip Entities array");
 
-      int count = pVehicleEntity->GetChildCount(); 
-      for (int c=0; c<count&&nSkip<nMaxSkip; ++c)
-      {
-        if (IPhysicalEntity* pPhysics = GetSkipPhysics(pVehicleEntity->GetChild(c)))        
-          pSkipEnts[nSkip++] = pPhysics;        
-      }
-    }
-    else
-    {
-      if (nSkip < nMaxSkip)
-      {
-				if (IPhysicalEntity* pPhysics = GetSkipPhysics(pActor->GetEntity()))
-					pSkipEnts[nSkip++] = pPhysics;
-      }
-
-      if (nSkip < nMaxSkip)
-      {
-        if (IPhysicalEntity* pPhysics = pWeapon->GetEntity()->GetPhysics())
-          pSkipEnts[nSkip++] = pPhysics;
-      }
-    }
-  }  
-
-  return nSkip;
+	return nSkip;
 }
 
 //------------------------------------------------------------------------

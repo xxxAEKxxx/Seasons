@@ -120,7 +120,9 @@ void CRapid::Update(float frameTime, uint32 frameId)
 
 	if (m_speed <= 0.0f && m_acceleration < 0.0001f)
 	{
-		FinishDeceleration();
+		if(m_decelerating)
+			FinishDeceleration();
+
 		return;
 	}
 

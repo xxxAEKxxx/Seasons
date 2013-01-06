@@ -626,8 +626,28 @@ private:
 		IZoomMode* pZoomMode = pWeapon ? pWeapon->GetZoomMode(iZoomMode) : NULL;
 		IEntity* pWeaponEntity = pWeapon ? pWeapon->GetEntity() : NULL;
 
+		string vehicleWeapon = "";
+		
+		// is player in vehicle, gunner seat, first person? -> enable crosshair if available (check HUD2D.gfx)
+		if(gEnv->pGameFramework)
+		{
+			CPlayer * pPlayer = RetrPlayer(m_entityId);
+
+			if(pPlayer)
+			{
+				IVehicle* pVehicle  = pPlayer->GetLinkedVehicle();
+				SVehicleWeaponInfo weaponInfo;
+
+				if (pVehicle && pVehicle->GetCurrentWeaponInfo(weaponInfo, pPlayer->GetEntityId(), false))
+				{
+					if(weaponInfo.bCanFire && !pPlayer->IsThirdPerson())
+						vehicleWeapon = pVehicle->GetEntity()->GetClass()->GetName();
+				}
+			}
+		}
+
 		ActivateOutput(&m_actInfo,EOP_WEAPONID, pWeaponEntity ? pWeaponEntity->GetId() : 0);
-		ActivateOutput(&m_actInfo,EOP_WEAPONNAME, pWeaponEntity ? string(pWeaponEntity->GetClass()->GetName()) : string(""));
+		ActivateOutput(&m_actInfo,EOP_WEAPONNAME, pWeaponEntity ? string(pWeaponEntity->GetClass()->GetName()) : vehicleWeapon);
 		ActivateOutput(&m_actInfo,EOP_ISMELEE,  pFireMode ? pFireMode->GetClipSize() == 0 ? true : false : true);
 
 		ActivateOutput(&m_actInfo,EOP_AMMOTYPE, iFireMode);
@@ -907,6 +927,7 @@ public:
 				{
 					pCVar->Set(m_storedFOV);
 					m_storedFOV = 0.0f;
+					ActivateOutput(pActInfo, EOP_ResetDone, true);
 				}
 			}
 			break;

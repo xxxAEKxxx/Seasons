@@ -78,6 +78,7 @@ void CChickenFlock::OnAIEvent(EAIStimulusType type, const Vec3& pos, float radiu
 //////////////////////////////////////////////////////////////////////////
 CChickenBoid::CChickenBoid( SBoidContext &bc )
 : CBoidBird( bc )
+, m_lastRayCastFrame(0)
 {
 	m_maxIdleTime = 2.0f + cry_frand()*MAX_REST_TIME;
 	m_maxNonIdleTime = cry_frand()*MAX_WALK_TIME;
@@ -408,8 +409,8 @@ void CChickenBoid::Think( float dt,SBoidContext &bc )
 	}
 	//////////////////////////////////////////////////////////////////////////
 
-
-	if (bc.avoidObstacles)
+	const int frameID = gEnv->pRenderer->GetFrameID();
+	if (bc.avoidObstacles && m_speed > 0.0f && (frameID-m_lastRayCastFrame) > 3)
 	{
 		// Avoid obstacles & terrain.
 		IPhysicalWorld *physWorld = bc.physics;
@@ -438,6 +439,8 @@ void CChickenBoid::Think( float dt,SBoidContext &bc )
 			Vec3 accel = R*w*bc.factorAvoidLand * fCollisionAvoidanceWeight;
 			m_avoidanceAccel = m_avoidanceAccel*bc.fSmoothFactor + accel*(1.0f-bc.fSmoothFactor);
 		}
+
+		m_lastRayCastFrame = frameID;
 	}
 
 	m_accel += m_avoidanceAccel;

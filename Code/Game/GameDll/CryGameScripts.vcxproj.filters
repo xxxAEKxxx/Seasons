@@ -10,9 +10,6 @@
     <Filter Include="Scripts\AI\SelectionTrees">
       <UniqueIdentifier>{2420d74e-bdbc-4a4b-833a-524baae807ad}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Scripts\AI\SelectionTrees\Group">
-      <UniqueIdentifier>{233583bb-3e8d-4771-8983-8fee2d7b86bf}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Scripts\AI\Coordination">
       <UniqueIdentifier>{fdb96984-6a5e-44a7-83e4-69db89dad5ab}</UniqueIdentifier>
     </Filter>
@@ -262,6 +259,12 @@
     <Filter Include="Scripts\Utils">
       <UniqueIdentifier>{aac1c728-2cb5-4fd8-a208-7091895225f3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scripts\AI\Behaviors\Personalities\Racer">
+      <UniqueIdentifier>{5711775c-544f-4a3d-8e77-594ff6293099}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scripts\AI\Behaviors\Personalities\RacingCar">
+      <UniqueIdentifier>{79dab9a2-3de8-468c-9c4c-7050f8b1db21}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\Game\Scripts\common.lua">
@@ -315,9 +318,6 @@
     <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\Civilian.xml">
       <Filter>Scripts\AI\SelectionTrees</Filter>
     </None>
-    <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\Common.xml">
-      <Filter>Scripts\AI\SelectionTrees</Filter>
-    </None>
     <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\Cover2ST.xml">
       <Filter>Scripts\AI\SelectionTrees</Filter>
     </None>
@@ -329,9 +329,6 @@
     </None>
     <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\FogOfWar.xml">
       <Filter>Scripts\AI\SelectionTrees</Filter>
-    </None>
-    <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\Group\Group.xml">
-      <Filter>Scripts\AI\SelectionTrees\Group</Filter>
     </None>
     <None Include="..\..\..\Game\Scripts\AI\Coordination\Coordination.lua">
       <Filter>Scripts\AI\Coordination</Filter>
@@ -847,9 +844,6 @@
       <Filter>Scripts\Entities\AI</Filter>
     </None>
     <None Include="..\..\..\Game\Scripts\Entities\AI\AIAnchor.lua">
-      <Filter>Scripts\Entities\AI</Filter>
-    </None>
-    <None Include="..\..\..\Game\Scripts\Entities\AI\AIReinforcementSpot.lua">
       <Filter>Scripts\Entities\AI</Filter>
     </None>
     <None Include="..\..\..\Game\Scripts\Entities\AI\AISpawner.lua">
@@ -1401,9 +1395,6 @@
     <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\Abrams.lua">
       <Filter>Scripts\Entities\Vehicles\Implementations</Filter>
     </None>
-    <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\Abrams_MP.lua">
-      <Filter>Scripts\Entities\Vehicles\Implementations</Filter>
-    </None>
     <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\HMMWV.lua">
       <Filter>Scripts\Entities\Vehicles\Implementations</Filter>
     </None>
@@ -1414,9 +1405,6 @@
       <Filter>Scripts\Entities\Vehicles\Implementations</Filter>
     </None>
     <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\Xml\Abrams.xml">
-      <Filter>Scripts\Entities\Vehicles\Implementations\Xml</Filter>
-    </None>
-    <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\Xml\Abrams_MP.xml">
       <Filter>Scripts\Entities\Vehicles\Implementations\Xml</Filter>
     </None>
     <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\Xml\EmptyVehicle.xml">
@@ -1628,6 +1616,30 @@
     </None>
     <None Include="..\..\..\Game\Scripts\Entities\AI\NavigationSeedPoint.lua">
       <Filter>Scripts\Entities\AI</Filter>
+    </None>
+    <None Include="..\..\..\Game\Scripts\GameRules\Racing.lua">
+      <Filter>Scripts\GameRules</Filter>
+    </None>
+    <None Include="..\..\..\Game\Scripts\Network\cvars.txt">
+      <Filter>Scripts\Network</Filter>
+    </None>
+    <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\Racer.xml">
+      <Filter>Scripts\AI\SelectionTrees</Filter>
+    </None>
+    <None Include="..\..\..\Game\Scripts\AI\Behaviors\Personalities\Racer\RacerIdle.lua">
+      <Filter>Scripts\AI\Behaviors\Personalities\Racer</Filter>
+    </None>
+    <None Include="..\..\..\Game\Scripts\AI\Behaviors\Personalities\Racer\RacerRacing.lua">
+      <Filter>Scripts\AI\Behaviors\Personalities\Racer</Filter>
+    </None>
+    <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\RacingCar.xml">
+      <Filter>Scripts\AI\SelectionTrees</Filter>
+    </None>
+    <None Include="..\..\..\Game\Scripts\AI\Behaviors\Personalities\RacingCar\RacingCarIdle.lua">
+      <Filter>Scripts\AI\Behaviors\Personalities\RacingCar</Filter>
+    </None>
+    <None Include="..\..\..\Game\Scripts\AI\Behaviors\Personalities\RacingCar\RacingCarRacing.lua">
+      <Filter>Scripts\AI\Behaviors\Personalities\RacingCar</Filter>
     </None>
   </ItemGroup>
 </Project>

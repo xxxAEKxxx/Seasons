@@ -720,7 +720,7 @@ tSoundID CItem::PlayAction(const ItemString& actionName, int layer, bool loop, u
 
 			if (!g_pGameCVars->i_staticfiresounds)
 			{
-				result = pSoundProxy->PlaySoundEx(name, vOffset, FORWARD_DIRECTION, nSoundFlags, 1.0f, 0, 0, eSoundSemantic_Weapon, pSkipEnts, nSkipEnts);
+				result = pSoundProxy->PlaySoundEx(name, vOffset, FORWARD_DIRECTION, nSoundFlags, 0, 1.0f, 0, 0, eSoundSemantic_Weapon, pSkipEnts, nSkipEnts);
 				ISound *pSound = pSoundProxy->GetSound(result);
 
 				if (pSound && action.sound[sid].sphere>0.0f)
@@ -747,7 +747,7 @@ tSoundID CItem::PlayAction(const ItemString& actionName, int layer, bool loop, u
 
 				if (!pInstanceAudio || pInstanceAudio->id == INVALID_SOUNDID)
 				{
-          result = pSoundProxy->PlaySoundEx(name, vOffset, FORWARD_DIRECTION, nSoundFlags, 1.0f, 0, 0, eSoundSemantic_Weapon, pSkipEnts, nSkipEnts);
+          result = pSoundProxy->PlaySoundEx(name, vOffset, FORWARD_DIRECTION, nSoundFlags, 0, 1.0f, 0, 0, eSoundSemantic_Weapon, pSkipEnts, nSkipEnts);
 					ISound *pSound = pSoundProxy->GetSound(result);
 					
 					if (pSound && action.sound[sid].sphere>0.0f)

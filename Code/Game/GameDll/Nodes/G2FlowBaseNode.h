@@ -299,12 +299,13 @@ protected:
 
 	// returns the actor associated with the input entity. In single player, it returns the local player if that actor does not exists.
 	IActor* GetInputActor( const SActivationInfo* const pActInfo ) const
-	{
-		IActor* pActor = gEnv->pGame->GetIGameFramework()->GetIActorSystem()->GetActor( pActInfo->pEntity->GetId() );
+  {
+		IActor* pActor = pActInfo->pEntity ? gEnv->pGame->GetIGameFramework()->GetIActorSystem()->GetActor( pActInfo->pEntity->GetId() ) : NULL;
 		if (!pActor && !gEnv->bMultiplayer)
-			pActor = gEnv->pGame->GetIGameFramework()->GetClientActor();
-		return pActor;
-	}
+      pActor = gEnv->pGame->GetIGameFramework()->GetClientActor();
+      
+    return pActor;
+  }
 
 
 private:

@@ -35,6 +35,12 @@ History:
 
 #include "HitDeathReactions.h"
 
+#include "Network/Lobby/GameLobby.h"
+
+#include "PlayerMovementController.h"
+
+#include <MonoCommon.h>
+
 //------------------------------------------------------------------------
 void CGameRules::ClientSimpleHit(const SimpleHitInfo &simpleHitInfo)
 {
@@ -58,7 +64,8 @@ void CGameRules::ClientHit(const HitInfo &hitInfo)
 	if(pActor == pClientActor)
 		if (gEnv->pInput) gEnv->pInput->ForceFeedbackEvent( SFFOutputEvent(eDI_XI, eFF_Rumble_Basic, 0.5f * hitInfo.damage * 0.01f, hitInfo.damage * 0.02f, 0.0f));
 
-	//m_pScript->CallMethod( "OnHit", gEnv->pMonoScriptSystem->GetConverter()->ToManagedType(eCMT_HitInfo, &const_cast<HitInfo &>(hitInfo)));
+	CreateScriptHitInfo(m_scriptHitInfo, hitInfo);
+	CallScript(m_clientStateScript, "OnHit", m_scriptHitInfo);
 
 	bool backface = hitInfo.dir.Dot(hitInfo.normal)>0;
 	if (!hitInfo.remote && hitInfo.targetId && !backface)
@@ -196,7 +203,22 @@ void CGameRules::ProcessServerHit(const HitInfo &hitInfo)
 		}
 
 		CreateScriptHitInfo(m_scriptHitInfo, hitInfo);
-		//CallMonoScript<void>(m_pScriptClass, "OnHit", gEnv->pMonoScriptSystem->GetConverter()->ToManagedType(eCMT_HitInfo, &const_cast<HitInfo &>(hitInfo)));
+
+		// ported from Lua
+		if(pTarget)
+		{
+			if(!pTarget->IsDead() && pTarget->GetSpectatorMode() == 0)
+			{
+				// target.OnHit
+				float health = pTarget->GetHealth();
+				health = floorf(health - hitInfo.damage);
+
+				pTarget->SetHealth(health);
+
+				//if(pTarget->IsDead())
+					//pTarget->RagDollize(false);
+			}
+		}
 
 		if(pTarget && !pTarget->IsDead())
 		{
@@ -685,6 +707,12 @@ void CGameRules::ProcessClientExplosionScreenFX(const ExplosionInfo &explosionIn
 }
 
 //---------------------------------------------------
+void CGameRules::UpdateScoreBoardItem(EntityId id, const string name, int kills, int deaths)
+{
+	NOTIFY_UI_MP( UpdateScoreBoardItem(id, name, kills, deaths) );
+}
+
+//---------------------------------------------------
 void CGameRules::ProcessExplosionMaterialFX(const ExplosionInfo &explosionInfo)
 {
 	// if an effect was specified, don't use MFX
@@ -902,7 +930,7 @@ IMPLEMENT_RMI(CGameRules, ClSetTeam)
 			m_pRadio->SetTeam(GetTeamName(params.teamId));
 	}
 
-	m_pScript->CallMethod( "OnSetTeam", params.entityId, params.teamId);
+	m_pScript->CallMethod("OnSetTeam", params.entityId, params.teamId);
 
 	return true;
 }
@@ -1156,18 +1184,90 @@ IMPLEMENT_RMI(CGameRules, ClVotingStatus)
 
 IMPLEMENT_RMI(CGameRules, ClEnteredGame)
 {
-	if(!gEnv->bServer && m_pGameFramework->GetClientActor())
+	CPlayer *pClientActor = static_cast<CPlayer*>(m_pGameFramework->GetClientActor());
+
+	if (pClientActor)
 	{
-		CActor* pActor = GetActorByChannelId(m_pGameFramework->GetClientActor()->GetChannelId());
-		if(pActor)
+		IEntity *pClientEntity = pClientActor->GetEntity();
+		const EntityId clientEntityId = pClientEntity->GetId();
+
+		if(!gEnv->bServer)
 		{
 			int status[2];
-			status[0] = GetTeam(pActor->GetEntityId());
-			status[1] = pActor->GetSpectatorMode();
-			m_pGameplayRecorder->Event(pActor->GetEntity(), GameplayEvent(eGE_Connected, 0, 0, (void*)status));
+			status[0] = GetTeam(clientEntityId);
+			status[1] = pClientActor->GetSpectatorMode();
+			m_pGameplayRecorder->Event(pClientEntity, GameplayEvent(eGE_Connected, 0, 0, (void*)status));
+		}
+
+		if (g_pGame->GetHostMigrationState() != CGame::eHMS_NotMigrating)
+		{
+			eHostMigrationState hostMigrationState = g_pGame->GetGameLobby()->GetMatchMakingHostMigrationState();
+			if (hostMigrationState < eHMS_ReconnectClient)
+			{
+				CryLog("CGameRules::ClEnteredGame() received a left over message from previous server, ignoring it");
+				return true;
+			}
+
+			CryLog("CGameRules::ClEnteredGame() We have our client actor ('%s'), send migration params", pClientEntity->GetName());
+
+			// Request various bits
+			GetGameObject()->InvokeRMI(SvHostMigrationRequestSetup(), *m_pHostMigrationParams, eRMI_ToServer);
+			SAFE_DELETE(m_pHostMigrationParams);
+
+			pClientActor->GetEntity()->SetPos(m_pHostMigrationClientParams->m_position);
+			pClientActor->SetViewRotation(m_pHostMigrationClientParams->m_viewQuat);
+
+			if (m_pHostMigrationClientParams->m_hasValidVelocity)
+			{
+				pe_action_set_velocity actionVel;
+				actionVel.v = m_pHostMigrationClientParams->m_velocity;
+				actionVel.w.zero();
+				IPhysicalEntity *pPhysicalEntity = pClientEntity->GetPhysics();
+				if (pPhysicalEntity)
+				{
+					pPhysicalEntity->Action(&actionVel);
+				}
+			}
+
+			CPlayerMovementController *pPMC = static_cast<CPlayerMovementController *>(pClientActor->GetMovementController());
+			if (pPMC)
+			{
+				// Force an update through so that the aim direction gets set correctly
+				pPMC->PostUpdate(0.f);
+			}
+
+			if (m_pHostMigrationClientParams->m_pSelectedItemClass)
+			{
+				CItem *pItem = pClientActor->GetItemByClass(m_pHostMigrationClientParams->m_pSelectedItemClass);
+				if (pItem)
+				{
+					EntityId itemId = pItem->GetEntityId();
+					if (pClientActor->GetCurrentItemId() != itemId)
+					{
+						pClientActor->SelectItem(itemId, false);
+					}
+				}
+			}
+
+			m_pHostMigrationClientParams->m_doneEnteredGame = true;
+			if (m_pHostMigrationClientParams->IsDone())
+			{
+				SAFE_DELETE(m_pHostMigrationClientParams);
+			}
+
+			if (!gEnv->bServer)
+			{
+				// todo: ui
+			}
+
+			m_hostMigrationClientHasRejoined = true;
+		}
+		else
+		{
 			NOTIFY_UI_MP( EnteredGame() );
 		}
 	}
+
 	return true;
 }
 

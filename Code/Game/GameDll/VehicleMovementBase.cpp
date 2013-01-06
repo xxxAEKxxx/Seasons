@@ -553,7 +553,7 @@ void CVehicleMovementBase::Update(const float deltaTime)
 	{
 		if(!m_pVehicle->IsPlayerDriving(true))
 		{
-			if(m_boost != m_wasBoosting)
+			if(m_boost != m_wasBoosting && m_allowBoosting)
 				Boost(m_boost);
 		}
 		m_wasBoosting = m_boost;
@@ -950,17 +950,21 @@ void CVehicleMovementBase::OnAction(const TVehicleActionId actionId, int activat
 		m_movementAction.rotateYaw = value;
 
 	else if (actionId == eVAI_Brake)
-		m_movementAction.brake = (value > 0.0f);  
+		m_movementAction.brake = (value > 0.0f);
 
 	else if (actionId == eVAI_Boost)
 	{ 
-		if (!Boosting() && activationMode == eAAM_OnPress)
+		if (!Boosting() && activationMode == eAAM_OnPress && m_allowBoosting)
 			Boost(true);    
 		else if (activationMode == eAAM_OnRelease)
 			Boost(false);   
 	}
 
-	if(fabs(m_movementAction.power) > FLT_EPSILON || fabs(m_movementAction.rotateYaw) > FLT_EPSILON)
+	if ((fabs(m_movementAction.power) > FLT_EPSILON)
+		|| (fabs(m_movementAction.rotateYaw) > FLT_EPSILON)
+		|| (actionId == eVAI_Brake)
+		|| (actionId == eVAI_Boost)
+		|| (actionId == eVAI_MoveBack))
 	{
 		m_pVehicle->NeedsUpdate(IVehicle::eVUF_AwakePhysics, true);
 	}
@@ -1115,7 +1119,7 @@ void CVehicleMovementBase::UpdateGravity(float grav)
 //------------------------------------------------------------------------
 void CVehicleMovementBase::UpdateBoost(const float deltaTime)
 { 
-	if (m_boost)
+	if (m_boost && m_allowBoosting)
 	{
 		m_boostCounter = max(0.f, m_boostCounter - deltaTime/m_boostEndurance);
 
@@ -1308,7 +1312,7 @@ ISound* CVehicleMovementBase::PlaySound(EVehicleMovementSound eSID, float pulse,
 		const string& soundName = GetSoundName(eSID);
 
 		if (!soundName.empty())
-			m_soundStats.sounds[eSID] = m_pEntitySoundsProxy->PlaySound(soundName.c_str(), offset, Vec3Constants<float>::fVec3_OneY, nSoundFlags, eSoundSemantic_Vehicle);
+			m_soundStats.sounds[eSID] = m_pEntitySoundsProxy->PlaySound(soundName.c_str(), offset, Vec3Constants<float>::fVec3_OneY, nSoundFlags, 0, eSoundSemantic_Vehicle);
 
 		m_soundStats.lastPlayed[eSID] = currTime;
 
@@ -1659,7 +1663,7 @@ void CVehicleMovementBase::UpdateExhaust(const float deltaTime)
 				info.pParticleEmitter->SetSpawnParams(sp);
 			}      
 
-			if (Boosting() && m_pEntity->GetSlotInfo(it->boostSlot, info) && info.pParticleEmitter)
+			if (Boosting() && m_pEntity->GetSlotInfo(it->boostSlot, info) && info.pParticleEmitter && m_allowBoosting)
 			{ 
 				m_pVehicle->GetEntity()->SetSlotLocalTM(it->boostSlot, slotTM);
 				info.pParticleEmitter->SetSpawnParams(sp);
@@ -2248,6 +2252,13 @@ void CVehicleMovementBase::DebugDraw(const float deltaTime)
 			if (pSound->GetParam("surface", &val, false) != -1)
 				gEnv->pRenderer->Draw2dLabel(500.0f,y+=step,size,color,false,":slip surface: %.2f", val);
 		}
+		else
+		{
+			// making the slip sound a static debug
+			gEnv->pRenderer->Draw2dLabel(500.0f,y+=step,size,color,false,"-----------------------------");
+			gEnv->pRenderer->Draw2dLabel(500.0f,y+=step,size,color,false,":slip slip_speed: 0.0");
+			gEnv->pRenderer->Draw2dLabel(500.0f,y+=step,size,color,false,":slip surface: 0.0");
+		}
 
 		if (ISound* pSound = GetSound(eSID_Bump))
 		{ 
@@ -2255,6 +2266,12 @@ void CVehicleMovementBase::DebugDraw(const float deltaTime)
 
 			if (pSound->GetParam("intensity", &val, false) != -1)
 				gEnv->pRenderer->Draw2dLabel(500.0f,y+=step,size,color,false,":bump intensity: %.2f", val);
+		}
+		else
+		{
+			// making the bump sound a static debug
+			gEnv->pRenderer->Draw2dLabel(500.0f,y+=step,size,color,false,"-----------------------------");
+			gEnv->pRenderer->Draw2dLabel(500.0f,y+=step,size,color,false,":bump intensity: 0.0");
 		}
 
 		if (ISound* pSound = GetSound(eSID_Splash))

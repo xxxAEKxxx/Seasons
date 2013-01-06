@@ -21,40 +21,35 @@ History:
 #include "VehicleMovementBase.h"
 
 
+class CVehicleMovementArcadeWheeled;
+class CNetworkMovementArcadeWheeled
+{
+public:
+	CNetworkMovementArcadeWheeled();
+	CNetworkMovementArcadeWheeled(CVehicleMovementArcadeWheeled* pMovement);
 
+	typedef CVehicleMovementArcadeWheeled* UpdateObjectSink;
 
+	bool operator==(const CNetworkMovementArcadeWheeled& rhs)
+	{
+		return (abs(m_pedal - rhs.m_pedal) < 0.001f) && (m_brake == rhs.m_brake) && (m_boost == rhs.m_boost);
+	}
 
+	bool operator!=(const CNetworkMovementArcadeWheeled& rhs)
+	{
+		return !this->operator==(rhs);
+	}
 
+	void UpdateObject(CVehicleMovementArcadeWheeled* pMovement);
+	void Serialize(TSerialize ser, EEntityAspects aspects);
 
+	static const NetworkAspectType CONTROLLED_ASPECT = eEA_GameClientDynamic;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+private:
+	float m_pedal;	// Show white reverse movement lights
+	bool m_brake;		// Show red brake lights
+	bool m_boost;		// Show boost
+};
 
 
 /*
@@ -64,24 +59,24 @@ struct SVehicleWheel
 {
 	inline SVehicleWheel()
 	{
-		offset					= Vec3(0.0f, 0.0f, 0.0f);
-		frictionDir[0]	= Vec3(0.0f, 0.0f, 0.0f);
-		frictionDir[1]	= Vec3(0.0f, 0.0f, 0.0f);
-		worldOffset			= Vec3(0.0f, 0.0f, 0.0f);
-		contactNormal		= Vec3(0.0f, 0.0f, 0.0f);
+		offset					.zero();
+		frictionDir[0]	.zero();
+		frictionDir[1]	.zero();
+		worldOffset			.zero();
+		contactNormal		.zero();
 		wheelPart				= NULL;
-		radius					= 0.0f;
-		mass						= 0.0f;
-		invMass					= 0.0f;
-		inertia					= 0.0f;
-		invInertia			= 0.0f;
-		bottomOffset		= 0.0f;
-		contact					= 0.0f;
-		lastW						= 0.0f;
-		w								= 0.0f;
-		slipSpeed				= 0.0f;
-		suspLen					= 0.0f;
-		compression			= 0.0f;
+		radius					= 0.f;
+		mass						= 0.f;
+		invMass					= 0.f;
+		inertia					= 0.f;
+		invInertia			= 0.f;
+		bottomOffset		= 0.f;
+		contact					= 0.f;
+		lastW						= 0.f;
+		w								= 0.f;
+		slipSpeed				= 0.f;
+		suspLen					= 0.f;
+		compression			= 0.f;
 		waterLevel			= WATER_LEVEL_UNKNOWN;
 		axleIndex				= 0;
 		bCanLock				= 0;
@@ -166,7 +161,7 @@ struct SSharedVehicleGears
 class CVehicleMovementArcadeWheeled
 	: public CVehicleMovementBase
 {
-	//friend class CNetworkMovementArcadeWheeled;
+	friend class CNetworkMovementArcadeWheeled;
 public:
 	enum {maxWheels=10};
 	enum {k_frictionNotSet, k_frictionUseLowLevel, k_frictionUseHiLevel}; // Friction State
@@ -208,7 +203,7 @@ public:
 	virtual void Serialize(TSerialize ser, EEntityAspects aspects);
 	virtual void SetAuthority( bool auth )
 	{
-		// m_netActionSync.CancelReceived();
+		 m_netActionSync.CancelReceived();
 	};
 	// ~IVehicleMovement
 
@@ -240,7 +235,7 @@ protected:
 	float GetSteerSpeed(float speedRel);
 
 	virtual float GetWheelCondition() const;
-	void SetEngineRPMMult(float mult, int threadSafe=0);
+	void SetEngineRPMMult(float mult, int threadSafe = 0);
 
 	float CalcSteering(float steer, float speedRel, float rotateYaw, float dt);
 	void TickGears(float dt, float averageWheelSpeed, float throttle, float forwardSpeed);
@@ -278,7 +273,7 @@ protected:
 	float m_speedSuspUpdated;    
 
 	// Network related
-	//CNetActionSync<CNetworkMovementArcadeWheeled> m_netActionSync;
+	CNetActionSync<CNetworkMovementArcadeWheeled> m_netActionSync;
 
 	float m_lostContactTimer;
 	float m_tireBlownTimer;
@@ -295,27 +290,42 @@ protected:
 
 	struct Handling
 	{
-		float	compressionScale;
-		float	handBrakePowerSlideTimer;
-		bool	canPowerSlide;
-		float	powerSlideDir;
-		Vec3	contactNormal;
+		float  compressionScale;
+		Vec3   contactNormal;
+		float  lostContactOneSideTimer;
+		float  viewRotate;
+		Vec2   viewOffset;
 	};
 
 	struct SSharedHandling
 	{
-		float	acceleration, decceleration, topSpeed, reverseSpeed;
-		float	reductionAmount, reductionRate;
-		float compressionBoost, compressionBoostHandBrake;
-		float	backFriction, frontFriction, frictionOffset;
-		float	grip1, grip2;	// Grip fraction at zero slip speed and grip fraction at high slip speed (usually 1.0f).
-		float gripK;				// 1.0f / slipSpeed.
-		float accelMultiplier1, accelMultiplier2;
-		float handBrakeDecceleration, handBrakeDeccelerationPowerLock;
-		bool	handBrakeLockFront, handBrakeLockBack;
-		float handBrakeFrontFrictionScale, handBrakeBackFrictionScale;
-		float	handBrakeAngCorrectionScale, handBrakeLateralCorrectionScale;
-		float	handBrakeRotationDeadTime;
+		float  acceleration, decceleration, topSpeed, reverseSpeed;
+		float  reductionAmount, reductionRate;
+		float  compressionBoost, compressionBoostHandBrake;
+		float  backFriction, frontFriction, frictionOffset;
+		float  grip1, grip2;       // Grip fraction at zero slip speed and grip fraction at high slip speed (usually 1.0f).
+		float  gripK;              // 1.0f / slipSpeed.
+		float  accelMultiplier1, accelMultiplier2;
+		float  handBrakeDecceleration, handBrakeDeccelerationPowerLock;
+		bool   handBrakeLockFront, handBrakeLockBack;
+		float  handBrakeFrontFrictionScale, handBrakeBackFrictionScale;
+		float  handBrakeAngCorrectionScale, handBrakeLateralCorrectionScale;
+	};
+
+	struct SPowerSlide
+	{
+		float lateralSpeedFraction[2];   // Percentage of forward speed to transfer as side speed (workaround), [0] normal driving, [1] powerlock/handbrake turning
+		float spring;                    // How quickly to apply that lerping
+	};
+
+	struct SStabilisation
+	{
+		float angDamping;          // Angular damping. Only affects tilt+roll but leaves the yaw speed unaffected 
+		float rollDamping;         // Roll damping. Only added when contact on one side is lost - reduces the chance of the vehicle rolling on its side
+		float upDamping;           // This damps the *upwards* velocity of vehicle when ground contact is lost
+		float rollfixAir;
+		float sinMaxTiltAngleAir;  // Max forward tilt angle before rollfixAir is enforced
+		float cosMaxTiltAngleAir;  // Max forward tilt angle before rollfixAir is enforced
 	};
 
 	struct Correction
@@ -326,23 +336,26 @@ protected:
 
 	BEGIN_SHARED_PARAMS(SSharedParams)
 
-		bool								isBreakingOnIdle;
-	float								steerSpeed, steerSpeedMin;	// Steer speed at vMaxSteerMax and steer speed at v = 0.
-	float								kvSteerMax;									// Reduce steer max at vMaxSteerMax.
-	float								v0SteerMax;									// Max steering angle in deg at v = 0.
-	float								steerSpeedScaleMin;					// Scale for sens at zero vel.
-	float								steerSpeedScale;						// Scale for sens at vMaxSteerMax.
-	float								steerRelaxation;						// Relaxation speed to center in degrees.
-	float								vMaxSteerMax;								// Speed at which entire kvSteerMax is subtracted from v0SteerMax.
-	float								pedalLimitMax;							// At vMaxSteerMax pedal is clamped to 1 - pedalLimitMax.
-	float								suspDampingMin, suspDampingMax, suspDampingMaxSpeed;
-	float								stabiMin, stabiMax;
+		bool                 isBreakingOnIdle;
+		float                steerSpeed, steerSpeedMin;     // Steer speed at vMaxSteerMax and steer speed at v = 0.
+		float                kvSteerMax;                    // Reduce steer max at vMaxSteerMax.
+		float                v0SteerMax;                    // Max steering angle in deg at v = 0.
+		float                steerSpeedScaleMin;            // Scale for sens at zero vel.
+		float                steerSpeedScale;               // Scale for sens at vMaxSteerMax.
+		float                steerRelaxation;               // Relaxation speed to center in degrees.
+		float                vMaxSteerMax;                  // Speed at which entire kvSteerMax is subtracted from v0SteerMax.
+		float                pedalLimitMax;                 // At vMaxSteerMax pedal is clamped to 1 - pedalLimitMax.
+		float                suspDampingMin, suspDampingMax, suspDampingMaxSpeed;
+		float                stabiMin, stabiMax;
 	float								rpmRelaxSpeed, rpmInterpSpeed, rpmGearShiftSpeed, airbrakeTime;
 	float								bumpMinSusp, bumpMinSpeed, bumpIntensityMult;
-	float								ackermanOffset;
-	SSharedVehicleGears	gears;
-	SSharedHandling			handling;
-	Correction					correction;
+		float                ackermanOffset;
+		float                gravityInAirMult;
+		SSharedVehicleGears  gears;
+		SSharedHandling      handling;
+		Correction           correction;
+		SPowerSlide          powerSlide;
+		SStabilisation       stabilisation;
 
 	END_SHARED_PARAMS
 
@@ -359,7 +372,8 @@ protected:
 	TPEStatusWheelArray	m_wheelStatus;
 	size_t							m_iWaterLevelUpdate;
 
-	int             m_wheelStatusLock;
+	volatile int    m_wheelStatusLock;
+	volatile int    m_frictionStateLock;
 	int             m_numWheels;
 	float           m_invNumWheels;
 
@@ -370,16 +384,17 @@ protected:
 	// PID controller for speed control.	
 
 	float	m_steering;
-	float	m_prevAngle;
 
 	CMovementRequest m_aiRequest;
 
 	float m_submergedRatioMax;	// to avoid calling vehicle functions in ProcessMovement()
 
 	int m_frictionState;
-	bool m_netLerp;				// This is true when the vehicle is not locally controlled by the player
 
 	SSharedParamsConstPtr	m_pSharedParams;
+
+private:
+	virtual void ProcessAI_Racing(const float deltaTime, float fCurrentSpeed, float fTargetSpeed, float degDesiredSteer);
 };
 
 #endif

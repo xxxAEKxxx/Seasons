@@ -26,31 +26,29 @@ class CNetworkMovementStdWheeled
 {
 public:
 	CNetworkMovementStdWheeled();
-	CNetworkMovementStdWheeled(CVehicleMovementStdWheeled *pMovement);
+	CNetworkMovementStdWheeled(CVehicleMovementStdWheeled* pMovement);
 
-	typedef CVehicleMovementStdWheeled * UpdateObjectSink;
+	typedef CVehicleMovementStdWheeled* UpdateObjectSink;
 
-	bool operator == (const CNetworkMovementStdWheeled &rhs)
+	bool operator==(const CNetworkMovementStdWheeled& rhs)
 	{
-		//return (abs(m_steer-rhs.m_steer)<0.001f) && (abs(m_pedal-rhs.m_pedal)<0.001f) && (m_brake==rhs.m_brake);
-		return false;
-	};
+		return (abs(m_pedal - rhs.m_pedal) < 0.001f) && (m_brake == rhs.m_brake) && (m_boost == rhs.m_boost);
+	}
 
-	bool operator != (const CNetworkMovementStdWheeled &rhs)
+	bool operator!=(const CNetworkMovementStdWheeled& rhs)
 	{
 		return !this->operator==(rhs);
-	};
+	}
 
-	void UpdateObject( CVehicleMovementStdWheeled *pMovement );
+	void UpdateObject(CVehicleMovementStdWheeled* pMovement);
 	void Serialize(TSerialize ser, EEntityAspects aspects);
 
 	static const NetworkAspectType CONTROLLED_ASPECT = eEA_GameClientDynamic;
 
 private:
-	float m_steer;
-	float m_pedal;
-	bool	m_brake;	
-	bool  m_boost;
+	float m_pedal;	// Show white reverse movement lights
+	bool	m_brake;	// Show red brake lights
+	bool  m_boost;	// Show boost
 };
 
 struct SWheelStats
@@ -78,8 +76,9 @@ struct SWheelStats
 		bContact = false;
 	}
 
-	void GetMemoryUsage( ICrySizer *pSizer ) const{}
-
+	void GetMemoryUsage(ICrySizer* pSizer) const
+	{
+	}
 };
 
 

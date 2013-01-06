@@ -148,6 +148,9 @@ bool CWeapon::ReadItemParams(const IItemParamsNode *root)
 	const IItemParamsNode *aiData = root->GetChild("ai_descriptor");
 	InitAIData(aiData);
 
+	const IItemParamsNode *accessories = root->GetChild("accessories");
+	InitCompatibleAccessories(accessories);
+
 	m_xmlparams = root;
 	m_xmlparams->AddRef();
 
@@ -213,6 +216,23 @@ const IItemParamsNode *CWeapon::GetZoomModeParams(const char *name)
 	}
 
 	return 0;
+}
+
+//------------------------------------------------------------------------
+void CWeapon::InitCompatibleAccessories(const IItemParamsNode *accessories)
+{
+	m_compatibleAccessories.resize(0);
+
+	if(!accessories)
+		return;
+
+	int n = accessories->GetChildCount();
+	for (int i = 0; i < n; i++)
+	{
+		const IItemParamsNode* accessory = accessories->GetChild(i);
+		string name = accessory->GetAttribute("name");
+		m_compatibleAccessories.push_back(name);
+	}
 }
 
 //------------------------------------------------------------------------

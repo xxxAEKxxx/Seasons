@@ -28,7 +28,7 @@
 CScriptBind_Boids::CScriptBind_Boids( ISystem *pSystem )
 {
 	m_pSystem = pSystem;
-	CScriptableBase::Init( pSystem->GetIScriptSystem(),pSystem );
+	CScriptableBase::Init( pSystem->GetIScriptSystem() );
 	SetGlobalName( "Boids" );
 
 	// For Xennon.

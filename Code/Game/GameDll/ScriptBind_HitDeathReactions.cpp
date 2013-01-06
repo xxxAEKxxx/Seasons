@@ -11,7 +11,7 @@
 //////////////////////////////////////////////////////////////////////////
 CScriptBind_HitDeathReactions::CScriptBind_HitDeathReactions(ISystem* pSystem, IGameFramework* pGameFramework) : m_pSystem(pSystem), m_pGameFW(pGameFramework)
 {
-	Init(pSystem->GetIScriptSystem(), pSystem, 1);
+	Init(pSystem->GetIScriptSystem(), 1);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Init tables.

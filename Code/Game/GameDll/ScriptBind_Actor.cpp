@@ -39,7 +39,7 @@ CScriptBind_Actor::CScriptBind_Actor(ISystem *pSystem)
 : m_pSystem(pSystem),
 	m_pGameFW(pSystem->GetIGame()->GetIGameFramework())
 {
-	Init(pSystem->GetIScriptSystem(), pSystem, 1);
+	Init(pSystem->GetIScriptSystem(), 1);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Init tables.
@@ -452,7 +452,7 @@ int CScriptBind_Actor::LinkToVehicle(IFunctionHandler *pH)
 		if (pH->GetParamType(1) != svtNull)
 			pH->GetParam(1, vehicleId);
 	
-		pActor->LinkToVehicle(vehicleId.n);
+		pActor->LinkToVehicle((EntityId) vehicleId.n);
 	}
 
 	return pH->EndFunction();
@@ -473,7 +473,7 @@ int CScriptBind_Actor::LinkToVehicleRemotely(IFunctionHandler *pH)
 		if (pH->GetParamType(1) != svtNull)
 			pH->GetParam(1, vehicleId);
 
-		pActor->LinkToVehicleRemotely(vehicleId.n);
+		pActor->LinkToVehicleRemotely((EntityId) vehicleId.n);
 	}
 
 	return pH->EndFunction();
@@ -494,7 +494,7 @@ int CScriptBind_Actor::LinkToEntity(IFunctionHandler *pH)
 		if (pH->GetParamType(1) != svtNull)
 			pH->GetParam(1, entityId);
 
-		pActor->LinkToEntity(entityId.n);
+		pActor->LinkToEntity((EntityId) entityId.n);
 	}
 
 	return pH->EndFunction();
@@ -809,8 +809,8 @@ int CScriptBind_Actor::SetHealth(IFunctionHandler *pH, float health)
 //------------------------------------------------------------------------
 int CScriptBind_Actor::DamageInfo(IFunctionHandler *pH, ScriptHandle shooter, ScriptHandle target, ScriptHandle weapon, float damage, const char *damageType)
 {
-	EntityId shooterID = shooter.n;
-	EntityId weaponID = weapon.n;
+	EntityId shooterID = (EntityId) shooter.n;
+	EntityId weaponID = (EntityId) weapon.n;
 	CActor *pActor = GetActor(pH);
 	if (pActor)
 	{
@@ -1117,7 +1117,7 @@ int CScriptBind_Actor::SetForcedLookObjectId(IFunctionHandler *pH, ScriptHandle 
 	CPlayer* pPlayer = static_cast<CPlayer*>(GetActor(pH));
 	if (pPlayer)
 	{
-		pPlayer->SetForcedLookObjectId(objectId.n);
+		pPlayer->SetForcedLookObjectId((EntityId) objectId.n);
 	}
 
 	return pH->EndFunction();
@@ -1430,9 +1430,14 @@ int CScriptBind_Actor::ResetScores(IFunctionHandler *pH)
 //------------------------------------------------------------------------
 int CScriptBind_Actor::RenderScore(IFunctionHandler *pH, ScriptHandle player, int kills, int deaths, int ping)
 {
-	CActor *pActor = (CActor*)(m_pGameFW->GetClientActor());
-	if(!pActor)
-		return pH->EndFunction();
+	IEntity* pEntity = gEnv->pEntitySystem->GetEntity((EntityId)player.n);
+	if(pEntity)
+	{
+		string name = pEntity->GetName();
+		EntityId id = (EntityId)player.n;
+
+		g_pGame->GetGameRules()->UpdateScoreBoardItem(id, name, kills, deaths);
+	}
 
 	return pH->EndFunction();
 }
@@ -1559,7 +1564,7 @@ int CScriptBind_Actor::SelectItem(IFunctionHandler *pH, ScriptHandle itemId)
 	if (!pActor)
 		return pH->EndFunction();
 
-	pActor->SelectItem(itemId.n, true);
+	pActor->SelectItem((EntityId) itemId.n, true);
 
 	return pH->EndFunction();
 }

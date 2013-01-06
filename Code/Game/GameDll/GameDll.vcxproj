@@ -55,6 +55,8 @@
     <ProjectGuid>{2652EA4E-BB2C-4DDC-BFD9-89FFC50A4403}</ProjectGuid>
     <RootNamespace>CryGame</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <SccAuxPath />
+    <VCTargetsPath Condition="'$(VCTargetsPath11)' != '' and '$(VSVersion)' == '' and $(VisualStudioVersion) == ''">$(VCTargetsPath11)</VCTargetsPath>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Server Only|Win32'" Label="Configuration">
@@ -174,6 +176,9 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <ImageXexOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">$(OutDir)CryGame.dll</ImageXexOutput>
+    <ImageXexOutput Condition="'$(Configuration)|$(Platform)'=='Profile|Xbox 360'">$(OutDir)CryGame.dll</ImageXexOutput>
+    <ImageXexOutput Condition="'$(Configuration)|$(Platform)'=='Profile Server Only|Xbox 360'">$(OutDir)CryGame.dll</ImageXexOutput>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Profile Server Only|Win32'">CryGame</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">CryGame</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Profile Server Only|x64'">CryGame</TargetName>
@@ -186,7 +191,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;$(SolutionDir)..\Plugin_SDK\inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;..\..\Plugin_SDK\inc</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GAMEDLL_EXPORTS;USE_CRY_ASSERT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
@@ -219,7 +224,7 @@
     <ClCompile>
       <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;$(SolutionDir)..\Plugin_SDK\inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;..\..\Plugin_SDK\inc</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GAMEDLL_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -248,7 +253,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;$(SolutionDir)..\Plugin_SDK\inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;..\..\Plugin_SDK\inc</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GAMEDLL_EXPORTS;PROFILE;_PROFILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableLanguageExtensions>false</DisableLanguageExtensions>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
@@ -276,7 +281,7 @@
     <ClCompile>
       <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>GAMEDLL_EXPORTS;PROFILE;_PROFILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;$(SolutionDir)..\Plugin_SDK\inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;..\..\Plugin_SDK\inc</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>netapi32.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -296,7 +301,7 @@
     <ClCompile>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;$(SolutionDir)..\Plugin_SDK\inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;..\..\Plugin_SDK\inc</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GAMEDLL_EXPORTS;_RELEASE;PURE_CLIENT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <FloatingPointModel>Precise</FloatingPointModel>
@@ -312,7 +317,7 @@
     <ClCompile>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;$(SolutionDir)..\Plugin_SDK\inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;..\..\Plugin_SDK\inc</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GAMEDLL_EXPORTS;_RELEASE;PURE_CLIENT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <FloatingPointModel>Precise</FloatingPointModel>
@@ -330,7 +335,7 @@
     </Midl>
     <ClCompile>
       <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;$(SolutionDir)..\Plugin_SDK\inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;..\..\Plugin_SDK\inc</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GAMEDLL_EXPORTS;_RELEASE;PURE_CLIENT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
@@ -355,7 +360,7 @@
     </Midl>
     <ClCompile>
       <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;$(SolutionDir)..\Plugin_SDK\inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;..\..\Plugin_SDK\inc</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GAMEDLL_EXPORTS;_RELEASE;PURE_CLIENT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
@@ -377,7 +382,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile Server Only|Win32'">
     <ClCompile>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;$(SolutionDir)..\Plugin_SDK\inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;..\..\Plugin_SDK\inc</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GAMEDLL_EXPORTS;PROFILE;_PROFILE;DEDICATED_SERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -413,7 +418,7 @@
     <ClCompile>
       <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
       <Optimization>Full</Optimization>
-      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;$(SolutionDir)..\Plugin_SDK\inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;..\..\Plugin_SDK\inc</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GAMEDLL_EXPORTS;PROFILE;_PROFILE;DEDICATED_SERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -441,7 +446,7 @@
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;$(SolutionDir)..\Plugin_SDK\inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;..\..\Plugin_SDK\inc</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GAMEDLL_EXPORTS;_RELEASE;DEDICATED_SERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>false</ExceptionHandling>
@@ -471,7 +476,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;$(SolutionDir)..\Plugin_SDK\inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\;%(AdditionalIncludeDirectories);..\..\CryEngine\CryAction;..\..\SDKs;..\..\SDKs\speex-1.0.5\include;..\..\CryMono\MonoDll\Headers;..\..\Plugin_SDK\inc</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GAMEDLL_EXPORTS;_RELEASE;DEDICATED_SERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -500,12 +505,37 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FlowWeaponCustomizationNodes.cpp" />
     <ClCompile Include="GameDll.cpp" />
+    <ClCompile Include="GameRulesHostMigration.cpp" />
+    <ClCompile Include="GameRulesManager.cpp" />
     <ClCompile Include="GameStartup.cpp" />
     <ClCompile Include="Actor.cpp" />
     <ClCompile Include="Flyer.cpp" />
     <ClCompile Include="FlyerMovementController.cpp" />
+    <ClCompile Include="HUD\UIEntityTag.cpp" />
     <ClCompile Include="HUD\UIGameEvents.cpp" />
+    <ClCompile Include="HUD\UILobbyMP.cpp" />
+    <ClCompile Include=".\HUD\UIDialogs.cpp" />
+    <ClCompile Include="HUD\WarningsManager.cpp" />
+    <ClCompile Include="Network\DownloadMgr.cpp" />
+    <ClCompile Include="Network\FriendManager\GameFriendsManager.cpp" />
+    <ClCompile Include="Network\GameNetworkUtils.cpp" />
+    <ClCompile Include="Network\Lobby\CryGameSpyVoiceCodec.cpp" />
+    <ClCompile Include="Network\Lobby\CryLobbySessionHandler.cpp" />
+    <ClCompile Include="Network\Lobby\GameAchievements.cpp" />
+    <ClCompile Include="Network\Lobby\GameBrowser.cpp" />
+    <ClCompile Include="Network\Lobby\GameLobby.cpp" />
+    <ClCompile Include="Network\Lobby\GameLobbyData.cpp" />
+    <ClCompile Include="Network\Lobby\GameLobbyManager.cpp" />
+    <ClCompile Include="Network\Lobby\GameServerLists.cpp" />
+    <ClCompile Include="Network\Lobby\MatchmakingEvents.cpp" />
+    <ClCompile Include="Network\Lobby\MatchmakingHandler.cpp" />
+    <ClCompile Include="Network\Lobby\ScriptBind_MatchMaking.cpp" />
+    <ClCompile Include="Network\Lobby\SessionNames.cpp" />
+    <ClCompile Include="Network\Lobby\SessionSearchSimulator.cpp" />
+    <ClCompile Include="Network\RecordingBuffer.cpp" />
+    <ClCompile Include="Network\Squad\SquadManager.cpp" />
     <ClCompile Include="ScriptBind_Actor.cpp" />
     <ClCompile Include="Shark.cpp" />
     <ClCompile Include="SharkMovementController.cpp" />
@@ -516,6 +546,7 @@
     <ClCompile Include="PlayerMovementController.cpp" />
     <ClCompile Include="PlayerRotation.cpp" />
     <ClCompile Include="PlayerView.cpp" />
+    <ClCompile Include="Utility\CryHash.cpp" />
     <ClCompile Include="WeaponAttachmentManager.cpp" />
     <ClCompile Include="CustomReactionFunctions.cpp" />
     <ClCompile Include="HitDeathReactions.cpp" />
@@ -647,6 +678,7 @@
     <ClCompile Include="Utility\StringUtils.cpp" />
     <ClCompile Include="HUD\BitmapUi.cpp" />
     <ClCompile Include="HUD\UIEntityDynTexTag.cpp" />
+    <ClCompile Include="HUD\UIHUD3D.cpp" />
     <ClCompile Include="HUD\UIInput.cpp" />
     <ClCompile Include="HUD\UIManager.cpp" />
     <ClCompile Include="HUD\UIMenuEvents.cpp" />
@@ -726,13 +758,45 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FlowWeaponCustomizationNodes.h" />
+    <ClInclude Include="GameRulesManager.h" />
     <ClInclude Include="GameStartup.h" />
     <ClInclude Include="Actor.h" />
     <ClInclude Include="AIDemoInput.h" />
     <ClInclude Include="Flyer.h" />
     <ClInclude Include="FlyerMovementController.h" />
     <ClInclude Include="HUD\IUIGameEventSystem.h" />
+    <ClInclude Include="HUD\UIEntityTag.h" />
     <ClInclude Include="HUD\UIGameEvents.h" />
+    <ClInclude Include="HUD\UILobbyMP.h" />
+    <ClInclude Include=".\HUD\UIDialogs.h" />
+    <ClInclude Include="HUD\WarningsManager.h" />
+    <ClInclude Include="IGameRulesManager.h" />
+    <ClInclude Include="ITelemetryCollector.h" />
+    <ClInclude Include="Network\DownloadMgr.h" />
+    <ClInclude Include="Network\FriendManager\GameFriendData.h" />
+    <ClInclude Include="Network\FriendManager\GameFriendsManager.h" />
+    <ClInclude Include="Network\GameNetworkDefines.h" />
+    <ClInclude Include="Network\GameNetworkUtils.h" />
+    <ClInclude Include="Network\LobbyTaskQueue.h" />
+    <ClInclude Include="Network\Lobby\AutoLockData.h" />
+    <ClInclude Include="Network\Lobby\CryGameSpyVoiceCodec.h" />
+    <ClInclude Include="Network\Lobby\CryLobbySessionHandler.h" />
+    <ClInclude Include="Network\Lobby\GameAchievements.h" />
+    <ClInclude Include="Network\Lobby\GameBrowser.h" />
+    <ClInclude Include="Network\Lobby\GameLobby.h" />
+    <ClInclude Include="Network\Lobby\GameLobbyData.h" />
+    <ClInclude Include="Network\Lobby\GameLobbyManager.h" />
+    <ClInclude Include="Network\Lobby\GameServerLists.h" />
+    <ClInclude Include="Network\Lobby\GameUserPackets.h" />
+    <ClInclude Include="Network\Lobby\MatchMakingEvents.h" />
+    <ClInclude Include="Network\Lobby\MatchMakingHandler.h" />
+    <ClInclude Include="Network\Lobby\MatchMakingTelemetry.h" />
+    <ClInclude Include="Network\Lobby\ScriptBind_MatchMaking.h" />
+    <ClInclude Include="Network\Lobby\SessionNames.h" />
+    <ClInclude Include="Network\Lobby\SessionSearchSimulator.h" />
+    <ClInclude Include="Network\RecordingBuffer.h" />
+    <ClInclude Include="Network\Squad\SquadManager.h" />
     <ClInclude Include="ScriptBind_Actor.h" />
     <ClInclude Include="Shark.h" />
     <ClInclude Include="SharkMovementController.h" />
@@ -744,6 +808,7 @@
     <ClInclude Include="PlayerMovementController.h" />
     <ClInclude Include="PlayerRotation.h" />
     <ClInclude Include="PlayerView.h" />
+    <ClInclude Include="Utility\CryHash.h" />
     <ClInclude Include="WeaponAttachmentManager.h" />
     <ClInclude Include="CustomReactionFunctions.h" />
     <ClInclude Include="HitDeathReactions.h" />
@@ -868,6 +933,7 @@
     <ClInclude Include="Utility\StringUtils.h" />
     <ClInclude Include="HUD\BitmapUi.h" />
     <ClInclude Include="HUD\UIEntityDynTexTag.h" />
+    <ClInclude Include="HUD\UIHUD3D.h" />
     <ClInclude Include="HUD\UIInput.h" />
     <ClInclude Include="HUD\UIManager.h" />
     <ClInclude Include="HUD\UIMenuEvents.h" />
@@ -928,6 +994,10 @@
     <None Include="GameActions.actions" />
     <None Include="Crysis.ico" />
     <None Include="..\Launcher\Cursor_White.cur" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="GameDll.rc">
+    </ResourceCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

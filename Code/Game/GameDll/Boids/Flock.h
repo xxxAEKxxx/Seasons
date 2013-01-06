@@ -87,6 +87,7 @@ public:
 	virtual CBoidObject* CreateBoid() { return 0; };
 
 	void DeleteEntities( bool bForceDeleteAll );
+	void HideAllBoids(bool bHide);
 
 	int GetId() const { return m_id; };
 	EFlockType GetType() const { return m_type; };
@@ -173,7 +174,33 @@ public:
 
 protected:
 	typedef std::vector<CBoidObject*> Boids;
-	typedef std::multimap<CTimeValue,CBoidObject*> TTimeBoidMap;
+
+	struct SBoidCollisionTime
+	{
+		SBoidCollisionTime( const CTimeValue& time, CBoidObject* pBoid )
+			: m_time(time)
+			, m_pBoid(pBoid)
+		{
+		}
+
+		CTimeValue m_time;
+		CBoidObject* m_pBoid;
+	};
+
+	typedef std::vector<SBoidCollisionTime> TTimeBoidMap;
+
+	struct FSortBoidByTime
+	{
+		bool operator()( const SBoidCollisionTime& lhs, const SBoidCollisionTime& rhs ) const
+		{
+			if( lhs.m_time.GetValue() < rhs.m_time.GetValue() )
+			{
+				return true;
+			}
+
+			return false;
+		}
+	};
 
 	Boids m_boids;
 	Vec3 m_origin;

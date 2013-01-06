@@ -77,6 +77,7 @@
 
 #include "Samples/AnimatedCharacterSample.h"
 #include "Samples/LivingEntitySample.h"
+#include "GameRulesManager.h"
 
 #define HIDE_FROM_EDITOR(className)																																				\
   { IEntityClass *pItemClass = gEnv->pEntitySystem->GetClassRegistry()->FindClass(className);\
@@ -201,4 +202,6 @@ void InitGameFactory(IGameFramework *pFramework)
 
 
 	REGISTER_GAME_OBJECT_EXTENSION(pFramework, ScriptControlledPhysics);
+
+	CGameRulesManager::GetInstance()->Init();
 }

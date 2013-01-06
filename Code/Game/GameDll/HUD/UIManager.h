@@ -15,10 +15,13 @@
 #define __UIManager_H__
 
 #include <ISystem.h>
+#include <IGameFramework.h>
 #include "IUIGameEventSystem.h"
+#include "WarningsManager.h"
 
 class CUIManager
 	: public ISystemEventListener
+	, public IGameFrameworkListener
 {
 public:
 	static void Init();
@@ -29,6 +32,7 @@ public:
 	static CUIManager* GetInstance();
 
 	IUIGameEventSystem* GetUIEventSystem(const char* typeName) const;
+	CWarningsManager* GetWarningManager() { return &m_WarningManager; }
 
 	void ProcessViewParams(const SViewParams &viewParams);
 	void UpdatePickupMessage(bool bShow);
@@ -36,6 +40,15 @@ public:
 	// ISystemEventListener
 	virtual void OnSystemEvent( ESystemEvent event, UINT_PTR wparam, UINT_PTR lparam );
 	// ~ISystemEventListener
+
+	// IGameFrameworkListener
+	virtual void OnPostUpdate(float fDeltaTime);
+	virtual void OnSaveGame(ISaveGame* pSaveGame) {}
+	virtual void OnLoadGame(ILoadGame* pLoadGame) {}
+	virtual void OnLevelEnd(const char* nextLevel) {}
+	virtual void OnActionEvent(const SActionEvent& event) {}
+	virtual void OnPreRender() {};
+	// ~IGameFrameworkListener
 
 	void LoadProfile();
 	void SaveProfile();
@@ -55,6 +68,7 @@ private:
 private:
 	bool m_bPickupMsgVisible;
 	int m_soundListener;
+	CWarningsManager m_WarningManager;
 
 	typedef std::map<string, IUIGameEventSystem*> TUIEventSystems;
 	TUIEventSystems m_EventSystems;

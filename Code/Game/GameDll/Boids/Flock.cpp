@@ -411,7 +411,7 @@ void CFlock::Update( CCamera *pCamera )
 				Quat q(IDENTITY);
 				boid->CalcOrientation(q);
 				//if (pBoidEntity->GetPos().z < m_bc.terrainZ)
-				pBoidEntity->SetPosRotScale( boid->m_pos,q,Vec3(boid->m_scale,boid->m_scale,boid->m_scale) );
+				pBoidEntity->SetPosRotScale( boid->m_pos,q,Vec3(boid->m_scale,boid->m_scale,boid->m_scale), ENTITY_XFORM_NO_SEND_TO_ENTITY_SYSTEM );
 				/*
 				else
 				{
@@ -843,25 +843,41 @@ void CFlock::UpdateBoidCollisions()
 	if(m_BoidCollisionMap.size() != m_boids.size())
 	{
 		m_BoidCollisionMap.clear();
+		m_BoidCollisionMap.reserve( m_boids.size() );
+
 		for (Boids::iterator it = m_boids.begin(),itEnd = m_boids.end(); it != itEnd; ++it)
-			m_BoidCollisionMap.insert(std::make_pair(now,*it));
+		{
+			m_BoidCollisionMap.push_back( SBoidCollisionTime( now, *it ) );
+		}
+
+		std::sort( m_BoidCollisionMap.begin(), m_BoidCollisionMap.end(), FSortBoidByTime() );
 	}
 
 	for (TTimeBoidMap::iterator it = m_BoidCollisionMap.begin(),itEnd = m_BoidCollisionMap.end(); 
 				it != itEnd && checked < numberOfChecks; ++it)
-{
-		CBoidObject* pBoid = it->second;
-		if(pBoid && pBoid->ShouldUpdateCollisionInfo(now))
 	{
+		CBoidObject* pBoid = it->m_pBoid;
+		if(pBoid && pBoid->ShouldUpdateCollisionInfo(now))
+		{
 			pBoid->UpdateCollisionInfo();
-			m_BoidCollisionMap.erase(it);
-			m_BoidCollisionMap.insert(std::make_pair(now,pBoid));
-			it = m_BoidCollisionMap.begin();
+			it->m_time = now;
 			++checked;
+		}
+	}	
+	std::sort( m_BoidCollisionMap.begin(), m_BoidCollisionMap.end(), FSortBoidByTime() );
+}
+
+void CFlock::HideAllBoids( bool bHide )
+{
+	for (Boids::iterator it = m_boids.begin(); it != m_boids.end(); ++it)
+	{
+		if(CBoidObject* boid = *it)
+		{
+			if(IEntity* pEntity = gEnv->pEntitySystem->GetEntity(boid->m_entity))
+				pEntity->Hide(bHide);
 		}
 	}
 }
-
 //////////////////////////////////////////////////////////////////
 
 

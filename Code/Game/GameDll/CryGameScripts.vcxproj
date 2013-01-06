@@ -10,11 +10,14 @@
     <ProjectGuid>{C412D317-05D7-49CE-B901-D17AD2E65550}</ProjectGuid>
     <RootNamespace>CryGameScripts</RootNamespace>
 <Keyword>Win32Proj</Keyword>
+    <SccAuxPath />
+    <VCTargetsPath Condition="'$(VCTargetsPath11)' != '' and '$(VSVersion)' == '' and $(VisualStudioVersion) == ''">$(VCTargetsPath11)</VCTargetsPath>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='-|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -57,12 +60,20 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="..\..\..\Game\Scripts\AI\Behaviors\Personalities\Civilian\CivilianAlerted.lua" />
+    <None Include="..\..\..\Game\Scripts\AI\Behaviors\Personalities\Racer\RacerIdle.lua" />
+    <None Include="..\..\..\Game\Scripts\AI\Behaviors\Personalities\Racer\RacerRacing.lua" />
+    <None Include="..\..\..\Game\Scripts\AI\Behaviors\Personalities\RacingCar\RacingCarIdle.lua" />
+    <None Include="..\..\..\Game\Scripts\AI\Behaviors\Personalities\RacingCar\RacingCarRacing.lua" />
     <None Include="..\..\..\Game\Scripts\AI\Navigation.xml" />
+    <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\Racer.xml" />
+    <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\RacingCar.xml" />
     <None Include="..\..\..\Game\Scripts\AI\TPS\CivilianQueries.lua" />
     <None Include="..\..\..\Game\Scripts\common.lua" />
     <None Include="..\..\..\Game\Scripts\Entities\AI\NavigationSeedPoint.lua" />
+    <None Include="..\..\..\Game\Scripts\GameRules\Racing.lua" />
     <None Include="..\..\..\Game\Scripts\main.lua" />
     <None Include="..\..\..\Game\Scripts\Map.lua" />
+    <None Include="..\..\..\Game\Scripts\Network\cvars.txt" />
     <None Include="..\..\..\Game\Scripts\physics.lua" />
     <None Include="..\..\..\Game\Scripts\AI\AIBehavior.lua" />
     <None Include="..\..\..\Game\Scripts\AI\aiconfig.lua" />
@@ -77,12 +88,10 @@
     <None Include="..\..\..\Game\Scripts\AI\TacticalPositionManager.lua" />
     <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\BasicAI.xml" />
     <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\Civilian.xml" />
-    <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\Common.xml" />
     <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\Cover2ST.xml" />
     <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\Dummy.xml" />
     <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\Flyer.xml" />
     <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\FogOfWar.xml" />
-    <None Include="..\..\..\Game\Scripts\AI\SelectionTrees\Group\Group.xml" />
     <None Include="..\..\..\Game\Scripts\AI\Coordination\Coordination.lua" />
     <None Include="..\..\..\Game\Scripts\AI\Behaviors\DEFAULT.lua" />
     <None Include="..\..\..\Game\Scripts\AI\Behaviors\Template.lua" />
@@ -255,7 +264,6 @@
     <None Include="..\..\..\Game\Scripts\Entities\actor\spectator.lua" />
     <None Include="..\..\..\Game\Scripts\Entities\AI\AIAlertness.lua" />
     <None Include="..\..\..\Game\Scripts\Entities\AI\AIAnchor.lua" />
-    <None Include="..\..\..\Game\Scripts\Entities\AI\AIReinforcementSpot.lua" />
     <None Include="..\..\..\Game\Scripts\Entities\AI\AISpawner.lua" />
     <None Include="..\..\..\Game\Scripts\Entities\AI\AITerritory.lua" />
     <None Include="..\..\..\Game\Scripts\Entities\AI\AIWave.lua" />
@@ -439,12 +447,10 @@
     <None Include="..\..\..\Game\Scripts\Entities\Vehicles\DamagesTemplates\def_vehicledamages.xml" />
     <None Include="..\..\..\Game\Scripts\Entities\Vehicles\DamagesTemplates\DefaultVehicleDamages.xml" />
     <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\Abrams.lua" />
-    <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\Abrams_MP.lua" />
     <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\HMMWV.lua" />
     <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\MH60_Blackhawk.lua" />
     <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\SpeedBoat.lua" />
     <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\Xml\Abrams.xml" />
-    <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\Xml\Abrams_MP.xml" />
     <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\Xml\EmptyVehicle.xml" />
     <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\Xml\HMMWV.xml" />
     <None Include="..\..\..\Game\Scripts\Entities\Vehicles\Implementations\Xml\MH60_Blackhawk.xml" />

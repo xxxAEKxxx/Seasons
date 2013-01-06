@@ -35,6 +35,7 @@ bool CVehicleClient::Init()
   m_actionNameIds.insert(TActionNameIdMap::value_type("v_changeseat5", eVAI_ChangeSeat5));
 
   m_actionNameIds.insert(TActionNameIdMap::value_type("v_changeview", eVAI_ChangeView));
+	m_actionNameIds.insert(TActionNameIdMap::value_type("v_rearview", eVAI_RearView));
   m_actionNameIds.insert(TActionNameIdMap::value_type("v_viewoption", eVAI_ViewOption));
   m_actionNameIds.insert(TActionNameIdMap::value_type("v_zoom_in", eVAI_ZoomIn));
   m_actionNameIds.insert(TActionNameIdMap::value_type("v_zoom_out", eVAI_ZoomOut));
@@ -69,6 +70,7 @@ bool CVehicleClient::Init()
 	m_actionNameIds.insert(TActionNameIdMap::value_type("xi_v_rotatepitch", eVAI_XIRotatePitch));
 	m_actionNameIds.insert(TActionNameIdMap::value_type("xi_v_movey", eVAI_XIMoveY));
 	m_actionNameIds.insert(TActionNameIdMap::value_type("xi_v_movex", eVAI_XIMoveX));
+	m_actionNameIds.insert(TActionNameIdMap::value_type("xi_v_rotateroll", eVAI_XIRotateRoll));
 
 	m_actionNameIds.insert(TActionNameIdMap::value_type("xi_v_accelerate", eVAI_XIAccelerate));
 	m_actionNameIds.insert(TActionNameIdMap::value_type("xi_v_deccelerate", eVAI_XIDeccelerate));
@@ -115,14 +117,22 @@ void CVehicleClient::OnAction(IVehicle* pVehicle, EntityId actorId, const Action
 	IVehicleMovement *pMovement = pVehicle->GetMovement();
 	const bool isAir = pMovement && pMovement->GetMovementType()==IVehicleMovement::eVMT_Air;
 
-	IVehicleSeat* pCurrentSeat = pVehicle->GetSeatForPassenger(actorId);
-	const bool isThirdPerson = pCurrentSeat && pCurrentSeat->GetView(pCurrentSeat->GetCurrentView())->IsThirdPerson();
-	const bool isDriver = pCurrentSeat && pCurrentSeat->IsDriver();
+	bool isThirdPerson = true;
+	bool isDriver = true;
+	if (IVehicleSeat* pCurrentSeat = pVehicle->GetSeatForPassenger(actorId))
+	{
+		isDriver = pCurrentSeat->IsDriver();
+
+		if (IVehicleView* pCurrentSeatView = pCurrentSeat->GetView(pCurrentSeat->GetCurrentView()))
+		{
+			isThirdPerson = pCurrentSeatView->IsThirdPerson();
+		}
+	}
 
 	switch (ite->second)
-  {
-  case (eVAI_XIMoveX):	
-    {
+	{
+	case (eVAI_XIMoveX):	
+		{
 			if(pMovement && pMovement->GetMovementType() == IVehicleMovement::eVMT_Air)
 			{
 				//strafe instead of turning for air vehicles
@@ -178,7 +188,7 @@ void CVehicleClient::OnAction(IVehicle* pVehicle, EntityId actorId, const Action
 			}
 			break;
 		}
-  case (eVAI_XIMoveY):
+	case (eVAI_XIMoveY):
 		{
 			EVehicleActionIds eForward = eVAI_MoveForward;
 			EVehicleActionIds eBack = eVAI_MoveBack;
@@ -212,6 +222,11 @@ void CVehicleClient::OnAction(IVehicle* pVehicle, EntityId actorId, const Action
 				m_bMovementFlagBack = true;
 			}
       break;
+		}
+	case (eVAI_XIRotateRoll):
+		{
+			pVehicle->OnAction(eVAI_RotateRoll, eAAM_OnPress, value / 5.f, actorId);
+			break;
 		}
 	case (eVAI_XIRotateYaw):
 		{
@@ -247,7 +262,7 @@ void CVehicleClient::OnAction(IVehicle* pVehicle, EntityId actorId, const Action
 			const float	scale = 0.75f, limit = 6.0f;
 			value = clamp_tpl<float>(scale * value * gEnv->pTimer->GetFrameTime(), -limit, limit);
 
-			if (isAir)
+			if (isAir || isThirdPerson)
 			{
 				value *= 10.f;
 			}
@@ -264,7 +279,7 @@ void CVehicleClient::OnAction(IVehicle* pVehicle, EntityId actorId, const Action
 			if (g_pGameCVars->cl_invertMouse)
 				value *= -1.f;
 
-			if (isAir)
+			if (isAir || isThirdPerson)
 			{
 				value *= 10.f;
 			}
@@ -292,6 +307,8 @@ void CVehicleClient::OnAction(IVehicle* pVehicle, EntityId actorId, const Action
     {
       if (activationMode == eAAM_OnPress || activationMode == eAAM_OnRelease)
         m_fForwardBackward += value*2.f - 1.f;
+			else
+				m_fForwardBackward = value;
 
 			if(activationMode == eAAM_OnRelease)
 				m_fForwardBackward = CLAMP(m_fForwardBackward, 0.0f, 1.0f);
@@ -304,6 +321,8 @@ void CVehicleClient::OnAction(IVehicle* pVehicle, EntityId actorId, const Action
     {
       if (activationMode == eAAM_OnPress || activationMode == eAAM_OnRelease)
         m_fForwardBackward -= value*2.f - 1.f;
+			else
+				m_fForwardBackward = -value;
 
 			if(activationMode == eAAM_OnRelease)
 				m_fForwardBackward = CLAMP(m_fForwardBackward, -1.0f, 0.0f);
@@ -484,11 +503,16 @@ void CVehicleClient::EnableActionMaps(IVehicleSeat* pSeat, bool enable)
 
 		EntityId passengerID = pSeat->GetPassenger();
 	
+		static ICVar* pVehicleGeneralActionMapCVar = gEnv->pConsole->GetCVar("g_vehicle_general_action_map");
+		const char* szVehicleGeneralActionMap = pVehicleGeneralActionMapCVar
+			? pVehicleGeneralActionMapCVar->GetString()
+			: "vehicle_general";
+
 		// now the general vehicle controls
-		if (IActionMap* pActionMap = pActionMapMan->GetActionMap("vehicle_general"))
+		if (IActionMap* pActionMap = pActionMapMan->GetActionMap(szVehicleGeneralActionMap))
 		{
 			pActionMap->SetActionListener(enable ? passengerID : 0);	
-			pActionMapMan->EnableActionMap("vehicle_general", enable);
+			pActionMapMan->EnableActionMap(szVehicleGeneralActionMap, enable);
 		}
 
 		// todo: if necessary enable the vehicle-specific action map here

@@ -57,6 +57,8 @@ void CIronSight::Init(IWeapon *pWeapon, const struct IItemParamsNode *params, ui
 	m_pWeapon = static_cast<CWeapon *>(pWeapon);
 	m_zmIdx = id;
 
+	m_initialNearFov = *(float*)gEnv->pRenderer->EF_Query(EFQ_DrawNearFov);
+
 	InitSharedParams();
 	CacheSharedParamsPtr();
 

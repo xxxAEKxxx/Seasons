@@ -29,8 +29,7 @@ public:
 	UIEVENTSYSTEM( "UIEntityDynTexTag" );
 	virtual void InitEventSystem();
 	virtual void UnloadEventSystem();
-
-	void UpdateView(const SViewParams &viewParams);
+	virtual void OnUpdate(float fDeltaTime);
 
 	// IUIModule
 	virtual void Reset();

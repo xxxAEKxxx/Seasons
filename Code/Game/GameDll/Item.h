@@ -674,6 +674,7 @@ public:
 	virtual void Use(EntityId userId);
 	virtual void Select(bool select);
 	virtual void Drop(float impulseScale=1.0f, bool selectNext=true, bool byDeath=false);
+	virtual void DropImmediate(float impulseScale=1.0f, bool selectNext=true, bool byDeath=false) { Drop(impulseScale, selectNext, byDeath); }
 	virtual void PickUp(EntityId pickerId, bool sound, bool select=true, bool keepHistory=true, const char *setup = NULL);
 	//virtual void PickUpWithMountItem(EntityId picker, IEntityClass* pMountItemClass, bool sound, bool select=true, bool keepHistory=true, const char *setup = NULL);
 	virtual void Physicalize(bool enable, bool rigid);
@@ -768,6 +769,7 @@ public:
 
 	// Silhouette purpose: we need to get all the currently attached accessories to highlight them
 	const TAccessoryMap *GetAttachedAccessories() const { return &m_accessories; }
+	virtual const string GetAttachedAccessoriesString();
 
 public:
 

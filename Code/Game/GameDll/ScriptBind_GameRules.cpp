@@ -24,7 +24,7 @@ CScriptBind_GameRules::CScriptBind_GameRules(ISystem *pSystem, IGameFramework *p
 	m_pSS(pSystem->GetIScriptSystem()),
 	m_pGameFW(pGameFramework)
 {
-	Init(m_pSS, m_pSystem, 1);
+	Init(m_pSS, 1);
 
 	m_players.Create(m_pSS);
 	m_teamplayers.Create(m_pSS);

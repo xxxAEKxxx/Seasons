@@ -1399,38 +1399,63 @@ void CPlayerMovementController::UpdateMovementState( SMovementState& state )
 	int boneEyeR = m_pPlayer->GetBoneID(BONE_EYE_R);
 	int boneHead = m_pPlayer->GetBoneID(BONE_HEAD);
 	int boneWeapon = m_pPlayer->GetBoneID(BONE_WEAPON);
-
+	Vec3  vEntityPos = pEntity->GetWorldPos();
 	Vec3	forward(1,0,0);
 	bool isCharacterVisible = pCharacter->IsCharacterVisible() != 0;
+	EStance playerStance = m_pPlayer->GetStance();
+	const SActorStats * pActorStats = m_pPlayer->GetActorStats();
 
 	if (m_pPlayer->IsPlayer())
 	{
 		// PLAYER CHARACTER
+		Vec3 vNewEyePosition, vNewEyeDirection;
 
-		Vec3 viewOfs(m_pPlayer->GetStanceViewOffset(m_pPlayer->GetStance()));
-		state.eyePosition = pEntity->GetWorldPos() + m_pPlayer->GetBaseQuat() * viewOfs;
-
-		// E3HAX E3HAX E3HAX
-		if (((SPlayerStats *)m_pPlayer->GetActorStats())->mountedWeaponID)
-			state.eyePosition = GetISystem()->GetViewCamera().GetPosition();
+		if (m_pPlayer->IsClient() && !m_pPlayer->IsThirdPerson() && !gEnv->IsDedicated())
+		{
+			//Beni - New FP aiming
+			vNewEyePosition = GetISystem()->GetViewCamera().GetPosition();
+		}
+		else
+		{
+			Vec3 viewOfs(m_pPlayer->GetStanceViewOffset(playerStance));
+			vNewEyePosition = vEntityPos + m_pPlayer->GetBaseQuat() * viewOfs;
+		}
 
 		if (!m_pPlayer->IsClient()) // marcio: fixes the eye direction for remote players
-			state.eyeDirection = (m_lookTarget-state.eyePosition).GetNormalizedSafe(state.eyeDirection);
-		else if(((SPlayerStats *)m_pPlayer->GetActorStats())->FPWeaponSwayOn) // Beni - Fixes aim direction when zoom sway applies
-			state.eyeDirection = GetISystem()->GetViewCamera().GetViewdir();
+			vNewEyeDirection = (m_lookTarget - vNewEyePosition).GetNormalizedSafe(state.eyeDirection);
 		else
-			state.eyeDirection = m_pPlayer->GetViewQuatFinal().GetColumn1();
+			vNewEyeDirection = m_pPlayer->GetViewQuatFinal().GetColumn1();
 
-
-		Vec3 bodyDir = state.eyeDirection;
+		Vec3 bodyDir = vNewEyeDirection;
 		bodyDir.z = 0.0f;
 		bodyDir.Normalize();
 
+		state.entityDirection = bodyDir;
 		state.animationBodyDirection = bodyDir;
-		state.animationEyeDirection = bodyDir;
-		state.weaponPosition = state.eyePosition;
-		state.fireDirection = state.aimDirection = state.eyeDirection;
+		state.animationEyeDirection = vNewEyeDirection;
+		state.weaponPosition = vNewEyePosition;
+		state.fireDirection = state.aimDirection = vNewEyeDirection;
+		state.eyeDirection = vNewEyeDirection;
 		state.fireTarget = m_fireTarget;
+		state.eyePosition = vNewEyePosition;
+
+		if (pActorStats && pActorStats->mountedWeaponID)
+		{
+			state.isAiming = true;
+		}
+		else if (isCharacterVisible)
+		{
+			state.isAiming=false;
+			IAnimationPoseBlenderDir* pIPoseBlenderAimShadow = pCharacter->GetISkeletonPose()->GetIPoseBlenderAim();
+			if (pIPoseBlenderAimShadow)
+			{
+				state.isAiming = pIPoseBlenderAimShadow->GetBlend() > 0.99f;
+			}
+		}
+		else
+		{
+			state.isAiming = true;
+		}
 	}
 	else
 	{
@@ -1460,121 +1485,109 @@ void CPlayerMovementController::UpdateMovementState( SMovementState& state )
 			
 		state.upDirection = orientation.GetColumn2();
 
-		state.eyeDirection = (m_lookTarget - state.eyePosition).GetNormalizedSafe(forward); //(lEyePos - posHead).GetNormalizedSafe(FORWARD_DIRECTION);
+		state.eyeDirection = (m_lookTarget - state.eyePosition).GetNormalizedSafe(forward);
+		state.aimDirection = (m_aimTarget - state.weaponPosition).GetNormalizedSafe((m_lookTarget - state.weaponPosition).GetNormalizedSafe(forward));
+		state.fireTarget = m_fireTarget;
+		state.fireDirection = (state.fireTarget - state.weaponPosition).GetNormalizedSafe(forward);
+		state.entityDirection = pEntity->GetWorldRotation().GetColumn1();
 
 		if (const IAnimatedCharacter* animatedCharacter = m_pPlayer->GetAnimatedCharacter())
 		{
 			state.animationBodyDirection = animatedCharacter->GetAnimLocation().q.GetColumn1();
 			state.eyeDirection = state.animationBodyDirection;
+			state.animationEyeDirection.zero();
+
+			//Try to retrieve eye direction, or failing that head direction
+			if( ISkeletonPose* pSkelPose = pCharacter->GetISkeletonPose())
+			{
+				if(m_pPlayer->HasBoneID(BONE_HEAD))
+				{
+					state.animationEyeDirection = (pEntity->GetWorldRotation() * m_pPlayer->GetBoneTransform(BONE_HEAD).q).GetColumn1();
+				}
+			}
 		}
 		else
 		{
 			state.animationBodyDirection = state.entityDirection;
+			//No animated eye direction for player's without animated skeletons
+			state.animationEyeDirection = ZERO;
 		}
 
-		state.aimDirection = (m_aimTarget - state.weaponPosition).GetNormalizedSafe((m_lookTarget - state.weaponPosition).GetNormalizedSafe(forward)); //pEntity->GetRotation() * dirWeapon;
-		state.fireTarget = m_fireTarget;
-		state.fireDirection = (state.fireTarget - state.weaponPosition).GetNormalizedSafe(forward);
+		//changed by ivo: most likely this doesn't work any more
+		//state.entityDirection = pEntity->GetRotation() * pSkeleton->GetCurrentBodyDirection();
+		// [kirill] when AI at MG need to update body/movementDirection coz entity is not moved/rotated AND set AIPos/weaponPs to weapon
+		if (pActorStats && pActorStats->mountedWeaponID)
+		{		
+			IEntity *pWeaponEntity = gEnv->pEntitySystem->GetEntity(pActorStats->mountedWeaponID);
+			if(pWeaponEntity)
+			{
+				state.eyePosition.x = pWeaponEntity->GetWorldPos().x;
+				state.eyePosition.y = pWeaponEntity->GetWorldPos().y;
+				state.weaponPosition = state.eyePosition;
+				EntityId currentWeaponId = 0;
+				IAIObject* pAIObject = m_pPlayer->GetEntity()->GetAI();
+				IAIActorProxy* pAIProxy = pAIObject ? pAIObject->GetProxy() : NULL;
+				IWeapon* pMGWeapon = pAIProxy ? pAIProxy->GetCurrentWeapon(currentWeaponId) : NULL;
+				if(pMGWeapon)
+				{
+					state.weaponPosition = pMGWeapon->GetFiringPos( m_fireTarget );
+				}
+				// need to recalculate aimDirection, since weaponPos is changed
+				state.aimDirection = (m_aimTarget - state.weaponPosition).GetNormalizedSafe((m_lookTarget - state.weaponPosition).GetNormalizedSafe(forward)); //pEntity->GetRotation() * dirWeapon;
+			}
+
+			state.isAiming = !m_aimClamped;
+			state.entityDirection = state.aimDirection;
+			state.movementDirection = state.aimDirection;
+		}
+		else
+		{
+			state.entityDirection = pEntity->GetWorldRotation().GetColumn1();
+
+			if (isCharacterVisible)
+			{
+				IAnimationPoseBlenderDir *pIPoseBlenderAim = pCharacter->GetISkeletonPose()->GetIPoseBlenderAim();
+				if (pIPoseBlenderAim)
+					state.isAiming = !m_aimClamped && (pIPoseBlenderAim->GetBlend() > 0.99f);
+				else
+					state.isAiming = true;
+			}
+			else
+				state.isAiming = true;
+		}
 	}
 
-	//changed by ivo: most likely this doesn't work any more
-	//state.movementDirection = pEntity->GetRotation() * pSkeleton->GetCurrentBodyDirection();
 	state.movementDirection = pEntity->GetRotation().GetColumn1();
 
+	const bool isMoving = m_pPlayer->IsMoving();
+	if (isMoving)
+		state.movementDirection = m_pPlayer->GetLastRequestedVelocity().GetNormalized();	
 
-	if (m_pPlayer->GetLastRequestedVelocity().len2() > 0.01f)
-		state.movementDirection = m_pPlayer->GetLastRequestedVelocity().GetNormalized();
-
-	//changed by ivo: most likely this doesn't work any more
-	//state.entityDirection = pEntity->GetRotation() * pSkeleton->GetCurrentBodyDirection();
-	// [kirill] when AI at MG need to update body/movementDirection coz entity is not moved/rotated AND set AIPos/weaponPs to weapon
-	if (!m_pPlayer->IsPlayer() && m_pPlayer->GetActorStats() && m_pPlayer->GetActorStats()->mountedWeaponID)
+	if (pActorStats)
 	{
-		
-		IEntity *pWeaponEntity = gEnv->pEntitySystem->GetEntity(m_pPlayer->GetActorStats()->mountedWeaponID);
-		if(pWeaponEntity)
-		{
-			state.eyePosition.x = pWeaponEntity->GetWorldPos().x;
-			state.eyePosition.y = pWeaponEntity->GetWorldPos().y;
-			state.weaponPosition = state.eyePosition;
-			
-			EntityId currentWeaponId = 0;
-			IAIObject* pAIObject = m_pPlayer->GetEntity()->GetAI();
-			IAIActorProxy* pAIProxy = pAIObject ? pAIObject->GetProxy() : NULL;
-			IWeapon* pMGWeapon = pAIProxy ? pAIProxy->GetCurrentWeapon(currentWeaponId) : NULL;
-			if(pMGWeapon)
-			{
-				state.weaponPosition = pMGWeapon->GetFiringPos( m_fireTarget ); //pWeaponEntity->GetWorldPos();
-			}
-			// need to recalculate aimDirection, since weaponPos is changed
-			state.aimDirection = (m_aimTarget - state.weaponPosition).GetNormalizedSafe((m_lookTarget - state.weaponPosition).GetNormalizedSafe(forward)); //pEntity->GetRotation() * dirWeapon;
-		}
-		
-		state.entityDirection = state.aimDirection;
-		state.movementDirection = state.aimDirection;
+		state.lean = m_pPlayer->GetActorStats() ? ((SPlayerStats*)m_pPlayer->GetActorStats())->leanAmount : 0.0f;
+		state.isFiring = (pActorStats->inFiring >= 10.f);
 	}
 	else
-		state.entityDirection = pEntity->GetWorldRotation().GetColumn1();
-
-	state.lean = m_pPlayer->GetActorStats() ? ((SPlayerStats*)m_pPlayer->GetActorStats())->leanAmount : 0.0f;
+	{
+		state.lean = 0.0f;
+		state.isFiring = false;
+	}
 
 	state.atMoveTarget = m_atTarget;
 	state.desiredSpeed = m_desiredSpeed;
-	state.stance = m_pPlayer->GetStance();
+	state.stance = playerStance;
 	state.upDirection = pEntity->GetWorldRotation().GetColumn2();
-//	state.minSpeed = MIN_DESIRED_SPEED;
-//	state.normalSpeed = m_pPlayer->GetStanceNormalSpeed(state.stance);
-//	state.maxSpeed = m_pPlayer->GetStanceMaxSpeed(state.stance); 
-
-	/*
-  Vec2 minmaxSpeed = Vec2(0, 0);
-	if(m_pPlayer->GetAnimationGraphState())	//might get here during loading before AG is serialized
-		minmaxSpeed = m_pPlayer->GetAnimationGraphState()->GetQueriedStateMinMaxSpeed();
-  state.minSpeed = minmaxSpeed[0];
-  state.maxSpeed = minmaxSpeed[1];
-  state.normalSpeed = 0.5f*(state.minSpeed + state.maxSpeed);
-	if (state.maxSpeed < state.minSpeed)
-	{
-//		assert(state.stance == STANCE_NULL);
-		state.maxSpeed = state.minSpeed;
-		//if (!g_pGame->GetIGameFramework()->IsEditing())
-		//	GameWarning("%s In STANCE_NULL - movement speed is clamped", pEntity->GetName());
-	}
-	if (state.normalSpeed < state.minSpeed)
-		state.normalSpeed = state.minSpeed;
-*/
 
 	state.minSpeed = -1.0f;
 	state.maxSpeed = -1.0f;
 	state.normalSpeed = -1.0f;
 
-	state.m_StanceSize = m_pPlayer->GetStanceInfo(state.stance)->GetStanceBounds();
+	state.m_StanceSize = m_pPlayer->GetStanceInfo(playerStance)->GetStanceBounds();
 
-	state.pos = pEntity->GetWorldPos();
-	//FIXME:some E3 work around
-	if (m_pPlayer->GetActorStats() && m_pPlayer->GetActorStats()->mountedWeaponID)
-	{
-		if (m_pPlayer->IsPlayer())
-			state.isAiming = true;
-		else
-			state.isAiming = !m_aimClamped; // AI
-	}
-	else if (isCharacterVisible && m_usingAimIK)
-		state.isAiming = pCharacter->GetISkeletonPose()->GetAimIKBlend() > 0.99f;
-	else if (isCharacterVisible && !m_aimClamped)
-		state.isAiming = true;
-	else if (!isCharacterVisible)
-		state.isAiming = true;
-	else
-		state.isAiming = false;
+	state.pos = vEntityPos;
 
-	state.isFiring = (m_pPlayer->GetActorStats()->inFiring>=10.f);
-
-	// TODO: remove this
-	//if (m_state.HasAimTarget())
-	//	state.aimDirection = (m_state.GetAimTarget() - state.handPosition).GetNormalizedSafe();
-
-	state.isAlive = (m_pPlayer->GetHealth()>0);
+	state.isAlive = !m_pPlayer->IsDead();
 
 	IVehicle *pVehicle = m_pPlayer->GetLinkedVehicle();
 	if (pVehicle)

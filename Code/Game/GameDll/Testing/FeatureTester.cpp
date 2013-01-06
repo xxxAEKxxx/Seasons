@@ -2816,6 +2816,8 @@ const char * CFeatureTester::StartTest(const SFeatureTest * test, const char * a
 			// TODO: split on ',' and support multiple parameters
 			{
 				size_t paramLength = strlen(curParams) + 1;
+
+				ScopedSwitchToGlobalHeap useGlobalHeap;
 				m_iterateOverParams.m_currentParams[m_iterateOverParams.m_numParams] = new char[paramLength];
 				cry_strncpy(m_iterateOverParams.m_currentParams[m_iterateOverParams.m_numParams], curParams, paramLength);
 				++ m_iterateOverParams.m_numParams;

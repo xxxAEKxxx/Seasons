@@ -83,8 +83,8 @@ void CUIInput::InitEventSystem()
 	m_eventDispatcher.Init(m_pUIEvents, this, "UIInput");
 	{
 		SUIEventDesc eventDesc("ShowVirualKeyboard", "Displays the virtual keyboard");
-		eventDesc.AddParam<SUIParameterDesc::eUIPT_String>("Title", "Title for the virtual keyboard");
-		eventDesc.AddParam<SUIParameterDesc::eUIPT_String>("Value", "Initial string of virtual keyboard");
+		eventDesc.AddParam<SUIParameterDesc::eUIPT_WString>("Title", "Title for the virtual keyboard");
+		eventDesc.AddParam<SUIParameterDesc::eUIPT_WString>("Value", "Initial string of virtual keyboard");
 		eventDesc.AddParam<SUIParameterDesc::eUIPT_Int>("MaxChars", "Maximum chars");
 		m_eventDispatcher.RegisterEvent( eventDesc, &CUIInput::OnDisplayVirtualKeyboard );
 	}

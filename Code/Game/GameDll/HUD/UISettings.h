@@ -18,6 +18,40 @@
 #include <IFlashUI.h>
 #include <IGameFramework.h>
 
+struct SNullCVar : public ICVar
+{
+	virtual ~SNullCVar() {}
+	virtual void Release() {}
+	virtual int GetIVal() const {return 0;}
+	virtual float GetFVal() const {return 0;}
+	virtual const char *GetString() {return "UNDEFINED";}
+	virtual void Set(const char* s) {}
+	virtual void ForceSet(const char* s) {}
+	virtual void Set(const float f) {}
+	virtual void Set(const int i) {}
+	virtual void ClearFlags (int flags) {}
+	virtual int GetFlags() const {return 0;}
+	virtual int SetFlags( int flags ) {return 0;}
+	virtual int GetType() {return 0;}
+	virtual const char* GetName() const {return "NULL";}
+	virtual const char* GetHelp() {return "NULL";}
+	virtual bool IsConstCVar() const {return true;}
+	virtual void SetOnChangeCallback( ConsoleVarFunc pChangeFunc ) {}
+	virtual ConsoleVarFunc GetOnChangeCallback() {return NULL;}
+	virtual void GetMemoryUsage( class ICrySizer* pSizer ) const {}
+	virtual int GetRealIVal() const {return 0;}
+	virtual void DebugLog( const int iExpectedValue, const EConsoleLogMode mode ) const {}
+
+	static SNullCVar* Get()
+	{
+		static SNullCVar inst;
+		return &inst;
+	}
+
+private:
+	SNullCVar() {}
+};
+
 class CUISettings
 	: public IUIGameEventSystem
 	, public IUIModule
@@ -44,7 +78,7 @@ private:
 	void SendGameSettingsChange();
 
 	// ui events
-	void OnSetGraphicSettings( int resIndex, bool fullscreen );
+	void OnSetGraphicSettings( int resIndex, int graphicsQuality, bool fullscreen );
 	void OnSetResolution( int resX, int resY, bool fullscreen );
 	void OnSetSoundSettings( float music, float sfx, float video );
 	void OnSetGameSettings( float sensitivity, bool invertMouse, bool invertController );
@@ -78,6 +112,7 @@ private:
 	ICVar* m_pRXVar;
 	ICVar* m_pRYVar;
  	ICVar* m_pFSVar;
+	ICVar* m_pGQVar;
 
 	ICVar* m_pMusicVar;
 	ICVar* m_pSFxVar;

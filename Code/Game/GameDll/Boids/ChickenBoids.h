@@ -38,9 +38,10 @@ protected:
 	float m_maxNonIdleTime;
 
 	Vec3 m_avoidanceAccel;
-	unsigned m_bThrown : 1;
-	unsigned m_bScared : 1;
-	unsigned m_landing : 1;			//! TODO: replace with m_status
+	uint m_lastRayCastFrame;
+	unsigned int m_bThrown : 1;
+	unsigned int m_bScared : 1;
+	unsigned int m_landing : 1;			//! TODO: replace with m_status
 
 };
 

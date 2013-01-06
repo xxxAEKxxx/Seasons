@@ -814,14 +814,13 @@ void CItem::PostSerialize()
 				{
 					EntityId holstered = pOwner->GetInventory()->GetHolsteredItem();
 
-					if(GetEntity()->GetClass() != CItem::sBinocularsClass &&
-						GetEntity()->GetClass() != CItem::sOffHandClass)
+					if(GetEntity()->GetClass() != CItem::sOffHandClass)
 					{			  
 						if(m_stats.selected)
 						{
 							if(holstered != GetEntityId())
 							{
-								Drop(0,false,false);
+								DropImmediate(0,false,false);
 								PickUp(owner, false, true, false);
 								if(pOwner->GetEntity()->IsHidden())
 									Hide(true); //Some AI is hidden in the levels by designers
@@ -1170,7 +1169,7 @@ void CItem::Select(bool select)
     if (pOwner)
     {
 			// update smart objects states
-			if (pAISystem)
+			if (!gEnv->bMultiplayer && pAISystem && pAISystem->GetSmartObjectManager())
 			{
 				IEntity* pOwnerEntity = pOwner->GetEntity();
 				pAISystem->GetSmartObjectManager()->ModifySmartObjectStates( pOwnerEntity, GetEntity()->GetClass()->GetName() );
@@ -1207,7 +1206,7 @@ void CItem::Select(bool select)
 			m_stats.fp=false; // so that OnEnterFirstPerson is called next select
 
 		// update smart objects states
-		if ( pAISystem && pOwner )
+		if ( !gEnv->bMultiplayer && pAISystem && pAISystem->GetSmartObjectManager() && pOwner && !pOwner->IsDead() )
 		{
 			CryFixedStringT<256> tmpString( "-WeaponDrawn," );
 			tmpString += GetEntity()->GetClass()->GetName();
@@ -3021,7 +3020,7 @@ void CItem::AudioCacheItem(const bool enable, const IEntityClass* pClass, const 
 
 	if(enable)
 	{
-		gEnv->pSoundSystem->CacheAudioFile(soundCache.c_str(), eAFCT_GAME_HINT_NO_SERIALIZE);
+		gEnv->pSoundSystem->CacheAudioFile(soundCache.c_str(), eAFCT_GAME_HINT);
 	}
 	else
 	{
@@ -3036,7 +3035,7 @@ bool CItem::IsAudioCached(const IEntityClass *pClass, const char* type)
 
 	soundCache.Format("%s%s", local_pClass->GetName(), type);
 
-	bool inmem = gEnv->pSoundSystem->EntryOrHintHasFlags(soundCache.c_str(), eAFCS_VALID);
+	bool inmem = gEnv->pSoundSystem->EntryOrHintHasFlags(soundCache.c_str(), eAFCS_CACHED);
 
 	return inmem;
 }
@@ -3078,6 +3077,21 @@ void CItem::UnRegisterAsUser()
 		UnRegisterAs3pAudioCacheUser();
 		m_registeredAs3pUser = false;
 	}
+}
+
+const string CItem::GetAttachedAccessoriesString()
+{
+	string accessories = "";
+	
+	TAccessoryMap::const_iterator it;
+	for (it = m_accessories.begin(); it != m_accessories.end(); it++)
+	{
+		accessories.append((*it).first);
+		if(it != m_accessories.begin())
+			accessories.append(",");
+	}
+	
+	return accessories;
 }
 
 SItemStrings* g_pItemStrings = 0;

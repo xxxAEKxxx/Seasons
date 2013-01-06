@@ -28,6 +28,9 @@ handling from the engine default
 
 #include "NetInputChainDebug.h"
 
+#include "DebugHelper.h"
+#include "GameRules.h"
+
 DEFINE_SHARED_PARAMS_TYPE_INFO(CVehicleMovementArcadeWheeled::SSharedParams);
 
 #define THREAD_SAFE 1
@@ -53,6 +56,14 @@ static inline float approxExp(float x)
 static inline float approxOneExp(float x)
 {
 	return x*__fres(1.f+x);	// Approximation of 1.f - exp(-x)
+}
+
+// Approximately predict the new quaternion given a starting quaternion, q0, and an angular velocity, w.
+ILINE void Predict(Quat& qNew, const Quat& q0, const Vec3 w, float dt)
+{
+	qNew.w = q0.w - (w*q0.v)*dt*0.5f;
+	qNew.v = q0.v + ((w^q0.v)+w*qNew.w)*(dt*0.5f);
+	qNew.Normalize();
 }
 
 struct ClampedImpulse
@@ -86,7 +97,7 @@ static float clampedImpulseApply(ClampedImpulse* c, float impulse)
 
 static inline float computeDenominator(float invMass, float invInertia, const Vec3& offset, const Vec3& norm)
 {
-	// If you apply an impulse of 1.0f in the direction of 'norm'
+	// If you apply an impulse of 1.f in the direction of 'norm'
 	// at position specified by 'offset' then the point will change
 	// velocity by the amount calculated here
 	Vec3 cross = offset.cross(norm);
@@ -119,9 +130,10 @@ CVehicleMovementArcadeWheeled::CVehicleMovementArcadeWheeled()
 {
 	m_iWaterLevelUpdate = 0;
 	m_wheelStatusLock = 0;
-
+	m_frictionStateLock = 0;
+	
 	m_passengerCount = 0;
-	m_steerMax = 20.0f;
+	m_steerMax = 20.f;
 	m_speedSuspUpdated = -1.f;
 	m_suspDamping = 0.f;
 	m_stabi = 0.f;
@@ -129,41 +141,40 @@ CVehicleMovementArcadeWheeled::CVehicleMovementArcadeWheeled()
 	m_lastBump = 0.f;
 	m_rpmScalePrev = 0.f;
 	m_gearSoundPending = false;
-	m_prevAngle = 0.0f;  
 	m_lostContactTimer = 0.f;
 	m_brakeTimer = 0.f;
-	m_reverseTimer = 0.0f;
+	m_reverseTimer = 0.f;
 	m_tireBlownTimer = 0.f;
 	m_boostEndurance = 7.5f;
 	m_boostRegen = m_boostEndurance;
 	m_boostStrength = 6.f;
 	m_lastDebugFrame = 0;
-	//m_netActionSync.PublishActions( CNetworkMovementArcadeWheeled(this) );  	  
+	m_netActionSync.PublishActions( CNetworkMovementArcadeWheeled(this) );  	  
 	m_blownTires = 0;
 	m_bForceSleep = false;
-	m_forceSleepTimer = 0.0f;
-	m_submergedRatioMax = 0.0f;
+	m_forceSleepTimer = 0.f;
+	m_submergedRatioMax = 0.f;
 	m_initialHandbreak = true;
+	m_allowBoosting = true;
 
 	m_stationaryHandbrake						= true;
-	m_stationaryHandbrakeResetTimer	= 0.0f;
+	m_stationaryHandbrakeResetTimer	= 0.f;
 
 	m_handling.compressionScale = 1.f;
-
-	m_handling.handBrakePowerSlideTimer = 0.f;
-	m_handling.canPowerSlide = false;
-	m_handling.powerSlideDir = 0.f;
 
 	m_chassis.radius = 1.f;
 
 	m_damageRPMScale = 1.f;
 
 	m_frictionState = k_frictionNotSet;
-	m_netLerp = false;
 
 	// Gear defaults
 
 	m_gears.curGear = SVehicleGears::kNeutral;
+	m_gears.curRpm = 0.f;
+	m_gears.targetRpm = 0.f;
+	m_gears.timer = 0.f;
+	m_gears.averageWheelRadius = 1.f;
 
 	m_handling.contactNormal.zero();
 }
@@ -172,6 +183,7 @@ CVehicleMovementArcadeWheeled::CVehicleMovementArcadeWheeled()
 CVehicleMovementArcadeWheeled::~CVehicleMovementArcadeWheeled()
 { 
 	m_wheelStatusLock = 0;
+	m_frictionStateLock = 0;
 }
 
 //------------------------------------------------------------------------
@@ -211,68 +223,79 @@ bool CVehicleMovementArcadeWheeled::Init(IVehicle* pVehicle, const CVehicleParam
 	{
 		SSharedParams	sharedParams;
 
-		sharedParams.isBreakingOnIdle			= false;
-		sharedParams.steerSpeed						= 40.0f;
-		sharedParams.steerSpeedMin				= 90.0f;
-		sharedParams.kvSteerMax						= 10.0f;
-		sharedParams.v0SteerMax						= 30.0f;
-		sharedParams.steerSpeedScaleMin		= 1.0f;
-		sharedParams.steerSpeedScale			= 0.8f;
-		sharedParams.steerRelaxation			= 90.0f;
-		sharedParams.vMaxSteerMax					= 20.f;
-		sharedParams.pedalLimitMax				= 0.3f; 
-		sharedParams.suspDampingMin				= 0.0f;
-		sharedParams.suspDampingMax				= 0.0f;  
-		sharedParams.suspDampingMaxSpeed	= 0.0f;
-		sharedParams.stabiMin							= 0.0f;
-		sharedParams.stabiMax							= 0.0f;
-		sharedParams.rpmRelaxSpeed				= 4.0f;
-		sharedParams.rpmInterpSpeed				= 4.0f;
-		sharedParams.rpmGearShiftSpeed		= 4.0f;  
-		sharedParams.bumpMinSusp					= 0.0f;
-		sharedParams.bumpMinSpeed					= 0.0f;
-		sharedParams.bumpIntensityMult		= 1.0f;
-		sharedParams.airbrakeTime					= 0.0f;
-		sharedParams.ackermanOffset				= 0.0f;
+		sharedParams.isBreakingOnIdle      = false;
+		sharedParams.steerSpeed            = 40.0f;
+		sharedParams.steerSpeedMin         = 90.0f;
+		sharedParams.kvSteerMax            = 10.0f;
+		sharedParams.v0SteerMax            = 30.0f;
+		sharedParams.steerSpeedScaleMin    = 1.0f;
+		sharedParams.steerSpeedScale       = 0.8f;
+		sharedParams.steerRelaxation       = 90.0f;
+		sharedParams.vMaxSteerMax          = 20.f;
+		sharedParams.pedalLimitMax         = 0.3f; 
+		sharedParams.suspDampingMin        = 0.0f;
+		sharedParams.suspDampingMax        = 0.0f;  
+		sharedParams.suspDampingMaxSpeed   = 0.0f;
+		sharedParams.stabiMin              = 0.0f;
+		sharedParams.stabiMax              = 0.0f;
+		sharedParams.rpmRelaxSpeed			= 4.f;
+		sharedParams.rpmInterpSpeed			= 4.f;
+		sharedParams.rpmGearShiftSpeed		= 4.f;  
+		sharedParams.bumpMinSusp			= 0.f;
+		sharedParams.bumpMinSpeed			= 0.f;
+		sharedParams.bumpIntensityMult		= 1.f;
+		sharedParams.airbrakeTime			= 0.f;
+		sharedParams.ackermanOffset        = 0.0f;
+		sharedParams.gravityInAirMult      = 1.4f;
 
-		sharedParams.gears.ratios[0]					= -1.0f;	// Reverse gear.
-		sharedParams.gears.invRatios[0]				= -1.0f;	// Reverse gear.
-		sharedParams.gears.ratios[1]					= 0.0f;		// Neutral.
-		sharedParams.gears.invRatios[1]				= 0.0f;		// Neutral.
-		sharedParams.gears.ratios[2]					= 1.0f;		// First gear.
-		sharedParams.gears.invRatios[2]				= 1.0f;		// First gear.
-		sharedParams.gears.numGears						= 3;
+		sharedParams.gears.ratios[0]                 = -1.0f;   // Reverse gear.
+		sharedParams.gears.invRatios[0]              = -1.0f;   // Reverse gear.
+		sharedParams.gears.ratios[1]                 = 0.0f;    // Neutral.
+		sharedParams.gears.invRatios[1]              = 0.0f;    // Neutral.
+		sharedParams.gears.ratios[2]                 = 1.0f;    // First gear.
+		sharedParams.gears.invRatios[2]              = 1.0f;    // First gear.
+		sharedParams.gears.numGears                  = 3;
 		sharedParams.gears.minChangeUpTime		= 0.6f;
 		sharedParams.gears.minChangeDownTime	= 0.3f;
 
-		sharedParams.handling.acceleration										= 5.0f;
-		sharedParams.handling.decceleration										= 5.0f;
-		sharedParams.handling.topSpeed												= 10.0f;
-		sharedParams.handling.reverseSpeed										= 5.0f;
-		sharedParams.handling.reductionAmount									= 0.0f;
-		sharedParams.handling.reductionRate										= 0.0f;
-		sharedParams.handling.compressionBoost								= 0.0f;
-		sharedParams.handling.compressionBoostHandBrake				= 0.0f;
-		sharedParams.handling.backFriction										= 100.f;
-		sharedParams.handling.frontFriction										= 100.f;
-		sharedParams.handling.frictionOffset									= -0.05f;
-		sharedParams.handling.grip1														= 0.8f;
-		sharedParams.handling.grip2														= 1.0f;
-		sharedParams.handling.gripK														= 1.0f;
-		sharedParams.handling.accelMultiplier1								= 1.0f;
-		sharedParams.handling.accelMultiplier2								= 1.0f;
-		sharedParams.handling.handBrakeDecceleration					= 30.f;
-		sharedParams.handling.handBrakeDeccelerationPowerLock	= 0.0f;
-		sharedParams.handling.handBrakeLockFront							= true;
-		sharedParams.handling.handBrakeLockBack								= true;
-		sharedParams.handling.handBrakeFrontFrictionScale			= 1.0f;
-		sharedParams.handling.handBrakeBackFrictionScale			= 1.0f;
-		sharedParams.handling.handBrakeAngCorrectionScale			= 1.0f;
-		sharedParams.handling.handBrakeLateralCorrectionScale	= 1.0f;
-		sharedParams.handling.handBrakeRotationDeadTime				= 0.0f;
+		sharedParams.handling.acceleration                     = 5.0f;
+		sharedParams.handling.decceleration                    = 5.0f;
+		sharedParams.handling.topSpeed                         = 10.0f;
+		sharedParams.handling.reverseSpeed                     = 5.0f;
+		sharedParams.handling.reductionAmount                  = 0.0f;
+		sharedParams.handling.reductionRate                    = 0.0f;
+		sharedParams.handling.compressionBoost                 = 0.0f;
+		sharedParams.handling.compressionBoostHandBrake        = 0.0f;
+		sharedParams.handling.backFriction                     = 100.f;
+		sharedParams.handling.frontFriction                    = 100.f;
+		sharedParams.handling.frictionOffset                   = -0.05f;
+		sharedParams.handling.grip1                            = 0.8f;
+		sharedParams.handling.grip2                            = 1.0f;
+		sharedParams.handling.gripK                            = 1.0f;
+		sharedParams.handling.accelMultiplier1                 = 1.0f;
+		sharedParams.handling.accelMultiplier2                 = 1.0f;
+		sharedParams.handling.handBrakeDecceleration           = 30.f;
+		sharedParams.handling.handBrakeDeccelerationPowerLock  = 0.0f;
+		sharedParams.handling.handBrakeLockFront               = true;
+		sharedParams.handling.handBrakeLockBack                = true;
+		sharedParams.handling.handBrakeFrontFrictionScale      = 1.0f;
+		sharedParams.handling.handBrakeBackFrictionScale       = 1.0f;
+		sharedParams.handling.handBrakeAngCorrectionScale      = 1.0f;
+		sharedParams.handling.handBrakeLateralCorrectionScale  = 1.0f;
 
-		sharedParams.correction.lateralSpring	= 0.0f;
-		sharedParams.correction.angSpring			= 0.0f;
+		sharedParams.stabilisation.angDamping                  = 3.0f;
+		sharedParams.stabilisation.rollDamping                 = 10.0f;
+		sharedParams.stabilisation.rollfixAir                  = 0.0f;
+		sharedParams.stabilisation.upDamping                   = 1.0f;
+		sharedParams.stabilisation.sinMaxTiltAngleAir          = sinf(DEG2RAD(25.f));
+		sharedParams.stabilisation.cosMaxTiltAngleAir          = cosf(DEG2RAD(25.f));
+		
+		sharedParams.powerSlide.lateralSpeedFraction[0]        = 0.f;
+		sharedParams.powerSlide.lateralSpeedFraction[1]        = 0.f;
+		sharedParams.powerSlide.spring                         = 0.f;
+
+		sharedParams.correction.lateralSpring   = 0.0f;
+		sharedParams.correction.angSpring       = 0.0f;
 
 		table.getAttr("isBreakingOnIdle", sharedParams.isBreakingOnIdle);
 		table.getAttr("steerSpeed", sharedParams.steerSpeed);
@@ -288,6 +311,7 @@ bool CVehicleMovementArcadeWheeled::Init(IVehicle* pVehicle, const CVehicleParam
 		table.getAttr("rpmInterpSpeed", sharedParams.rpmInterpSpeed);
 		table.getAttr("rpmGearShiftSpeed", sharedParams.rpmGearShiftSpeed);
 		table.getAttr("ackermanOffset", sharedParams.ackermanOffset);
+		table.getAttr("gravityInAirMult", sharedParams.gravityInAirMult);
 
 		if(CVehicleParams wheeledTable = GetWheeledTable(table))
 		{
@@ -305,7 +329,7 @@ bool CVehicleMovementArcadeWheeled::Init(IVehicle* pVehicle, const CVehicleParam
 			soundParams.getAttr("roadBumpIntensity", sharedParams.bumpIntensityMult);
 			soundParams.getAttr("airbrake", sharedParams.airbrakeTime);
 		}
-
+		
 		if(CVehicleParams fakeGearsParams = table.findChild("FakeGears"))
 		{
 			fakeGearsParams.getAttr("minChangeUpTime", sharedParams.gears.minChangeUpTime);
@@ -321,13 +345,13 @@ bool CVehicleMovementArcadeWheeled::Init(IVehicle* pVehicle, const CVehicleParam
 
 					for(int i = 0; i < count; ++ i)
 					{	
-						float	ratio = 0.0f;
+						float	ratio = 0.f;
 
 						if(CVehicleParams gearRef = ratios.getChild(i))
 						{
 							gearRef.getAttr("value", ratio);
 
-							if(ratio > 0.0f)
+							if(ratio > 0.f)
 							{
 								sharedParams.gears.ratios[sharedParams.gears.numGears ++] = ratio;
 							}
@@ -339,7 +363,7 @@ bool CVehicleMovementArcadeWheeled::Init(IVehicle* pVehicle, const CVehicleParam
 				{
 					const float	ratio = sharedParams.gears.ratios[i];
 
-					sharedParams.gears.invRatios[i] = (ratio != 0.0f) ? 1.0f / ratio : 0.f;
+					sharedParams.gears.invRatios[i] = (ratio != 0.f) ? 1.f / ratio : 0.f;
 				}
 			}
 		}
@@ -373,6 +397,13 @@ bool CVehicleMovementArcadeWheeled::Init(IVehicle* pVehicle, const CVehicleParam
 				frictionParams.getAttr("offset", sharedParams.handling.frictionOffset);
 			}
 
+			if(CVehicleParams powerSlideParams = handlingParams.findChild("PowerSlide"))
+			{
+				powerSlideParams.getAttr("lateralSpeedFraction", sharedParams.powerSlide.lateralSpeedFraction[0]);
+				powerSlideParams.getAttr("lateralSpeedFractionHB", sharedParams.powerSlide.lateralSpeedFraction[1]);
+				powerSlideParams.getAttr("spring", sharedParams.powerSlide.spring);
+			}
+
 			if(CVehicleParams wheelSpin = handlingParams.findChild("WheelSpin"))
 			{
 				wheelSpin.getAttr("grip1", sharedParams.handling.grip1);
@@ -381,9 +412,9 @@ bool CVehicleMovementArcadeWheeled::Init(IVehicle* pVehicle, const CVehicleParam
 				wheelSpin.getAttr("accelMultiplier1", sharedParams.handling.accelMultiplier1);
 				wheelSpin.getAttr("accelMultiplier2", sharedParams.handling.accelMultiplier2);
 
-				if(sharedParams.handling.gripK > 0.0f)
+				if(sharedParams.handling.gripK > 0.f)
 				{
-					sharedParams.handling.gripK = 1.0f / sharedParams.handling.gripK;
+					sharedParams.handling.gripK = 1.f / sharedParams.handling.gripK;
 				}
 			}
 
@@ -399,15 +430,25 @@ bool CVehicleMovementArcadeWheeled::Init(IVehicle* pVehicle, const CVehicleParam
 				handBrakeParams.getAttr("latCorrectionScale", sharedParams.handling.handBrakeLateralCorrectionScale);
 			}
 
-			if(CVehicleParams slideParams = handlingParams.findChild("PowerSlide"))
-			{
-				slideParams.getAttr("handBrakeDeadTime", sharedParams.handling.handBrakeRotationDeadTime);
-			}
-
 			if(CVehicleParams correctionParams = handlingParams.findChild("Correction"))
 			{
 				correctionParams.getAttr("lateralSpring", sharedParams.correction.lateralSpring);
 				correctionParams.getAttr("angSpring", sharedParams.correction.angSpring);
+			}
+
+			if(CVehicleParams stabilisationParams = handlingParams.findChild("Stabilisation"))
+			{
+				stabilisationParams.getAttr("angDamping", sharedParams.stabilisation.angDamping);
+				stabilisationParams.getAttr("rollDamping", sharedParams.stabilisation.rollDamping);
+				stabilisationParams.getAttr("rollfixAir", sharedParams.stabilisation.rollfixAir);
+				stabilisationParams.getAttr("upDamping", sharedParams.stabilisation.upDamping);
+				float mta;
+				if (stabilisationParams.getAttr("maxTiltAngleAir", mta))
+				{
+					mta = clamp(mta, 0.f, 90.f);
+					sharedParams.stabilisation.sinMaxTiltAngleAir = sinf(DEG2RAD(mta));
+					sharedParams.stabilisation.cosMaxTiltAngleAir = cosf(DEG2RAD(mta));
+				}
 			}
 		}
 
@@ -432,15 +473,12 @@ bool CVehicleMovementArcadeWheeled::Init(IVehicle* pVehicle, const CVehicleParam
 		}
 	}
 
-	m_action.steer = 0.0f;
-	m_action.pedal = 0.0f;
-	m_action.dsteer = 0.0f;
+	m_action.steer = 0.f;
+	m_action.pedal = 0.f;
+	m_action.dsteer = 0.f;
 	m_action.ackermanOffset = m_pSharedParams->ackermanOffset;
 
-	// Initialise the steering history.
-	m_prevAngle = 0.0f;
-
-	m_rpmScale = 0.0f;
+	m_rpmScale = 0.f;
 	m_currentGear = 0;
 	m_compressionMax = 0.f;
 	m_wheelContacts = 0;
@@ -499,6 +537,7 @@ bool CVehicleMovementArcadeWheeled::InitPhysics(const CVehicleParams& table)
 		m_carParams.kDynFriction=0.f;
 		m_carParams.axleFriction=0.f;
 		m_carParams.pullTilt=0.f;
+		m_carParams.nGears = 0;
 
 		// Better Collisions. Only make wheels part of chassis
 		// when contact normal is over 85 degrees
@@ -563,6 +602,8 @@ void CVehicleMovementArcadeWheeled::PostPhysicalize()
 	// This needs to be called from two places due to the init order on server and client
 	if(!gEnv->pSystem->IsSerializingFile()) //don't do this while loading a savegame, it will overwrite the engine
 		Reset();
+
+	EnableLowLevelPhysics(k_frictionUseLowLevel, 0);
 }
 
 //------------------------------------------------------------------------
@@ -649,18 +690,19 @@ void CVehicleMovementArcadeWheeled::Reset()
 {
 	CVehicleMovementBase::Reset();
 
-	m_prevAngle = 0.0f;
 	m_action.pedal = 0.f;
 	m_action.steer = 0.f;
-	m_rpmScale = 0.0f;
+	m_rpmScale = 0.f;
 	m_rpmScalePrev = 0.f;
 	m_currentGear = 0;
 	m_gearSoundPending = false;
 	m_tireBlownTimer = 0.f; 
 	m_wheelContacts = 0;
+		
+	m_handling.lostContactOneSideTimer = 0.f;
 
 	if (m_blownTires)
-		SetEngineRPMMult(1.0f);
+		SetEngineRPMMult(1.f);
 	m_blownTires = 0;
 
 	// needs to be after base reset (m_maxSpeed is overwritten by tweak groups)
@@ -674,11 +716,11 @@ void CVehicleMovementArcadeWheeled::Reset()
 		{
 			pe_params_car params;
 			params.minEnergy = m_carParams.minEnergy;
-			pPhysics->SetParams(&params, 1);
+			pPhysics->SetParams(&params);
 		}
 	}
 	m_bForceSleep = false;
-	m_forceSleepTimer = 0.0f;
+	m_forceSleepTimer = 0.f;
 	m_passengerCount = 0;
 	m_initialHandbreak = true;
 
@@ -762,11 +804,12 @@ void CVehicleMovementArcadeWheeled::Reset()
 			if (w->inertia != 0)
 				w->invInertia = 1.f/w->inertia;
 			else
-				w->invInertia = 1.0f;
+				w->invInertia = 1.f;
 			w->w = 0.f;
 			w->lastW = 0.f;
 			w->suspLen = m_wheelStatus[i].suspLen;
 			w->compression = 0.f;
+			w->slipSpeed = 0.f;
 
 			w->bottomOffset = w->offset.z - w->radius;
 			w->offset.z = m_pSharedParams->handling.frictionOffset;
@@ -790,11 +833,11 @@ void CVehicleMovementArcadeWheeled::Reset()
 		}
 
 		m_gears.averageWheelRadius = averageRadius*m_invNumWheels;
+
+		EnableLowLevelPhysics(k_frictionUseLowLevel, 0);
 	}
 
 	ResetWaterLevels();
-
-	EnableLowLevelPhysics(k_frictionUseLowLevel, 0);
 }
 
 //------------------------------------------------------------------------
@@ -833,6 +876,7 @@ void CVehicleMovementArcadeWheeled::StopEngine()
 	m_movementAction.Clear(true);
 
 	UpdateBrakes(0.f);
+	EnableLowLevelPhysics(k_frictionUseLowLevel, 0);
 }
 
 //------------------------------------------------------------------------
@@ -893,7 +937,7 @@ void CVehicleMovementArcadeWheeled::OnEvent(EVehicleMovementEvent event, const S
 		{
 			m_stationaryHandbrakeResetTimer	= params.fValue;
 
-			m_pVehicle->NeedsUpdate(IVehicle::eVUF_AwakePhysics, true);
+			m_pVehicle->NeedsUpdate(IVehicle::eVUF_AwakePhysics);
 		}
 	}
 }
@@ -913,7 +957,7 @@ float CVehicleMovementArcadeWheeled::GetWheelCondition() const
 {
 	// for a 4-wheel vehicle, want to reduce speed by 20% for each wheel shot out. So I'm assuming that for an 8-wheel
 	//	vehicle we'd want to reduce by 10% per wheel.
-	return  1.0f - (float)m_blownTires*m_invNumWheels*0.8f;
+	return  1.f - (float)m_blownTires*m_invNumWheels*0.8f;
 }
 
 //------------------------------------------------------------------------
@@ -932,15 +976,8 @@ void CVehicleMovementArcadeWheeled::OnVehicleEvent(EVehicleEvent event, const SV
 float CVehicleMovementArcadeWheeled::GetMaxSteer(float speedRel)
 {
 	// reduce max steering angle with increasing speed
-	if (m_handling.canPowerSlide==false)
-	{
-		m_steerMax = m_pSharedParams->v0SteerMax - (m_pSharedParams->kvSteerMax * speedRel);
-	}
-	else
-	{
-		m_steerMax = m_pSharedParams->v0SteerMax;
-	}
-	//  m_steerMax = 45.0f;
+	m_steerMax = m_pSharedParams->v0SteerMax - (m_pSharedParams->kvSteerMax * speedRel);
+	//  m_steerMax = 45.f;
 	return DEG2RAD(m_steerMax);
 }
 
@@ -948,22 +985,15 @@ float CVehicleMovementArcadeWheeled::GetMaxSteer(float speedRel)
 //------------------------------------------------------------------------
 float CVehicleMovementArcadeWheeled::GetSteerSpeed(float speedRel)
 {
-	if (m_handling.canPowerSlide==false)
-	{
-		// reduce steer speed with increasing speed
-		float steerDelta = m_pSharedParams->steerSpeed - m_pSharedParams->steerSpeedMin;
-		float steerSpeed = m_pSharedParams->steerSpeedMin + steerDelta * speedRel;
+	// reduce steer speed with increasing speed
+	float steerDelta = m_pSharedParams->steerSpeed - m_pSharedParams->steerSpeedMin;
+	float steerSpeed = m_pSharedParams->steerSpeedMin + steerDelta * speedRel;
 
-		// additionally adjust sensitivity based on speed
-		float steerScaleDelta = m_pSharedParams->steerSpeedScale - m_pSharedParams->steerSpeedScaleMin;
-		float sensivity = m_pSharedParams->steerSpeedScaleMin + steerScaleDelta * speedRel;
+	// additionally adjust sensitivity based on speed
+	float steerScaleDelta = m_pSharedParams->steerSpeedScale - m_pSharedParams->steerSpeedScaleMin;
+	float sensivity = m_pSharedParams->steerSpeedScaleMin + steerScaleDelta * speedRel;
 
-		return steerSpeed * sensivity;
-	}
-	else
-	{
-		return 1000.f;
-	}
+	return steerSpeed * sensivity;
 }
 
 //----------------------------------------------------------------------------------
@@ -977,7 +1007,7 @@ void CVehicleMovementArcadeWheeled::ApplyBoost(float speed, float maxSpeed, floa
 	if (m_action.pedal > 0.01f && m_wheelContacts >= 0.5f*(float)m_numWheels && speed < maxSpeed)
 	{     
 
-		float fraction = 0.0f;
+		float fraction = 0.f;
 		if ( fabsf( maxSpeed-fullBoostMaxSpeed ) > 0.001f )
 			fraction = max(0.f, 1.f - max(0.f, speed-fullBoostMaxSpeed)/(maxSpeed-fullBoostMaxSpeed));
 		float amount = fraction * strength * m_action.pedal * m_PhysDyn.mass * deltaTime;
@@ -1022,7 +1052,7 @@ void CVehicleMovementArcadeWheeled::DebugDrawMovement(const float deltaTime)
 #if defined(USER_stan)
 	if (m_pVehicle->IsPlayerDriving())
 	{
-		pRenderer->Draw2dLabel(5.0f,   y, sizeL, color, false, "You are driving VehicleMovementStdWheeled 3"); y+=step2;
+		pRenderer->Draw2dLabel(5.f,   y, sizeL, color, false, "You are driving VehicleMovementStdWheeled 3"); y+=step2;
 	}
 #endif
 
@@ -1061,40 +1091,40 @@ void CVehicleMovementArcadeWheeled::DebugDrawMovement(const float deltaTime)
 	pe_params_car carparams;
 	pPhysics->GetParams(&carparams);
 
-	pRenderer->Draw2dLabel(5.0f,   y, sizeL, color, false, "Car movement");
-	pRenderer->Draw2dLabel(5.0f,  y+=step2, size, color, false, "fake gear: %d", m_gears.curGear-1);
+	pRenderer->Draw2dLabel(5.f,   y, sizeL, color, false, "Car movement");
+	pRenderer->Draw2dLabel(5.f,  y+=step2, size, color, false, "fake gear: %d", m_gears.curGear-1);
 
-	pRenderer->Draw2dLabel(5.0f,  y+=step2, size, color, false, "invTurningRadius: %.1f", m_invTurningRadius);
-	pRenderer->Draw2dLabel(5.0f,  y+=step2, size, color, false, "Speed: %.1f (%.1f km/h) (%i) (%f m/s)", speed, speed*3.6f, percent, speedMs);
-	pRenderer->Draw2dLabel(5.0f,  y+=step1, size, color, false, "localVel: %.1f %.1f %.1f", localVel.x, localVel.y, localVel.z);
-	pRenderer->Draw2dLabel(5.0f,  y+=step1, size, color, false, "Dampers:  %.2f", m_suspDamping);
-	pRenderer->Draw2dLabel(5.0f,  y+=step1, size, color, false, "Stabi:  %.2f", m_stabi);
-	//pRenderer->Draw2dLabel(5.0f,  y+=step1, size, color, false, "BrakeTime:  %.2f", m_brakeTimer);
-	//pRenderer->Draw2dLabel(5.0f,  y+=step1, size, color, false, "compressionScale:  %.2f", m_handling.compressionScale);
+	pRenderer->Draw2dLabel(5.f,  y+=step2, size, color, false, "invTurningRadius: %.1f", m_invTurningRadius);
+	pRenderer->Draw2dLabel(5.f,  y+=step2, size, color, false, "Speed: %.1f (%.1f km/h) (%i) (%f m/s)", speed, speed*3.6f, percent, speedMs);
+	pRenderer->Draw2dLabel(5.f,  y+=step1, size, color, false, "localVel: %.1f %.1f %.1f", localVel.x, localVel.y, localVel.z);
+	pRenderer->Draw2dLabel(5.f,  y+=step1, size, color, false, "Dampers:  %.2f", m_suspDamping);
+	pRenderer->Draw2dLabel(5.f,  y+=step1, size, color, false, "Stabi:  %.2f", m_stabi);
+	//pRenderer->Draw2dLabel(5.f,  y+=step1, size, color, false, "BrakeTime:  %.2f", m_brakeTimer);
+	//pRenderer->Draw2dLabel(5.f,  y+=step1, size, color, false, "compressionScale:  %.2f", m_handling.compressionScale);
 
 	//if (m_statusDyn.submergedFraction > 0.f)
-	//	pRenderer->Draw2dLabel(5.0f,  y+=step1, size, color, false, "Submerged:  %.2f", m_statusDyn.submergedFraction);
+	//	pRenderer->Draw2dLabel(5.f,  y+=step1, size, color, false, "Submerged:  %.2f", m_statusDyn.submergedFraction);
 
 	//if (m_damage > 0.f)
-	//	pRenderer->Draw2dLabel(5.0f,  y+=step2, size, color, false, "Damage:  %.2f", m_damage);  
+	//	pRenderer->Draw2dLabel(5.f,  y+=step2, size, color, false, "Damage:  %.2f", m_damage);  
 
 	//if (Boosting())
-	//	pRenderer->Draw2dLabel(5.0f,  y+=step1, size, green, false, "Boost:  %.2f", m_boostCounter);
+	//	pRenderer->Draw2dLabel(5.f,  y+=step1, size, green, false, "Boost:  %.2f", m_boostCounter);
 
-	pRenderer->Draw2dLabel(5.0f,  y+=step2, sizeL, color, false, "using View: %s", viewName);
+	pRenderer->Draw2dLabel(5.f,  y+=step2, sizeL, color, false, "using View: %s", viewName);
 
-	pRenderer->Draw2dLabel(5.0f,  y+=step2, sizeL, color, false, "Driver input");
-	pRenderer->Draw2dLabel(5.0f,  y+=step2, size, color, false, "power: %.2f", m_movementAction.power);
-	pRenderer->Draw2dLabel(5.0f,  y+=step1, size, color, false, "steer: %.2f", m_movementAction.rotateYaw); 
-	pRenderer->Draw2dLabel(5.0f,  y+=step1, size, color, false, "brake: %i", m_movementAction.brake);
+	pRenderer->Draw2dLabel(5.f,  y+=step2, sizeL, color, false, "Driver input");
+	pRenderer->Draw2dLabel(5.f,  y+=step2, size, color, false, "power: %.2f", m_movementAction.power);
+	pRenderer->Draw2dLabel(5.f,  y+=step1, size, color, false, "steer: %.2f", m_movementAction.rotateYaw); 
+	pRenderer->Draw2dLabel(5.f,  y+=step1, size, color, false, "brake: %i", m_movementAction.brake);
 
-	pRenderer->Draw2dLabel(5.0f,  y+=step2, sizeL, color, false, "Car action");
-	pRenderer->Draw2dLabel(5.0f,  y+=step2, size, color, false, "pedal: %.2f", m_action.pedal);
-	pRenderer->Draw2dLabel(5.0f,  y+=step1, size, color, false, "steer: %.2f (max %.2f)", RAD2DEG(m_action.steer), RAD2DEG(steerMax)); 
-	pRenderer->Draw2dLabel(5.0f,  y+=step1, size, color, false, "steerFrac: %.2f", m_action.steer / DEG2RAD(m_steerMax));
-	pRenderer->Draw2dLabel(5.0f,  y+=step1, size, color, false, "brake: %i", m_action.bHandBrake);
+	pRenderer->Draw2dLabel(5.f,  y+=step2, sizeL, color, false, "Car action");
+	pRenderer->Draw2dLabel(5.f,  y+=step2, size, color, false, "pedal: %.2f", m_action.pedal);
+	pRenderer->Draw2dLabel(5.f,  y+=step1, size, color, false, "steer: %.2f (max %.2f)", RAD2DEG(m_action.steer), RAD2DEG(steerMax)); 
+	pRenderer->Draw2dLabel(5.f,  y+=step1, size, color, false, "steerFrac: %.2f", m_action.steer / DEG2RAD(m_steerMax));
+	pRenderer->Draw2dLabel(5.f,  y+=step1, size, color, false, "brake: %i", m_action.bHandBrake);
 
-	pRenderer->Draw2dLabel(5.0f,  y+=step2, size, color, false, "steerSpeed: %.2f", steerSpeed); 
+	pRenderer->Draw2dLabel(5.f,  y+=step2, size, color, false, "steerSpeed: %.2f", steerSpeed); 
 
 	const Matrix34& worldTM = m_pVehicle->GetEntity()->GetWorldTM();
 
@@ -1109,11 +1139,11 @@ void CVehicleMovementArcadeWheeled::DebugDrawMovement(const float deltaTime)
 
 	if (m_chassis.collision1)
 	{
-		pAuxGeom->DrawSphere(m_statusDyn.centerOfMass, 1.0f, colGreen);
+		pAuxGeom->DrawSphere(m_statusDyn.centerOfMass, 1.f, colGreen);
 	}
 	if (m_chassis.collision2)
 	{
-		pAuxGeom->DrawSphere(m_statusDyn.centerOfMass - yAxis, 1.0f, colRed);
+		pAuxGeom->DrawSphere(m_statusDyn.centerOfMass - yAxis, 1.f, colRed);
 	}
 
 	pAuxGeom->DrawLine(chassisPos, colGreen, chassisPos + 2.f*m_handling.contactNormal, col1);
@@ -1133,7 +1163,7 @@ void CVehicleMovementArcadeWheeled::DebugDrawMovement(const float deltaTime)
 	for (int i=0; i<count; ++i)
 	{
 		{
-			pRenderer->Draw2dLabel(5.0f,  y+=step2, size, color, false, "slip speed: %.2f", m_wheels[i].slipSpeed);
+			pRenderer->Draw2dLabel(5.f,  y+=step2, size, color, false, "slip speed: %.2f", m_wheels[i].slipSpeed);
 		}
 
 		if (0)
@@ -1337,7 +1367,7 @@ void CVehicleMovementArcadeWheeled::Update(const float deltaTime)
 	// update reversing
 	if(notDistant && IsPowered() && m_actorId)
 	{
-		if(m_action.pedal < -0.2f)
+		if(m_currentGear == 0)
 		{
 			if (m_reverseTimer == 0.f)
 			{
@@ -1350,7 +1380,7 @@ void CVehicleMovementArcadeWheeled::Update(const float deltaTime)
 		}
 		else
 		{
-			if(m_reverseTimer > 0.0f)
+			if(m_reverseTimer > 0.f)
 			{
 				SVehicleEventParams params;
 				params.bParam = false;
@@ -1360,36 +1390,26 @@ void CVehicleMovementArcadeWheeled::Update(const float deltaTime)
 			m_reverseTimer = 0.f;
 		}
 	}
+	
+	if (m_bMovementProcessingEnabled==false || m_isEnginePowered==false )
+		EnableLowLevelPhysics(k_frictionUseLowLevel, 0);
 
 	const SVehicleDamageParams& damageParams = m_pVehicle->GetDamageParams();
 	m_submergedRatioMax = damageParams.submergedRatioMax;
 
-	if (gEnv->bMultiplayer)
-	{
-		IActor* pActor = m_pVehicle->GetDriver();
-		if (pActor)
-		{
-			m_netLerp = !pActor->IsClient();
-		}
-		else
-		{
-			m_netLerp = false;
-		}
-	}
-
 	// Reset stationary handbrake?
 
-	if(m_stationaryHandbrakeResetTimer > 0.0f)
+	if(m_stationaryHandbrakeResetTimer > 0.f)
 	{
 		m_stationaryHandbrakeResetTimer -= deltaTime;
 
-		if(m_stationaryHandbrakeResetTimer <= 0.0f)
+		if(m_stationaryHandbrakeResetTimer <= 0.f)
 		{
 			m_stationaryHandbrake = true;
 		}
 	}
 }
-
+	
 //------------------------------------------------------------------------
 void CVehicleMovementArcadeWheeled::UpdateSounds(const float deltaTime)
 { 
@@ -1426,7 +1446,7 @@ void CVehicleMovementArcadeWheeled::UpdateSounds(const float deltaTime)
 			}
 		}
 
-		m_rpmScale = max(ms_engineSoundIdleRatio, rpmScale * (1.0f - ms_engineSoundOverRevRatio));
+		m_rpmScale = max(ms_engineSoundIdleRatio, rpmScale * (1.f - ms_engineSoundOverRevRatio));
 
 		m_rpmScale += (ms_engineSoundOverRevRatio / m_numWheels) * (m_numWheels - m_wheelContacts);
 
@@ -1465,14 +1485,14 @@ void CVehicleMovementArcadeWheeled::UpdateSounds(const float deltaTime)
 
 
 	float speed = m_vehicleStatus.vel.GetLength();
-	float slipFraction = 0.0f;
+	float slipFraction = 0.f;
 
 	if(speed > 0.5f)
 	{
 		Vec3 velocityDir = m_vehicleStatus.vel.GetNormalized();
 		Vec3 xDir = m_pEntity->GetWorldRotation().GetColumn0();
 
-		float slipSpeedFraction = min(speed / m_maxSoundSlipSpeed, 1.0f);
+		float slipSpeedFraction = min(speed / m_maxSoundSlipSpeed, 1.f);
 
 		slipFraction = fabsf(xDir.dot(velocityDir) * slipSpeedFraction);
 	}
@@ -1497,14 +1517,10 @@ void CVehicleMovementArcadeWheeled::UpdateSounds(const float deltaTime)
 		}
 		else if (m_surfaceSoundStats.slipRatio < 0.03f && m_surfaceSoundStats.slipTimer > 0.f)
 		{
-			m_surfaceSoundStats.slipTimer -= deltaTime;
-
-			if (m_surfaceSoundStats.slipTimer <= 0.f)
-			{
-				StopSound(eSID_Slip);
-				pSound = 0;
-				m_surfaceSoundStats.slipTimer = 0.f;
-			}      
+			m_surfaceSoundStats.slipTimer = 0;
+			StopSound(eSID_Slip);
+			pSound = 0;
+			m_surfaceSoundStats.slipTimer = 0.f;
 		}
 
 		if (pSound)
@@ -1606,7 +1622,7 @@ void CVehicleMovementArcadeWheeled::UpdateBrakes(const float deltaTime)
 	else
 		m_action.bHandBrake = 0;
 
-	if (m_pSharedParams->isBreakingOnIdle && m_movementAction.power == 0.0f)
+	if (m_pSharedParams->isBreakingOnIdle && m_movementAction.power == 0.f)
 	{
 		m_action.bHandBrake = 1;
 	}
@@ -1616,7 +1632,10 @@ void CVehicleMovementArcadeWheeled::UpdateBrakes(const float deltaTime)
 	//	- pedal is pressed, and the vehicle is moving in the opposite direction
 	if (IsPowered() && m_actorId )
 	{
-		if (m_action.bHandBrake)
+		const float forwardSpeed = m_localSpeed.y;
+
+		if ((fabsf(m_action.pedal) > 0.1f && fabsf(forwardSpeed) > 0.1f && (forwardSpeed*m_action.pedal) < 0.f)
+			|| m_action.bHandBrake)
 		{
 			if (m_brakeTimer == 0.f)
 			{
@@ -1643,7 +1662,7 @@ void CVehicleMovementArcadeWheeled::UpdateBrakes(const float deltaTime)
 						char name[256];
 						_snprintf(name, sizeof(name), "sounds/vehicles:%s:airbrake", m_pVehicle->GetEntity()->GetClass()->GetName());
 						name[sizeof(name)-1] = '\0';
-						m_pEntitySoundsProxy->PlaySound(name, Vec3(0), FORWARD_DIRECTION, FLAG_SOUND_DEFAULT_3D, eSoundSemantic_Vehicle);                
+						m_pEntitySoundsProxy->PlaySound(name, Vec3(0), FORWARD_DIRECTION, FLAG_SOUND_DEFAULT_3D, 0, eSoundSemantic_Vehicle);                
 					}          
 				}  
 			}
@@ -1735,112 +1754,158 @@ void CVehicleMovementArcadeWheeled::UpdateSuspensionSound(const float deltaTime)
 
 //////////////////////////////////////////////////////////////////////////
 // NOTE: This function must be thread-safe. Before adding stuff contact MarcoC.
+//
+// This function maps
+// (current speed, target speed, current direction, target direction) --> (power, brake, hand brake, steering (angle)) [8/2/2012 evgeny]
+//////////////////////////////////////////////////////////////////////////
 void CVehicleMovementArcadeWheeled::ProcessAI(const float deltaTime)
 {
-	FUNCTION_PROFILER( GetISystem(), PROFILE_GAME );
+	FUNCTION_PROFILER(GetISystem(), PROFILE_GAME);
 
-	float dt = max( deltaTime,0.005f);
+	float dt = max(deltaTime, 0.005f);
 
+	m_movementAction.power = 0.f;
 	m_movementAction.brake = false;
-	m_movementAction.rotateYaw = 0.0f;
-	m_movementAction.power = 0.0f;
+	m_action.bHandBrake = false;
+	m_movementAction.rotateYaw = 0.f;
 
-	float inputSpeed = 0.0f;
+	float fTargetSpeed;
+	if (m_aiRequest.HasDesiredSpeed())
 	{
-		if (m_aiRequest.HasDesiredSpeed())
-			inputSpeed = m_aiRequest.GetDesiredSpeed();
-		Limit(inputSpeed, -m_maxSpeed, m_maxSpeed);
-	}
-
-	Vec3 vMove(ZERO);
-	{
-		if (m_aiRequest.HasMoveTarget())
-			vMove = ( m_aiRequest.GetMoveTarget() - m_PhysPos.pos ).GetNormalizedSafe();
-	}
-
-	//start calculation
-	if ( fabsf( inputSpeed ) < 0.0001f || m_tireBlownTimer > 1.5f )
-	{
-		m_movementAction.brake = true;
+		fTargetSpeed = m_aiRequest.GetDesiredSpeed();
+		Limit(fTargetSpeed, -m_maxSpeed, m_maxSpeed);
 	}
 	else
 	{
-
-		Matrix33 entRotMatInvert( m_PhysPos.q );
-		entRotMatInvert.Invert();
-		float currentAngleSpeed = RAD2DEG(-m_PhysDyn.w.z);
-
-		const float maxSteer = RAD2DEG(gf_PI/4.f); // fix maxsteer, shouldn't change  
-		Vec3 vVel = m_PhysDyn.v;
-		Vec3 vVelR = entRotMatInvert * vVel;
-		float currentSpeed =vVel.GetLength();
-		vVelR.NormalizeSafe();
-		if ( vVelR.Dot( FORWARD_DIRECTION ) < 0 )
-			currentSpeed *= -1.0f;
-
-		// calculate pedal
-		const float accScale = 0.5f;
-		m_movementAction.power = (inputSpeed - currentSpeed) * accScale;
-		Limit( m_movementAction.power, -1.0f, 1.0f);
-
-		// calculate angles
-		Vec3 vMoveR = entRotMatInvert * vMove;
-		Vec3 vFwd	= FORWARD_DIRECTION;
-
-		vMoveR.z =0.0f;
-		vMoveR.NormalizeSafe();
-
-		float cosAngle = vFwd.Dot(vMoveR);
-		float angle = RAD2DEG( acos_tpl(cosAngle));
-		if ( vMoveR.Dot( Vec3( 1.0f,0.0f,0.0f ) )< 0 )
-			angle = -angle;
-
-		//		int step =0;
-		m_movementAction.rotateYaw = angle * 1.75f/ maxSteer; 
-
-		// implementation 1. if there is enough angle speed, we don't need to steer more
-		if ( fabsf(currentAngleSpeed) > fabsf(angle) && angle*currentAngleSpeed > 0.0f )
-		{
-			m_movementAction.rotateYaw = m_action.steer*0.995f; 
-			//			step =1;
-		}
-
-		// implementation 2. if we can guess we reach the distination angle soon, start counter steer.
-		float predictDelta = inputSpeed < 0.0f ? 0.1f : 0.07f;
-		float dict = angle + predictDelta * ( angle - m_prevAngle) / dt ;
-		if ( dict*currentAngleSpeed<0.0f )
-		{
-			if ( fabsf( angle ) < 2.0f )
-			{
-				m_movementAction.rotateYaw = angle* 1.75f/ maxSteer;
-				//				step =3;
-			}
-			else
-			{
-				m_movementAction.rotateYaw = currentAngleSpeed < 0.0f ? 1.0f : -1.0f; 
-				//				step =2;
-			}
-		}
-
-		if ( fabsf( angle ) > 20.0f && currentSpeed > 7.0f ) 
-		{
-			m_movementAction.power *= 0.0f ;
-			//			step =4;
-		}
-
-		// for more tight condition to make curve.
-		if ( fabsf( angle ) > 40.0f && currentSpeed > 3.0f ) 
-		{
-			m_movementAction.power *= 0.0f ;
-			//			step =5;
-		}
-
-		//		m_prevAngle =  angle;
-		//		char buf[1024];
-		///		sprintf(buf, "steering	%4.2f	%4.2f %4.2f	%4.2f	%4.2f	%4.2f	%d\n", deltaTime,currentSpeed,angle,currentAngleSpeed, m_movementAction.rotateYaw,currentAngleSpeed-m_prevAngle,step);
-		//		OutputDebugString( buf );
+		fTargetSpeed = 0.f;
 	}
 
+// 	DEBUG_DRAW_INIT(30);
+// 	DEBUG_DRAW_FLOAT(fTargetSpeed);
+// 	IRenderAuxGeom* pAuxGeom = gEnv->pRenderer->GetIRenderAuxGeom();
+
+	Vec3 vTargetDir;
+	if (m_aiRequest.HasMoveTarget())
+	{
+		vTargetDir = (m_aiRequest.GetMoveTarget() - m_PhysPos.pos).GetNormalizedSafe();
+
+		//pAuxGeom->DrawLine(m_aiRequest.GetMoveTarget(), ColorB(255, 0, 255), m_PhysPos.pos, ColorB(255, 255, 255), 2.f);
+		//pAuxGeom->DrawLine(m_PhysPos.pos - vTargetDir * 10.f, ColorB(0, 0, 255), m_PhysPos.pos, ColorB(255, 255, 255), 2.f);
+	}
+	else
+	{
+		vTargetDir.zero();
+	}
+
+	// Start calculation
+	if ((fabsf(fTargetSpeed) < 0.0001f) || (m_tireBlownTimer > 1.5f))
+	{
+		m_movementAction.brake = true;
+		return;
+	}
+
+	
+	//////////////////////////////////////////////////////////////////////////
+
+	Matrix33 entRotMatInvert(m_PhysPos.q);
+	entRotMatInvert.Invert();
+
+	Vec3 vVel = m_PhysDyn.v;
+	Vec3 vVelR = entRotMatInvert * vVel;
+	float fCurrentSpeed = vVel.GetLength();
+	vVelR.NormalizeSafe();
+	if (vVelR.Dot(FORWARD_DIRECTION) < 0.f)
+	{
+		fCurrentSpeed *= -1.f;
+	}
+
+	// calculate pedal
+	const float accScale = 1.f;
+	m_movementAction.power = (fTargetSpeed - fCurrentSpeed) * accScale;
+	Limit(m_movementAction.power, -1.f, 1.f);
+
+	// calculate angles
+	Vec3 vMoveR = entRotMatInvert * vTargetDir;
+	vMoveR.z = 0.f;
+	vMoveR.NormalizeSafe();
+
+	Vec3 vFwd	= FORWARD_DIRECTION;
+	float cosAngle = vFwd.Dot(vMoveR);
+	float degDesiredSteer = RAD2DEG(acos_tpl(cosAngle));
+	if (vMoveR.x < 0.f)
+	{
+		degDesiredSteer = -degDesiredSteer;
+	}
+
+	if (IGameRulesSystem* pGameRulesSystem = gEnv->pGame->GetIGameFramework()->GetIGameRulesSystem())
+	{
+		if (IGameRules* pGameRules = pGameRulesSystem->GetCurrentGameRules())
+		{
+			if (IEntity* pGameRulesEntity = pGameRules->GetEntity())
+			{
+				if (!strcmp(pGameRulesEntity->GetClass()->GetName(), "Racing"))
+				{
+					ProcessAI_Racing(deltaTime, fCurrentSpeed, fTargetSpeed, degDesiredSteer);
+					return;
+				}
+			}
+		}
+	}
+
+	const float degFixedMaxSteer = RAD2DEG(gf_PI / 4.f); // fixed max. steer, shouldn't change  
+	m_movementAction.rotateYaw = degDesiredSteer * 1.75f / degFixedMaxSteer; 
+
+	float degAngularSpeed = RAD2DEG(-m_PhysDyn.w.z);
+
+	// Step 1.  If the angular speed is enough, don't steer more
+	if ((fabsf(degDesiredSteer) <= fabsf(degAngularSpeed)) && (degDesiredSteer * degAngularSpeed >= 0.f))
+	{
+		m_movementAction.rotateYaw = m_action.steer * 0.995f; 
+	}
+
+	// Step 2. if we can guess we reach the destination angle soon, start counter steer.
+	float predictDelta = (fTargetSpeed < 0.f) ? 0.1f : 0.07f;
+	float dict = degDesiredSteer + predictDelta * degDesiredSteer / dt;
+	if (dict * degAngularSpeed < 0.f)
+	{
+		if (fabsf(degDesiredSteer) < 2.f)
+		{
+			m_movementAction.rotateYaw = degDesiredSteer * 1.75f / degFixedMaxSteer;
+		}
+		else
+		{
+			m_movementAction.rotateYaw = (degAngularSpeed < 0.f) ? 1.f : -1.f; 
+		}
+	}
+
+	if ((fabsf(degDesiredSteer) > 20.f) && (fCurrentSpeed > 7.f))
+	{
+		m_movementAction.power *= 0.f;
+	}
+
+	// for more tight condition to make curve.
+	if ((fabsf(degDesiredSteer) > 40.f) && (fCurrentSpeed > 3.f))
+	{
+		m_movementAction.power *= 0.f;
+	}
+}
+
+void CVehicleMovementArcadeWheeled::ProcessAI_Racing(const float deltaTime, float fCurrentSpeed, float fTargetSpeed, float degDesiredSteer)
+{
+	// Warning: magic numbers.  You can use some console variables for tweaking, e.g. cl_frozenXYZ [8/7/2012 evgeny]
+	float fSteerToYaw = 0.09f;
+	float fSteerToYawExp = -0.001f;
+	m_movementAction.rotateYaw = fSteerToYaw * degDesiredSteer * expf(fSteerToYawExp * abs(degDesiredSteer));
+
+	m_boost = !m_movementAction.brake && (fCurrentSpeed > 0.f);
+
+// 	float rotateYaw = m_movementAction.rotateYaw;
+// 	int boost = int(m_boost);
+// 	DEBUG_DRAW_INIT(30);
+// 	DEBUG_DRAW_FLOAT(fSteerToYaw);
+// 	DEBUG_DRAW_FLOAT(fSteerToYawExp);
+// 	DEBUG_DRAW_FLOAT(rotateYaw);
+// 	DEBUG_DRAW_INT(boost);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1849,7 +1914,7 @@ void CVehicleMovementArcadeWheeled::ProcessMovement(const float deltaTime)
 {
 	FUNCTION_PROFILER( GetISystem(), PROFILE_GAME );
 
-	// m_netActionSync.UpdateObject(this);
+	m_netActionSync.UpdateObject(this);
 
 	CryAutoCriticalSection lk(m_lock);
 
@@ -1861,8 +1926,6 @@ void CVehicleMovementArcadeWheeled::ProcessMovement(const float deltaTime)
 
 	float speed = m_PhysDyn.v.len();
 	bool isDestroyed = m_pVehicle->IsDestroyed();
-
-	bool canApplyAction = !(gEnv->bMultiplayer && m_netLerp);	// Dont apply an Action unless this is a player controlled vehicle
 
 	bool isDriverHidden = false;
 	bool isAIDisabled = false;
@@ -1878,27 +1941,24 @@ void CVehicleMovementArcadeWheeled::ProcessMovement(const float deltaTime)
 
 	if (isAIDisabled || isDriverHidden || !(m_actorId && m_isEnginePowered) || isDestroyed )
 	{
-		const float sleepTime = 3.0f;
+		const float sleepTime = 3.f;
 
 		if ( m_passengerCount > 0 || ( isDestroyed && m_bForceSleep == false ))
 		{
 			UpdateSuspension(deltaTime);
 		}
 
-		if (m_frictionState!=k_frictionUseLowLevel)
+		//if (m_frictionState!=k_frictionUseLowLevel)
 			EnableLowLevelPhysics(k_frictionUseLowLevel, THREAD_SAFE);
 
-		if (canApplyAction)
-		{
-			m_action.bHandBrake = m_stationaryHandbrake;
-			m_action.pedal = 0;
-			pPhysics->Action(&m_action, THREAD_SAFE);
-		}
+		m_action.bHandBrake = m_stationaryHandbrake;
+		m_action.pedal = 0;
+		pPhysics->Action(&m_action, THREAD_SAFE);
 
-		bool maybeInTheAir = fabsf(m_PhysDyn.v.z) > 1.0f;
+		bool maybeInTheAir = fabsf(m_PhysDyn.v.z) > 1.f;
 		if ( maybeInTheAir )
 		{
-			UpdateGravity(-9.81f * 1.4f);
+			UpdateGravity(-9.81f * m_pSharedParams->gravityInAirMult);
 			ApplyAirDamp(DEG2RAD(20.f), DEG2RAD(10.f), deltaTime, THREAD_SAFE);
 		}
 
@@ -1914,7 +1974,7 @@ void CVehicleMovementArcadeWheeled::ProcessMovement(const float deltaTime)
 			if ( numContact > numWheels/2 || speed<0.2f )
 				m_forceSleepTimer += deltaTime;
 			else
-				m_forceSleepTimer = max(0.0f,m_forceSleepTimer-deltaTime);
+				m_forceSleepTimer = max(0.f,m_forceSleepTimer-deltaTime);
 
 			if ( m_forceSleepTimer > sleepTime )
 			{
@@ -1935,49 +1995,47 @@ void CVehicleMovementArcadeWheeled::ProcessMovement(const float deltaTime)
 	UpdateSuspension(deltaTime);   	
 	//UpdateBrakes(deltaTime);
 
-	float damageMul = 1.0f - 0.7f*m_damage;  
+	float damageMul = 1.f - 0.7f*m_damage;  
 	bool bInWater = m_PhysDyn.submergedFraction > 0.01f;
-	if (canApplyAction)
+
+	pe_action_drive prevAction = m_action; 
+
+	// speed ratio    
+	float speedRel = min(speed, m_pSharedParams->vMaxSteerMax) / m_pSharedParams->vMaxSteerMax;  
+
+	// reduce actual pedal with increasing steering and velocity
+	float maxPedal = 1 - (speedRel * fabsf(m_movementAction.rotateYaw) * m_pSharedParams->pedalLimitMax);  
+	float submergeMul = 1.f;  
+	float totalMul = 1.f;  
+	if ( GetMovementType()!=IVehicleMovement::eVMT_Amphibious && bInWater )
 	{
-		pe_action_drive prevAction = m_action; 
+		submergeMul = max( 0.f, 0.04f - m_PhysDyn.submergedFraction ) * 10.f;
+		submergeMul *=submergeMul;
+		submergeMul = max( 0.2f, submergeMul );
+	}
 
-		// speed ratio    
-		float speedRel = min(speed, m_pSharedParams->vMaxSteerMax) / m_pSharedParams->vMaxSteerMax;  
+	totalMul = max( 0.3f, damageMul *  submergeMul );
+	m_action.pedal = clamp(m_movementAction.power, -maxPedal, maxPedal ) * totalMul;
 
-		// reduce actual pedal with increasing steering and velocity
-		float maxPedal = 1 - (speedRel * fabsf(m_movementAction.rotateYaw) * m_pSharedParams->pedalLimitMax);  
-		float submergeMul = 1.0f;  
-		float totalMul = 1.0f;  
-		if ( GetMovementType()!=IVehicleMovement::eVMT_Amphibious && bInWater )
-		{
-			submergeMul = max( 0.0f, 0.04f - m_PhysDyn.submergedFraction ) * 10.0f;
-			submergeMul *=submergeMul;
-			submergeMul = max( 0.2f, submergeMul );
-		}
+	// make sure cars can't drive under water
+	if(GetMovementType()!=IVehicleMovement::eVMT_Amphibious && m_PhysDyn.submergedFraction >= m_submergedRatioMax && m_damage >= 0.99f)
+	{
+		m_action.pedal = 0.f;
+	}
 
-		totalMul = max( 0.3f, damageMul *  submergeMul );
-		m_action.pedal = clamp(m_movementAction.power, -maxPedal, maxPedal ) * totalMul;
+	m_action.steer = CalcSteering(m_action.steer, speedRel, m_movementAction.rotateYaw, deltaTime);
 
-		// make sure cars can't drive under water
-		if(GetMovementType()!=IVehicleMovement::eVMT_Amphibious && m_PhysDyn.submergedFraction >= m_submergedRatioMax && m_damage >= 0.99f)
-		{
-			m_action.pedal = 0.0f;
-		}
-
-		m_action.steer = CalcSteering(m_action.steer, speedRel, m_movementAction.rotateYaw, deltaTime);
-
-		if ((!is_unused(m_action.pedal) && !is_unused(prevAction.pedal) && abs(m_action.pedal-prevAction.pedal)>FLT_EPSILON) || 
-			(!is_unused(m_action.steer) && !is_unused(prevAction.steer) && abs(m_action.steer-prevAction.steer)>FLT_EPSILON) || 
-			(!is_unused(m_action.clutch) && !is_unused(prevAction.clutch) && abs(m_action.clutch-prevAction.clutch)>FLT_EPSILON) || 
-			m_action.bHandBrake != prevAction.bHandBrake || 
-			m_action.iGear != prevAction.iGear)
-		{
-			pPhysics->Action(&m_action, THREAD_SAFE);
-		}
+	if ((!is_unused(m_action.pedal) && !is_unused(prevAction.pedal) && abs(m_action.pedal-prevAction.pedal)>FLT_EPSILON) || 
+		(!is_unused(m_action.steer) && !is_unused(prevAction.steer) && abs(m_action.steer-prevAction.steer)>FLT_EPSILON) || 
+		(!is_unused(m_action.clutch) && !is_unused(prevAction.clutch) && abs(m_action.clutch-prevAction.clutch)>FLT_EPSILON) || 
+		m_action.bHandBrake != prevAction.bHandBrake || 
+		m_action.iGear != prevAction.iGear)
+	{
+		pPhysics->Action(&m_action, THREAD_SAFE);
 	}
 
 	Vec3 vUp(m_PhysPos.q.GetColumn2());
-	Vec3 vUnitUp(0.0f,0.0f,1.0f);
+	Vec3 vUnitUp(0.f,0.f,1.f);
 
 	float slopedot = vUp.Dot( vUnitUp );
 	bool bSteep =  fabsf(slopedot) < 0.7f;
@@ -1985,11 +2043,11 @@ void CVehicleMovementArcadeWheeled::ProcessMovement(const float deltaTime)
 		if ( bSteep && speed > 7.5f )
 		{
 			Vec3 vVelNorm = m_PhysDyn.v.GetNormalizedSafe();
-			if ( vVelNorm.Dot(vUnitUp)> 0.0f )
+			if ( vVelNorm.Dot(vUnitUp)> 0.f )
 			{
 				pe_action_impulse imp;
 				imp.impulse = -m_PhysDyn.v;
-				imp.impulse *= deltaTime * m_PhysDyn.mass*5.0f;      
+				imp.impulse *= deltaTime * m_PhysDyn.mass*5.f;      
 				imp.point = m_PhysDyn.centerOfMass;
 				imp.iApplyTime = 0;
 				GetPhysics()->Action(&imp, THREAD_SAFE);
@@ -1997,7 +2055,7 @@ void CVehicleMovementArcadeWheeled::ProcessMovement(const float deltaTime)
 		}
 	}
 
-	if ( !bSteep && Boosting() )
+	if ( !bSteep && Boosting() && m_allowBoosting)
 		ApplyBoost(speed, 1.25f*m_maxSpeed*GetWheelCondition()*damageMul, m_boostStrength, deltaTime);  
 
 	if (m_numWheels)
@@ -2011,17 +2069,18 @@ void CVehicleMovementArcadeWheeled::ProcessMovement(const float deltaTime)
 	{
 		ApplyAirDamp(DEG2RAD(20.f), DEG2RAD(10.f), deltaTime, THREAD_SAFE);
 		if ( !bInWater )
-			UpdateGravity(-9.81f * 1.4f);  
+			UpdateGravity(-9.81f * m_pSharedParams->gravityInAirMult);  
 	}
 
 	EjectionTest(deltaTime);
 
-	//if (m_netActionSync.PublishActions( CNetworkMovementArcadeWheeled(this) ))
-	//	CHANGED_NETWORK_STATE(m_pVehicle,  eEA_GameClientDynamic );
+	if (m_netActionSync.PublishActions( CNetworkMovementArcadeWheeled(this) ))
+		CHANGED_NETWORK_STATE(m_pVehicle,  eEA_GameClientDynamic );
 }
 
 void CVehicleMovementArcadeWheeled::EnableLowLevelPhysics(int state, int bThreadSafe)
 {
+	WriteLock lock(m_frictionStateLock);
 	IPhysicalEntity* pPhysics = GetPhysics();
 	assert(pPhysics);
 	if(pPhysics)
@@ -2044,6 +2103,10 @@ void CVehicleMovementArcadeWheeled::EnableLowLevelPhysics(int state, int bThread
 			wheelParams.maxFriction = friction;
 			wheelParams.bCanBrake = 1;
 			wheelParams.bDriving = 0;
+			// Make sure the HB is ON!
+			m_action.bHandBrake = 1;
+			m_action.pedal = 0;
+			pPhysics->Action(&m_action, bThreadSafe);
 		}
 		else // Assume Hi Level, game-side friction
 		{
@@ -2158,8 +2221,8 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 #define SQR(x) ((x)*(x))
 	if(1)
 	{
-		static float t1 = 1.0f;
-		static float t2 = 1.0f;
+		static float t1 = 1.f;
+		static float t2 = 1.f;
 		float invDt2 = 1.f/(dt*dt);
 		Vec3 change = vel - m_chassis.vel;
 		float vs = change.GetLengthSquared();
@@ -2182,6 +2245,7 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 	int numContacts = 0;
 	assert(numWheels <= maxWheels);
 	const float invNumWheels = m_invNumWheels;
+
 	Vec3 contacts[maxWheels];
 	float suspensionExtension = 0.f;
 	float suspensionVelocity = 0.f;
@@ -2229,7 +2293,7 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 	{
 		m_handling.compressionScale = (1.f - m_pSharedParams->handling.compressionBoost * suspensionExtension);
 	}
-	Limit(m_handling.compressionScale, 1.0f, 10.f);
+	Limit(m_handling.compressionScale, 1.f, 10.f);
 
 	// Work out the base contact normal
 	// This is somewhat faked, but works well enough
@@ -2249,7 +2313,7 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 
 	float speed = yAxis.dot(vel);
 	float absSpeed = fabsf(speed);
-	float angSpeed = m_handling.contactNormal.dot(angVel); 
+	int bPowerLock = 0;
 
 	//=============================================
 	// Calculate invR from the steering wheels
@@ -2274,45 +2338,55 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 	float scale = m_action.bHandBrake ? 1.f : 1.f - (m_pSharedParams->handling.reductionAmount * fabsf(steering));// * approxExp(m_pSharedParams->handling.reductionRate*dt);
 	topSpeed = topSpeed * scale;
 	float throttle = m_isEnginePowered ? m_movementAction.power * scale : 0.f;
+	const float speedNorm = min(absSpeed/topSpeed, 1.f);
 
 	topSpeed = topSpeed * m_damageRPMScale;
 	throttle = throttle * (0.7f + 0.3f * m_damageRPMScale);
 
-	//=============================================
-	// PowerSlide
-	//=============================================
-	float chassisInvInertia = c->invInertia;
+	//===================================================
+	// Stabilisation and Angular Damping
+	//===================================================
+	const SStabilisation* stabilisation = &m_pSharedParams->stabilisation;
+	const float angDamping = approxExp(dt*stabilisation->angDamping);
+	const float rollSpeed = yAxis.dot(angVel); 
 
+	// Angular damping of roll and tilt
+	const Vec3 angVelZ = zAxis*(angVel*zAxis);
+	angVel = (angVel - angVelZ)*angDamping + angVelZ;
+	
+	int leftContact = contactMap[0][0]|contactMap[0][1];
+	int rightContact = contactMap[1][0]|contactMap[1][1];
 
+	if (leftContact&rightContact)
+		m_handling.lostContactOneSideTimer=0.f;
+	else
+		m_handling.lostContactOneSideTimer+=dt;
 
+	// Additional roll damping, if lost contact on one side or both sides
+	if ((leftContact&rightContact)==0)
+		angVel -= yAxis*(approxOneExp(dt*stabilisation->rollDamping)*rollSpeed);
 
+	// Stop updwards velocity of the vehicle is contact is lost
+	if ((leftContact&rightContact)==0 && vel.z>0.f)
+		vel.z *= approxExp(dt*stabilisation->upDamping);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	if ((leftContact|rightContact)==0 && zAxis.z>0.f)
 	{
-		m_handling.canPowerSlide = false;
-		m_handling.powerSlideDir = 0.f;
+		Vec3 right = Vec3(xAxis.x, xAxis.y, 0.f);
+		// Calculate an up axis to roll towards
+		Vec3 up = right.cross(yAxis).GetNormalized();
+		if (up.z < stabilisation->cosMaxTiltAngleAir)
+		{
+			Vec3 forward = Vec3(yAxis.x, yAxis.y, 0.f).GetNormalized();
+			up = Vec3(stabilisation->sinMaxTiltAngleAir*forward.x, stabilisation->sinMaxTiltAngleAir*forward.y, stabilisation->cosMaxTiltAngleAir);
+		}
+		Quat quatNew;
+		Predict(quatNew, m_PhysPos.q, angVel, dt);
+		Quat q = Quat::CreateRotationV0V1(quatNew.GetColumn2(), up);
+		Vec3 required = angVel + (approxOneExp(stabilisation->rollfixAir*dt) * 2.f / dt) * q.v;
+		angVel += (required - angVel) * approxOneExp(dt*10.f);
 	}
-
+	
 	//===============================================
 	// Process Lateral and Traction Friction
 	//===============================================
@@ -2323,11 +2397,16 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 
 		bool lockAllWheels = (absSpeed > 2.f) && ((speed * throttle) < 0.f);			// When throttle is opposite to current speed
 		bool canDeccelerate = (absSpeed > (m_pSharedParams->handling.decceleration*dt));
-		const float speedNorm = speed/topSpeed;
 		const float accelerationMultiplier = m_pSharedParams->handling.accelMultiplier1 + (m_pSharedParams->handling.accelMultiplier2 - m_pSharedParams->handling.accelMultiplier1)*speedNorm;
 		float forcePerWheel = m_pSharedParams->handling.acceleration * m_chassis.mass * invNumWheels;	                // Assume all wheels are powered
-		float forcePerWheel2 = m_pSharedParams->handling.decceleration * m_chassis.mass * invNumWheels;	// Assume all wheels are powered
+		float forcePerWheel2 = m_pSharedParams->handling.decceleration * m_chassis.mass * invNumWheels;
 		float handBrakeForce;
+
+		if (Boosting() && m_allowBoosting)
+		{
+			forcePerWheel += m_boostStrength * invNumWheels;
+			forcePerWheel2 += m_boostStrength * invNumWheels;
+		}
 
 		forcePerWheel *= m_damageRPMScale;
 		forcePerWheel2 *= m_damageRPMScale;
@@ -2336,6 +2415,7 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 		{
 			handBrakeForce = m_pSharedParams->handling.handBrakeDeccelerationPowerLock * m_chassis.mass;
 			handBrakeForce *= m_damageRPMScale;
+			bPowerLock = 1;
 		}
 		else
 		{
@@ -2410,7 +2490,6 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 						w->w+=(w->w-w->lastW)*approxOneExp(dt);
 					}
 					float dw = contact*throttle * w->radius * accelerationMultiplier * forcePerWheel * dt * w->invInertia;
-					w->lastW = w->w;
 					w->w += dw;
 				}
 				else
@@ -2422,6 +2501,7 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 					}
 					w->w *= 0.9f;
 				}
+				w->lastW = w->w;
 
 				if ((w->w * w->radius) > m_pSharedParams->handling.topSpeed)
 				{
@@ -2443,6 +2523,14 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 
 			maxTractionImpulse[i].min *= m_handling.compressionScale * contact;
 			maxTractionImpulse[i].max *= m_handling.compressionScale * contact;
+
+			if (w->contactNormal.dot(zAxis)<0.3f)
+			{
+				maxTractionImpulse[i].min = 0.f;
+				maxTractionImpulse[i].max = 0.f;
+				maxLateralImpulse[i].min = 0.f;
+				maxLateralImpulse[i].max = 0.f;
+			}
 
 			// Lateral Friction
 			{
@@ -2521,11 +2609,13 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 			pPhysics->SetParams(&wp, 1);
 		}
 	}
-
+	
+	float angSpeed = m_handling.contactNormal.dot(angVel); 
+	
 	//===============================
 	// InvR Correction
 	//===============================
-	if ((numContacts>=3) && (m_handling.canPowerSlide==false))
+	if (numContacts>=2)
 	{
 		float target = 1.f;
 		float angSpring0 = m_pSharedParams->correction.angSpring;
@@ -2538,13 +2628,32 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 		float angularCorrection = speed*target*m_invTurningRadius - angSpeed;
 		float angSpring = approxOneExp(dt*angSpring0);
 		angVel = angVel + m_handling.contactNormal*(angularCorrection*angSpring);
-		vel = vel - xAxis * (xAxis.dot(vel) * approxOneExp(dt * lateralSpring0));	// Lateral damp
+		
+		vel += - xAxis * (xAxis.dot(vel) * approxOneExp(dt * lateralSpring0));	// Lateral damp
+
+		if (!m_movementAction.isAI)
+		{
+			// Power sliding, add lateral velocity based on steering and forward speed
+			const SPowerSlide* ps = &m_pSharedParams->powerSlide;
+			vel += xAxis * ((-absSpeed*ps->lateralSpeedFraction[bPowerLock]*steering - xAxis.dot(vel)) * approxOneExp(dt*ps->spring));
+		}
+	}
+
+	if (fabsf(throttle)<0.1f && m_action.bHandBrake && vel.GetLengthSquared()<sqr(0.5f))
+	{
+		if (m_frictionState!=k_frictionUseLowLevel)
+			EnableLowLevelPhysics(k_frictionUseLowLevel, THREAD_SAFE);
+	}
+	else
+	{
+		if (m_frictionState!=k_frictionUseHiLevel)
+			EnableLowLevelPhysics(k_frictionUseHiLevel, THREAD_SAFE);
 	}
 
 	//==============================================
 	// Commit the velocity back to the physics engine
 	//==============================================
-	if (vel.GetLengthSquared()>0.001f || angVel.GetLengthSquared()>0.001f) 
+	if (fabsf(m_movementAction.rotateYaw)>0.05f || vel.GetLengthSquared()>0.001f || m_chassis.vel.GetLengthSquared()>0.001f || angVel.GetLengthSquared()>0.001f || angVel.GetLengthSquared()>0.001f) 
 	{ 
 		pe_action_set_velocity setVelocity;
 		setVelocity.v = vel;
@@ -2554,7 +2663,6 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 
 	m_chassis.vel = vel;
 	m_chassis.angVel = angVel;
-	c->invInertia = chassisInvInertia;
 }
 
 #if ENABLE_VEHICLE_DEBUG
@@ -2798,14 +2906,14 @@ bool CVehicleMovementArcadeWheeled::RequestMovement(CMovementRequest& movementRe
 		Vec3 entityPos = m_pEntity->GetWorldPos();
 		Vec3 start(entityPos);
 		Vec3 end( movementRequest.GetMoveTarget() );
-		Vec3 pos = ( end - start ) * 100.0f;
+		Vec3 pos = ( end - start ) * 100.f;
 		pos +=start;
 		m_aiRequest.SetMoveTarget( pos );
 	}
 	else
 		m_aiRequest.ClearMoveTarget();
 
-	float fDesiredSpeed = 0.0f;
+	float fDesiredSpeed = 0.f;
 
 	if (movementRequest.HasDesiredSpeed())
 		fDesiredSpeed = movementRequest.GetDesiredSpeed();
@@ -2817,7 +2925,7 @@ bool CVehicleMovementArcadeWheeled::RequestMovement(CMovementRequest& movementRe
 		const Vec3 forcedNavigation = movementRequest.GetForcedNavigation();
 		const Vec3 entityPos = m_pEntity->GetWorldPos();
 		m_aiRequest.SetForcedNavigation(forcedNavigation);
-		m_aiRequest.SetMoveTarget(entityPos+forcedNavigation.GetNormalizedSafe()*100.0f);
+		m_aiRequest.SetMoveTarget(entityPos+forcedNavigation.GetNormalizedSafe()*100.f);
 
 		if (fabsf(fDesiredSpeed) <= FLT_EPSILON)
 			fDesiredSpeed = forcedNavigation.GetLength();
@@ -2842,7 +2950,7 @@ void CVehicleMovementArcadeWheeled::GetMovementState(SMovementState& movementSta
 	if (!pPhysics)
 		return;
 
-	movementState.minSpeed = 0.0f;
+	movementState.minSpeed = 0.f;
 	movementState.maxSpeed = m_pSharedParams->handling.topSpeed;
 	movementState.normalSpeed = movementState.maxSpeed;
 }
@@ -2857,8 +2965,8 @@ void CVehicleMovementArcadeWheeled::Serialize(TSerialize ser, EEntityAspects asp
 
 	if (ser.GetSerializationTarget() == eST_Network)
 	{
-		//if (aspects&CNetworkMovementArcadeWheeled::CONTROLLED_ASPECT)
-		//	m_netActionSync.Serialize(ser, aspects);
+		if (aspects&CNetworkMovementArcadeWheeled::CONTROLLED_ASPECT)
+			m_netActionSync.Serialize(ser, aspects);
 	}
 	else 
 	{	
@@ -2873,8 +2981,6 @@ void CVehicleMovementArcadeWheeled::Serialize(TSerialize ser, EEntityAspects asp
 
 		if (ser.IsReading() && blownTires != m_blownTires)
 			SetEngineRPMMult(GetWheelCondition());
-
-		ser.Value("m_prevAngle", m_prevAngle);
 
 		m_frictionState = k_frictionNotSet;
 	}
@@ -2954,7 +3060,7 @@ void CVehicleMovementArcadeWheeled::UpdateSurfaceEffects(const float deltaTime)
 
 		// Calculate average water level of wheels in group.
 
-		float		fWaterLevel = 0.0f;
+		float		fWaterLevel = 0.f;
 
 		size_t	wheelCount = layer.GetWheelCount(emitterIt->group);
 
@@ -2996,9 +3102,9 @@ void CVehicleMovementArcadeWheeled::UpdateSurfaceEffects(const float deltaTime)
 				// take care of water
 				if (fWaterLevel > wheelStats.ptContact.z+0.02f)
 				{
-					if ( fWaterLevel > wheelStats.ptContact.z+2.0f)
+					if ( fWaterLevel > wheelStats.ptContact.z+2.f)
 					{
-						slipAvg =0.0f;
+						slipAvg =0.f;
 						bContact = false;
 					}
 					matId = gEnv->pPhysicalWorld->GetWaterMat();
@@ -3107,7 +3213,7 @@ void CVehicleMovementArcadeWheeled::UpdateSurfaceEffects(const float deltaTime)
 
 	if(m_action.bHandBrake)
 	{
-		const float	handbrakeSlipScale = 10.0f;	// TODO : Expose this parameter to designers (after Crysis 2 ships?).
+		const float	handbrakeSlipScale = 10.f;	// TODO : Expose this parameter to designers (after Crysis 2 ships?).
 
 		soundSlip *= handbrakeSlipScale;
 	}
@@ -3122,7 +3228,7 @@ bool CVehicleMovementArcadeWheeled::DoGearSound()
 	return true;
 }
 
-void CVehicleMovementArcadeWheeled::GetMemoryUsage(ICrySizer * pSizer) const
+void CVehicleMovementArcadeWheeled::GetMemoryUsage(ICrySizer* pSizer) const
 {
 	pSizer->Add(*this);
 	pSizer->AddContainer(m_wheels);
@@ -3130,50 +3236,41 @@ void CVehicleMovementArcadeWheeled::GetMemoryUsage(ICrySizer * pSizer) const
 	CVehicleMovementBase::GetMemoryUsageInternal(pSizer);
 }
 
+//------------------------------------------------------------------------
+CNetworkMovementArcadeWheeled::CNetworkMovementArcadeWheeled() :
+	m_pedal(0.f),
+	m_brake(false),
+	m_boost(false)
+{
+}
 
+//------------------------------------------------------------------------
+CNetworkMovementArcadeWheeled::CNetworkMovementArcadeWheeled(CVehicleMovementArcadeWheeled* pMovement)
+{
+	m_pedal = pMovement->m_movementAction.power;
+	m_brake = pMovement->m_movementAction.brake;
+	m_boost = pMovement->m_boost;
+}
 
+//------------------------------------------------------------------------
+void CNetworkMovementArcadeWheeled::UpdateObject(CVehicleMovementArcadeWheeled* pMovement)
+{
+	pMovement->m_movementAction.power = m_pedal;
+	pMovement->m_movementAction.brake = m_brake;
+	pMovement->m_boost = m_boost;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//------------------------------------------------------------------------
+void CNetworkMovementArcadeWheeled::Serialize(TSerialize ser, EEntityAspects aspects)
+{
+	if (ser.GetSerializationTarget() == eST_Network)
+	{
+		if (aspects & CONTROLLED_ASPECT)
+		{  
+			ser.Value("pedal", m_pedal, 'vPed');
+			ser.Value("brake", m_brake, 'bool');
+			ser.Value("boost", m_boost, 'bool');      
+		}		
+	}	
+}
 

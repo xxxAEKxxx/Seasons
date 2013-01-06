@@ -466,6 +466,7 @@ public:
 	virtual void SupressViewBlending() { m_viewBlending = false; };
 
 	Vec3 GetLastRequestedVelocity() const { return m_lastRequestedVelocity; }
+	ILINE bool IsMoving() const { return m_lastRequestedVelocity.GetLengthSquared() > 0.01f; }
 	void SetDeathTimer() { m_fDeathTime = gEnv->pTimer->GetFrameStartTime().GetSeconds(); }
 	float GetDeathTime() const { return m_fDeathTime; }
 
@@ -740,6 +741,8 @@ public:
 	virtual int GetActorSpecies() { return eGCT_HUMAN; }
 
 	virtual EntityId	GetGrabbedEntityId() const;
+
+	IGameObjectExtension* GetInteractor();
 
 	void OnBeginCutScene();
 	void OnEndCutScene();

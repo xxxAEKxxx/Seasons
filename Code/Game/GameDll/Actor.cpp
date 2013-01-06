@@ -40,6 +40,8 @@
 #include "AmmoParams.h"
 #include "WeaponSystem.h"
 
+#include "Network/Lobby/GameLobby.h"
+
 IItemSystem *CActor::m_pItemSystem=0;
 IGameFramework	*CActor::m_pGameFramework=0;
 IGameplayRecorder	*CActor::m_pGameplayRecorder=0;
@@ -261,6 +263,7 @@ void SActorAnimationEvents::Init()
 CActor::CActor()
 : m_pAnimatedCharacter(0)
 , m_isClient(false)
+, m_isMigrating(false)
 , m_health(100.0f)
 , m_maxHealth(100)
 , m_pMovementController(0)
@@ -276,7 +279,6 @@ CActor::CActor()
 ,	m_teamId(0)
 ,	m_lastItemId(0)
 , m_pInventory(0)
-, m_pInteractor(0)
 , m_sleepTimer(0.0f)
 , m_sleepTimerOrg(0.0f)
 , m_currentFootID(BONE_FOOT_L)
@@ -351,11 +353,6 @@ void CActor::ClearExtensionCache()
 	{
 		GetGameObject()->ReleaseExtension("Inventory");
 		m_pInventory = 0;
-	}
-	if (m_pInteractor)
-	{
-		GetGameObject()->ReleaseExtension("Interactor");
-		m_pInteractor = 0;
 	}
 }
 //------------------------------------------------------------------------
@@ -560,7 +557,7 @@ void CActor::Revive( bool fromInit )
 		pCharacter->EnableProceduralFacialAnimation(GetMaxHealth() > 0);
 
 	//reset some AG inputs
-	if (m_pAnimatedCharacter)
+	if (m_pAnimatedCharacter && (g_pGame->GetHostMigrationState() == CGame::eHMS_NotMigrating))
 	{
 		IAnimationGraphState* pGraphState = GetAnimationGraphState();
 		pGraphState->Pause(false, eAGP_PlayAnimationNode);
@@ -827,7 +824,20 @@ void CActor::RagDollize( bool fallAndPlay )
 			pp.mass = 80.0f; //never ragdollize without mass [Anton]
 
 		if (fallAndPlay)
+		{
 			pp.fStiffnessScale = 1200;
+		}
+		else
+		{
+			if (IScriptTable* pScriptTable = GetEntity()->GetScriptTable())
+			{
+				SmartScriptTable physicsParams;
+				if (pScriptTable->GetValue("physicsParams", physicsParams))
+				{
+					physicsParams->GetValue("stiffness_scale", pp.fStiffnessScale);
+				}
+			}
+		}
 
 		pe_player_dimensions playerDim;
 		pe_player_dynamics playerDyn;
@@ -1714,11 +1724,19 @@ void CActor::PostSerialize()
 					pEntity->SetMaterial(pMat);
 
 				//get rid of new helmet attachment
-				ICharacterInstance* pCharacter = GetEntity()->GetCharacter(0);
-				IAttachmentManager *pAttachmentManager = pCharacter->GetIAttachmentManager();
-				IAttachment *pAttachment = pAttachmentManager->GetInterfaceByName(m_lostHelmetPos.c_str());
-				if(pAttachment && pAttachment->GetIAttachmentObject())
-					pAttachment->ClearBinding();
+				if (ICharacterInstance* pCharacter = GetEntity()->GetCharacter(0))
+				{
+					if (IAttachmentManager* pAttachmentManager = pCharacter->GetIAttachmentManager())
+					{
+						if (IAttachment* pAttachment = pAttachmentManager->GetInterfaceByName(m_lostHelmetPos.c_str()))
+						{
+							if (pAttachment->GetIAttachmentObject())
+							{
+								pAttachment->ClearBinding();
+							}
+						}
+					}
+				}
 
 				m_lostHelmet = m_serializeLostHelmet;
 			}
@@ -2114,15 +2132,6 @@ bool CActor::IsPlayer() const
 bool CActor::IsClient() const
 {
 	return m_isClient;
-}
-
-bool CActor::IsMigrating() const
-{
-	return false;
-}
-
-void CActor::SetMigrating(bool isMigrating)
-{
 }
 
 bool CActor::SetAspectProfile( EEntityAspects aspect, uint8 profile )
@@ -2696,7 +2705,13 @@ void CActor::ProcessBonesRotation(ICharacterInstance *pCharacter,float frameTime
 	planeNormal.Set(0, -1, 1);
 	RPlane = Plane::CreatePlane(planeNormal.GetNormalized(), /*GetEntity()->GetWorldPos() + GetEntity()->GetWorldRotation() * */Vec3(-0.3f, 0, 0.25f));  //(m_RLastHeelIVecSmooth.normal*m_entLocation.q,m_entLocation.GetInverted()*m_RLastHeelIVecSmooth.pos);
 	if (g_pGameCVars->pl_testGroundAlignOverride != 0)
-		GetEntity()->GetCharacter(0)->GetISkeletonPose()->SetGroundAlignmentData(true, 0.0f, LPlane, RPlane);
+	{
+		if (ISkeletonPose* pSkeletonPose = GetEntity()->GetCharacter(0)->GetISkeletonPose())
+		{
+			int32 pelvisIDX = pSkeletonPose->GetJointIDByName("Bip01 Pelvis");
+			pSkeletonPose->SetGroundAlignmentData(true, 0.0f, LPlane, RPlane, pelvisIDX);
+		}
+	}
 }
 
 // when these rules change,the method CheckVirtualInventoryRestrictions needs to be updated as well
@@ -3246,14 +3261,6 @@ IInventory *CActor::GetInventory() const
 }
 
 //------------------------------------------------------------------------
-IInteractor *CActor::GetInteractor() const
-{
-	if (!m_pInteractor)
-		m_pInteractor = (IInteractor*) GetGameObject()->AcquireExtension("Interactor");
-	return m_pInteractor;
-}
-
-//------------------------------------------------------------------------
 EntityId CActor::NetGetCurrentItem() const
 {
 	IInventory *pInventory = GetInventory();
@@ -3267,6 +3274,11 @@ EntityId CActor::NetGetCurrentItem() const
 void CActor::NetSetCurrentItem(EntityId id)
 {	
 	SelectItem(id, false);
+}
+
+void CActor::InitLocalPlayer()
+{
+	m_pGameFramework->GetIActorSystem()->SetLocalPlayerId(GetEntityId());
 }
 
 void CActor::InitiateCombat()
@@ -4258,4 +4270,20 @@ void CActor::FillHitInfoFromKillParams(const CActor::KillParams& killParams, Hit
 						}
 				}
 		}
+}
+
+void CActor::BecomeRemotePlayer()
+{
+	CGameLobby *pGameLobby = g_pGame->GetGameLobby();
+	if (pGameLobby && pGameLobby->IsMidGameLeaving())
+	{
+		return;
+	}
+
+	if (g_pGame->GetGameRules()->IsRealActor(GetEntityId()))
+	{
+		gEnv->pCryPak->DisableRuntimeFileAccess (false);
+	}
+
+	m_isClient = false;
 }

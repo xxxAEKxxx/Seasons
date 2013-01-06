@@ -38,17 +38,21 @@ public:
 	// UI functions
 	void EnteredGame();
 	void PlayerJoined(EntityId playerid, const string& name);
+	void UpdateScoreBoardItem(EntityId playerid, const string& name, int kills, int deaths);
 	void PlayerLeft(EntityId playerid, const string& name);
 	void PlayerKilled(EntityId playerid, EntityId shooterid);
 	void PlayerRenamed(EntityId playerid, const string& newName);
+	void OnChatRecieved(EntityId senderId, int teamFaction, const char* message);
 
 private:
 	// UI events
 	void RequestPlayers();
 	void GetPlayerName();
+	void EnableUpdateScores(bool enable);
 	void SetPlayerName( const string& newname );
 	void ConnectToServer( const string& server );
 	void GetServerName();
+	void OnSendChatMessage( const string& message );
 
 
 	void SubmitNewName();
@@ -59,11 +63,13 @@ private:
 	{
 		eUIE_EnteredGame,
 		eUIE_PlayerJoined,
+		eUIE_UpdateScoreBoardItem,
 		eUIE_PlayerLeft,
 		eUIE_PlayerKilled,
 		eUIE_PlayerRenamed,
 		eUIE_SendName,
 		eUIE_SendServer,
+		eUIE_ChatMsgReceived,
 	};
 
 	SUIEventReceiverDispatcher<CUIMultiPlayer> m_eventDispatcher;

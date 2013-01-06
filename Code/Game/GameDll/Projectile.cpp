@@ -51,7 +51,8 @@ CProjectile::CProjectile()
 	m_noBulletHits(false),
 	m_initial_pos(ZERO),
 	m_initial_dir(ZERO),
-	m_initial_vel(ZERO)
+	m_initial_vel(ZERO),
+	m_bShouldHaveExploded(false)
 {
 }
 
@@ -301,6 +302,7 @@ void CProjectile::ReInitFromPool()
 	m_hitListener=false;
 	m_hitPoints=-1;
 	m_noBulletHits=false;
+	m_bShouldHaveExploded = false;
 }
 
 //------------------------------------------------------------------------
@@ -751,6 +753,7 @@ void CProjectile::Explode(bool destroy, bool impact, const Vec3 &pos, const Vec3
 		Vec3 epos = pos.len2()>0 ? (pos - dir * 0.2f) : GetEntity()->GetWorldPos();
 
 		CGameRules *pGameRules = g_pGame->GetGameRules();
+
 		float minRadius = pExplosionParams->minRadius;
 		float maxRadius = pExplosionParams->maxRadius;
 		if (m_pAmmoParams->pFlashbang)
@@ -789,6 +792,8 @@ void CProjectile::Explode(bool destroy, bool impact, const Vec3 &pos, const Vec3
 
 	if (destroy)
 		Destroy();
+
+	m_bShouldHaveExploded = true;
 }
 
 //------------------------------------------------------------------------
@@ -799,7 +804,7 @@ void CProjectile::TrailSound(bool enable, const Vec3 &dir)
 		if (!m_pAmmoParams->pTrail || !m_pAmmoParams->pTrail->sound)
 			return;
 
-		m_trailSoundId = GetSoundProxy()->PlaySound(m_pAmmoParams->pTrail->sound, Vec3(0,0,0), FORWARD_DIRECTION, FLAG_SOUND_DEFAULT_3D, eSoundSemantic_Projectile, 0, 0);
+		m_trailSoundId = GetSoundProxy()->PlaySound(m_pAmmoParams->pTrail->sound, Vec3(0,0,0), FORWARD_DIRECTION, FLAG_SOUND_DEFAULT_3D, 0, eSoundSemantic_Projectile, 0, 0);
 		if (m_trailSoundId != INVALID_SOUNDID)
 		{
 			ISound *pSound=GetSoundProxy()->GetSound(m_trailSoundId);

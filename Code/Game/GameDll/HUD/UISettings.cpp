@@ -26,41 +26,23 @@ CUISettings::CUISettings()
 }
 
 ////////////////////////////////////////////////////////////////////////////
+#define GET_CVAR_SAFE(var, name) { var = gEnv->pConsole->GetCVar(name); if (!var) {var = SNullCVar::Get(); gEnv->pLog->LogError("UISetting uses undefined CVar: %s", name);} }
+
 void CUISettings::InitEventSystem()
 {
 	if (!gEnv->pFlashUI) return;
 
 	// CVars
- 	m_pRXVar = gEnv->pConsole->GetCVar("r_Width");
- 	m_pRYVar = gEnv->pConsole->GetCVar("r_Height");
- 	m_pFSVar = gEnv->pConsole->GetCVar("r_Fullscreen");
-	m_pMusicVar = gEnv->pConsole->GetCVar("s_MusicVolume");
-	m_pSFxVar = gEnv->pConsole->GetCVar("s_SFXVolume");
-	m_pVideoVar = gEnv->pConsole->GetCVar("sys_flash_video_soundvolume");
-	m_pVideoVar = m_pVideoVar ? m_pVideoVar : m_pMusicVar; // tmp fix to allow using music var as dummy fallback if GFX_VIDEO is not enabled (FreeSDK)
-	m_pMouseSensitivity = gEnv->pConsole->GetCVar("cl_sensitivity");
-	m_pInvertMouse = gEnv->pConsole->GetCVar("cl_invertMouse");
-	m_pInvertController = gEnv->pConsole->GetCVar("cl_invertController");
-
-	assert(m_pRXVar 
-		&& m_pRYVar 
-		&& m_pFSVar 
-		&& m_pMusicVar 
-		&& m_pSFxVar 
-		&& m_pVideoVar
-		&& m_pMouseSensitivity
-		&& m_pInvertMouse
-		&& m_pInvertController);
-
-	if (!(m_pRXVar 
-		&& m_pRYVar 
-		&& m_pFSVar 
-		&& m_pMusicVar 
-		&& m_pSFxVar 
-		&& m_pVideoVar
-		&& m_pMouseSensitivity
-		&& m_pInvertMouse
-		&& m_pInvertController)) return;
+ 	GET_CVAR_SAFE(m_pRXVar, "r_Width");
+ 	GET_CVAR_SAFE(m_pRYVar, "r_Height");
+ 	GET_CVAR_SAFE(m_pFSVar, "r_Fullscreen");
+	GET_CVAR_SAFE(m_pGQVar, "sys_spec");
+	GET_CVAR_SAFE(m_pMusicVar, "s_MusicVolume");
+	GET_CVAR_SAFE(m_pSFxVar, "s_SFXVolume");
+	GET_CVAR_SAFE(m_pVideoVar, "sys_flash_video_soundvolume");
+	GET_CVAR_SAFE(m_pMouseSensitivity, "cl_sensitivity");
+	GET_CVAR_SAFE(m_pInvertMouse, "cl_invertMouse");
+	GET_CVAR_SAFE(m_pInvertController, "cl_invertController");
 
 
 	m_Resolutions.push_back(std::make_pair(1024,768));
@@ -116,6 +98,7 @@ void CUISettings::InitEventSystem()
 		SUIEventDesc eventDesc("OnLevelItem", "Triggered once per level if levels were requested.");
 		eventDesc.AddParam<SUIParameterDesc::eUIPT_String>("LevelLabel", "@ui_<level> for localization");
 		eventDesc.AddParam<SUIParameterDesc::eUIPT_String>("LevelName", "name of the level");
+		eventDesc.AddParam<SUIParameterDesc::eUIPT_String>("LevelPath", "path to the level");
 		m_eventSender.RegisterEvent<eUIE_OnGetLevelItems>(eventDesc);
 	}
 
@@ -127,6 +110,7 @@ void CUISettings::InitEventSystem()
 	{
 		SUIEventDesc eventDesc("SetGraphics", "Call this to set graphic modes");
 		eventDesc.AddParam<SUIParameterDesc::eUIPT_Int>("Resolution", "Resolution ID");
+		eventDesc.AddParam<SUIParameterDesc::eUIPT_Int>("Quality", "Graphics Quality");
 		eventDesc.AddParam<SUIParameterDesc::eUIPT_Bool>("Fullscreen", "Fullscreen (True/False)");
 		m_eventDispatcher.RegisterEvent(eventDesc, &CUISettings::OnSetGraphicSettings);
 	}
@@ -264,7 +248,7 @@ void CUISettings::Update(float fDeltaTime)
 ////////////////////////////////////////////////////////////////////////////
 // ui events
 ////////////////////////////////////////////////////////////////////////////
-void CUISettings::OnSetGraphicSettings( int resIndex, bool fullscreen )
+void CUISettings::OnSetGraphicSettings( int resIndex, int graphicsQuality, bool fullscreen )
 {
 #if !defined(PS3) && !defined(XENON)
 	if (resIndex >= 0 && resIndex < m_Resolutions.size())
@@ -273,6 +257,7 @@ void CUISettings::OnSetGraphicSettings( int resIndex, bool fullscreen )
 
 		m_pRXVar->Set(m_Resolutions[resIndex].first);
 		m_pRYVar->Set(m_Resolutions[resIndex].second);
+		m_pGQVar->Set(graphicsQuality);
 		m_pFSVar->Set(fullscreen);
 
 		SendGraphicSettingsChange();
@@ -281,7 +266,7 @@ void CUISettings::OnSetGraphicSettings( int resIndex, bool fullscreen )
 }
 
 ////////////////////////////////////////////////////////////////////////////
-// DEPRECATED: shoud consider to use OnSetGraphicSettings
+// DEPRECATED: should consider to use OnSetGraphicSettings
 void CUISettings::OnSetResolution( int resX, int resY, bool fullscreen )
 {
 #if !defined(PS3) && !defined(XENON)
@@ -343,7 +328,7 @@ void CUISettings::OnGetLevels()
 		int i = 0;
 		while ( ILevelInfo* pLevelInfo = gEnv->pGame->GetIGameFramework()->GetILevelSystem()->GetLevelInfo( i++ ) )
 		{
- 			m_eventSender.SendEvent<eUIE_OnGetLevelItems>(pLevelInfo->GetDisplayName(), pLevelInfo->GetName());
+ 			m_eventSender.SendEvent<eUIE_OnGetLevelItems>(pLevelInfo->GetDisplayName(), pLevelInfo->GetName(), pLevelInfo->GetPath());
 		}
 	}
 }
@@ -402,25 +387,20 @@ void CUISettings::SendGameSettingsChange()
 ////////////////////////////////////////////////////////////////////////////
 void CUISettings::LoadProfile(IPlayerProfile* pProfile)
 {
-	if (!(m_pRXVar 
-		&& m_pRYVar 
-		&& m_pFSVar 
-		&& m_pMusicVar 
-		&& m_pSFxVar 
-		&& m_pVideoVar
-		&& m_pMouseSensitivity
-		&& m_pInvertMouse
-		&& m_pInvertController)) return;
-
 	int rx = m_pRXVar->GetIVal();
 	int ry = m_pRYVar->GetIVal();
 	int fs = m_pFSVar->GetIVal();
+	int gq = m_pGQVar->GetIVal();
+
 	pProfile->GetAttribute( "res_x",  rx, false);
 	pProfile->GetAttribute( "res_y",  ry, false);
 	pProfile->GetAttribute( "res_fs", fs, false);
+	pProfile->GetAttribute( "res_quality", gq, false);
+
 	m_pRXVar->Set(rx);
 	m_pRYVar->Set(ry);
 	m_pFSVar->Set(fs);
+	m_pGQVar->Set(gq);
 
 	float music = m_pMusicVar->GetFVal();
 	float sound = m_pSFxVar->GetFVal();
@@ -446,19 +426,10 @@ void CUISettings::LoadProfile(IPlayerProfile* pProfile)
 ////////////////////////////////////////////////////////////////////////////
 void CUISettings::SaveProfile(IPlayerProfile* pProfile) const
 {
-	if (!(m_pRXVar 
-		&& m_pRYVar 
-		&& m_pFSVar 
-		&& m_pMusicVar 
-		&& m_pSFxVar 
-		&& m_pVideoVar
-		&& m_pMouseSensitivity
-		&& m_pInvertMouse
-		&& m_pInvertController)) return;
-
 	pProfile->SetAttribute( "res_x",  m_pRXVar->GetIVal());
 	pProfile->SetAttribute( "res_y",  m_pRYVar->GetIVal());
 	pProfile->SetAttribute( "res_fs", m_pFSVar->GetIVal());
+	pProfile->SetAttribute( "res_quality", m_pGQVar->GetIVal());
 
 	pProfile->SetAttribute( "sound_music", m_pMusicVar->GetFVal());
 	pProfile->SetAttribute( "sound_sound", m_pSFxVar->GetFVal());

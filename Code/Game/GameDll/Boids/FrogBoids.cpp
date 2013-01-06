@@ -60,8 +60,7 @@ void CFrogFlock::CreateBoids( SBoidsCreateContext &ctx )
 		boid->m_pos = m_origin + Vec3(radius*Boid::Frand(),radius*Boid::Frand(),Boid::Frand()*radius);
 		boid->m_pos.z = m_bc.engine->GetTerrainElevation(boid->m_pos.x,boid->m_pos.y) + m_bc.fBoidRadius*0.5f;
 		boid->m_heading = ( Vec3(Boid::Frand(),Boid::Frand(),0) ).GetNormalized();
-		//boid->m_scale = m_bc.boidScale + Boid::Frand()*m_bc.boidRandomScale;
-		boid->m_scale = 1.0f;
+		boid->m_scale = m_bc.boidScale + Boid::Frand()*m_bc.boidRandomScale;
 
 		AddBoid(boid);
 	}	

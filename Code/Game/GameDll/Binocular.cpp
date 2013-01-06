@@ -202,6 +202,8 @@ void CBinocular::Zoom()
 
 void CBinocular::OnDropped( EntityId actorId )
 {
+	CWeapon::OnDropped(actorId);
+
 	ResetState();
 
 	if(GetOwnerActor() == NULL)

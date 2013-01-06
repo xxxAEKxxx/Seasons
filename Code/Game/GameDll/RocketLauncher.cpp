@@ -350,6 +350,12 @@ void CRocketLauncher::Drop(float impulseScale, bool selectNext, bool byDeath)
 	GetScheduler()->TimerAction(GetCurrentAnimationTime(eIGS_FirstPerson), CSchedulerAction<EndDropAction>::Create(EndDropAction(this)), true);
 }
 
+//==== Workaround for postserialize, drop and pickup are handled in 1 frame, while rocketlauncher delays the original drop ======
+void CRocketLauncher::DropImmediate(float impulseScale, bool selectNext, bool byDeath)
+{
+	CWeapon::Drop(impulseScale, selectNext, byDeath);
+}
+
 //=========================================
 bool CRocketLauncher::CanPickUp(EntityId userId) const
 {

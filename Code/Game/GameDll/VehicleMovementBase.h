@@ -320,6 +320,7 @@ public:
 
 	virtual void ProcessEvent(SEntityEvent& event);
 	virtual void SetSoundMasterVolume(float vol);
+	virtual void AllowBoosting(const bool allowBoosting) { m_allowBoosting = allowBoosting; }
 
 	virtual float GetEnginePedal(){ return m_movementAction.power; }
 
@@ -462,6 +463,7 @@ protected:
 	float m_boostRegen;  
 	float m_boostStrength;
 	float m_boostCounter;
+	bool m_allowBoosting;
 
 	IVehicleAnimation* m_animations[eVMA_Max];
 

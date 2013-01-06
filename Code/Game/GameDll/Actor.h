@@ -928,8 +928,8 @@ public:
 
 	virtual bool IsPlayer() const;
 	virtual bool IsClient() const;
-	virtual bool IsMigrating() const;
-	virtual void SetMigrating(bool ismigrating);
+	virtual bool IsMigrating() const { return m_isMigrating; }
+	virtual void SetMigrating(bool isMigrating) { m_isMigrating = isMigrating; }
 	virtual IMaterial *GetReplacementMaterial() { return m_pReplacementMaterial; };
 
 	virtual bool Init( IGameObject * pGameObject );
@@ -943,7 +943,7 @@ public:
 	virtual void UpdateView(SViewParams &viewParams) {};
 	virtual void PostUpdateView(SViewParams &viewParams) {};
 
-	virtual void InitLocalPlayer() {};
+	virtual void InitLocalPlayer();
 
 	virtual void InitiateCombat();
 	virtual void ExtendCombat();
@@ -1293,8 +1293,6 @@ public:
 	EntityId GetCurrentItemId(bool includeVehicle=false) const;
 	virtual IItem *GetHolsteredItem() const;
 
-	IInteractor *GetInteractor() const;
-
 	//Net
 	EntityId NetGetCurrentItem() const;
 	void NetSetCurrentItem(EntityId id);
@@ -1331,6 +1329,8 @@ public:
 
   virtual void DumpActorInfo();
 
+	void BecomeRemotePlayer();
+
 	bool IsFriendlyEntity( EntityId entityId ) const;
 
 	virtual EntityId GetCurrentTargetEntityId() const { return 0; }
@@ -1343,6 +1343,12 @@ public:
 
 	bool IsRemote() const;
 	// ~PLAYERPREDICTION
+
+	ILINE bool HasBoneID(int ID) const
+	{
+		CRY_ASSERT((ID >= 0) && (ID < BONE_ID_NUM));
+		return m_boneIDs[ID] >= 0;
+	}
 	
 	QuatT GetBoneTransform( int id ) const;
 
@@ -1372,7 +1378,6 @@ protected:
 
 private:
 	mutable IInventory * m_pInventory;
-	mutable IInteractor * m_pInteractor;
 	void ClearExtensionCache();
 	void CrapDollize();
 
@@ -1399,6 +1404,7 @@ protected:
 	mutable int16 m_boneIDs[BONE_ID_NUM];
 
 	bool	m_isClient;
+	bool	m_isMigrating;
 	float m_health;
 	int   m_healthAsRoundedPercentage;
 	float m_maxHealth;

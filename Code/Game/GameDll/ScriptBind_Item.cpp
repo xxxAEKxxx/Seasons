@@ -41,7 +41,7 @@ CScriptBind_Item::CScriptBind_Item(ISystem *pSystem, IGameFramework *pGameFramew
 	m_pSS(pSystem->GetIScriptSystem()),
 	m_pGameFW(pGameFramework)
 {
-	Init(m_pSS, m_pSystem, 1);
+	Init(m_pSS, 1);
 
 	RegisterMethods();
 	RegisterGlobals();

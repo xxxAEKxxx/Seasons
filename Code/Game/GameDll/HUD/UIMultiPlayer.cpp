@@ -48,10 +48,26 @@ void CUIMultiPlayer::InitEventSystem()
 	}
 
 	{
+		SUIEventDesc evtDesc("ChatMessageReceived", "Triggered when chatmessages is received");
+		evtDesc.AddParam<SUIParameterDesc::eUIPT_String>("Player", "Name of the player");
+		evtDesc.AddParam<SUIParameterDesc::eUIPT_String>("Message", "Message");
+		m_eventSender.RegisterEvent<eUIE_ChatMsgReceived>(evtDesc);
+	}
+
+	{
 		SUIEventDesc evtDesc("PlayerJoined", "Triggered if a player joins the game");
 		evtDesc.AddParam<SUIParameterDesc::eUIPT_Int>("ID", "ID of player");
 		evtDesc.AddParam<SUIParameterDesc::eUIPT_String>("Name", "Name of the player");
 		m_eventSender.RegisterEvent<eUIE_PlayerJoined>(evtDesc);
+	}
+
+	{
+		SUIEventDesc evtDesc("UpdateOrAddScoreBoardItem", "Triggered to update an item on the scoreboard");
+		evtDesc.AddParam<SUIParameterDesc::eUIPT_Int>("ID", "ID of player");
+		evtDesc.AddParam<SUIParameterDesc::eUIPT_String>("Name", "Name of the player");
+		evtDesc.AddParam<SUIParameterDesc::eUIPT_Int>("Kills", "amount of kills this player has");
+		evtDesc.AddParam<SUIParameterDesc::eUIPT_Int>("Deaths", "amount of deaths this player had");
+		m_eventSender.RegisterEvent<eUIE_UpdateScoreBoardItem>(evtDesc);
 	}
 
 	{
@@ -105,6 +121,12 @@ void CUIMultiPlayer::InitEventSystem()
 	}
 
 	{
+		SUIEventDesc evtDesc("EnableUpdateScores", "Enables the scoreboard to be updated in MP");
+		evtDesc.AddParam<SUIParameterDesc::eUIPT_Bool>("Enable", "Enable flag");
+		m_eventDispatcher.RegisterEvent(evtDesc, &CUIMultiPlayer::EnableUpdateScores);
+	}
+
+	{
 		SUIEventDesc evtDesc("SetPlayerName", "Set the name of the local player in mp");
 		evtDesc.AddParam<SUIParameterDesc::eUIPT_String>("Name", "Local player name");
 		m_eventDispatcher.RegisterEvent(evtDesc, &CUIMultiPlayer::SetPlayerName);
@@ -119,6 +141,12 @@ void CUIMultiPlayer::InitEventSystem()
 	{
 		SUIEventDesc evtDesc("GetLastServer", "Get the server name that was last used");
 		m_eventDispatcher.RegisterEvent(evtDesc, &CUIMultiPlayer::GetServerName);
+	}
+
+	{
+		SUIEventDesc evtDesc("SendChatMessage", "");
+		evtDesc.AddParam<SUIParameterDesc::eUIPT_String>("Message", "");
+		m_eventDispatcher.RegisterEvent(evtDesc, &CUIMultiPlayer::OnSendChatMessage);
 	}
 
 	gEnv->pFlashUI->RegisterModule(this, "CUIMultiPlayer");
@@ -163,6 +191,12 @@ void CUIMultiPlayer::PlayerJoined(EntityId playerid, const string& name)
 }
 
 ////////////////////////////////////////////////////////////////////////////
+void CUIMultiPlayer::UpdateScoreBoardItem(EntityId playerid, const string& name, int kills, int deaths)
+{
+	m_eventSender.SendEvent<eUIE_UpdateScoreBoardItem>(playerid, name, kills, deaths);
+}
+
+////////////////////////////////////////////////////////////////////////////
 void CUIMultiPlayer::PlayerLeft(EntityId playerid, const string& name)
 {
 	CryLogAlways("[CUIMultiPlayer] PlayerLeft %i %s", playerid, name.c_str() );
@@ -204,6 +238,12 @@ void CUIMultiPlayer::PlayerRenamed(EntityId playerid, const string& newName)
 	m_eventSender.SendEvent<eUIE_PlayerRenamed>(playerid, newName);
 }
 
+void CUIMultiPlayer::OnChatRecieved(EntityId senderId, int teamFaction, const char* message)
+{
+	m_eventSender.SendEvent<eUIE_ChatMsgReceived>(GetPlayerNameById(senderId), message);
+
+}
+
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -223,6 +263,12 @@ void CUIMultiPlayer::RequestPlayers()
 void CUIMultiPlayer::GetPlayerName()
 {
 	m_eventSender.SendEvent<eUIE_SendName>(m_LocalPlayerName);
+}
+
+////////////////////////////////////////////////////////////////////////////
+void CUIMultiPlayer::EnableUpdateScores(bool enable)
+{
+	g_pGame->GetGameRules()->EnableUpdateScores(enable);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -246,6 +292,13 @@ void CUIMultiPlayer::GetServerName()
 {
 	m_eventSender.SendEvent<eUIE_SendServer>(m_ServerName);
 }
+
+////////////////////////////////////////////////////////////////////////////
+void CUIMultiPlayer::OnSendChatMessage( const string& message )
+{
+	g_pGame->GetGameRules()->SendChatMessage(eChatToAll, gEnv->pGame->GetIGameFramework()->GetClientActorId(), 0, message.c_str() );
+}
+
 
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////

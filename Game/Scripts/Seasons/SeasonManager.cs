@@ -1,5 +1,6 @@
 ﻿using System;
 using CryEngine;
+using CryEngine.FlowSystem;
 
 namespace CryGameCode.Seasons
 {
@@ -47,8 +48,8 @@ namespace CryGameCode.Seasons
 		[EditorProperty]
 		public bool ResetPerTest { get; set; }
 
-		protected override void OnReset(bool enteringGame)
-		{
+        protected override void OnEditorReset(bool enteringGame)
+        {
 			if(Instance != null && Instance != this)
 				throw new Exception("Only one SeasonManager instance should exist per level.");
 
@@ -73,7 +74,7 @@ namespace CryGameCode.Seasons
 		}
 	}
 
-	[FlowNode(UICategory = "Seasons", Name = "TimeInfo", Category = FlowNodeCategory.Approved)]
+	[FlowNode(Category = "Seasons", Name = "TimeInfo", Filter = FlowNodeFilter.Approved)]
 	public class TimeNode : FlowNode
 	{
 		[Port]

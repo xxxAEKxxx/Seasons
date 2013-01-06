@@ -17,6 +17,8 @@
 #include <IWorldQuery.h>
 #include <IInteractor.h>
 #include "IAIActor.h"
+#include "IFlashUI.h"
+
 TActionHandler<CPlayerInput>	CPlayerInput::s_actionHandler;
 
 CPlayerInput::CPlayerInput( CPlayer * pPlayer ) : 
@@ -81,6 +83,7 @@ CPlayerInput::CPlayerInput( CPlayer * pPlayer ) :
 		ADD_HANDLER(use, OnActionUse);
 
 		ADD_HANDLER(thirdperson, OnActionThirdPerson);
+		ADD_HANDLER(debug_next_actor, OnActionDebugNextActor);
 		ADD_HANDLER(flymode, OnActionFlyMode);
 		ADD_HANDLER(godmode, OnActionGodMode);
 		ADD_HANDLER(toggleaidebugdraw, OnActionAIDebugDraw);
@@ -194,6 +197,12 @@ void CPlayerInput::ApplyMovement(Vec3 delta)
 void CPlayerInput::OnAction( const ActionId& actionId, int activationMode, float value )
 {
 	FUNCTION_PROFILER(GetISystem(), PROFILE_GAME);
+
+	if (g_pGame->GetHostMigrationState() != CGame::eHMS_NotMigrating)
+	{
+		Reset();
+		return;
+	}
 
 	m_pPlayer->GetGameObject()->ChangedNetworkState( INPUT_ASPECT );
 
@@ -1309,8 +1318,7 @@ bool CPlayerInput::OnActionUse(EntityId entityId, const ActionId& actionId, int 
 	if (activationMode==eAAM_OnPress)
 	{
 		COffHand* pOffHand = static_cast<COffHand*>(m_pPlayer->GetWeaponByClass(CItem::sOffHandClass));
-		IEntity *pEntity=gEnv->pEntitySystem->GetEntity(m_pPlayer->GetGameObject()->GetWorldQuery()->GetLookAtEntityId());
-
+		
 		//Drop objects/npc before enter a vehicle
 		if(pOffHand)
 		{
@@ -1367,6 +1375,23 @@ bool CPlayerInput::OnActionThirdPerson(EntityId entityId, const ActionId& action
 			}
 		}
 	}
+	return false;
+}
+
+bool CPlayerInput::OnActionDebugNextActor(EntityId entityId, const ActionId& actionId, int activationMode, float value)
+{
+	IActorSystem* pActorSystem = gEnv->pGame->GetIGameFramework()->GetIActorSystem();
+	
+	if (pActorSystem->GetActorCount() > 1)
+	{
+		EntityId currentEntityId = pActorSystem->SwitchDemoSpectator(0);
+
+		// Remote players should be viewed only in 3D mode with cl_cam_orbit set to 1
+		bool isPlayerViewed = (currentEntityId == entityId);
+		m_pPlayer->SetThirdPerson(!isPlayerViewed);
+		g_pGameCVars->cl_cam_orbit = isPlayerViewed ? 0 : 1;
+	}
+
 	return false;
 }
 

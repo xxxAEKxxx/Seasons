@@ -58,11 +58,13 @@ private:
 	void InitUIEnums(IGameToEditorInterface* pGTE);
 	void InitGlobalFileEnums(IGameToEditorInterface* pGTE);
 	void InitActionEnums(IGameToEditorInterface* pGTE);
+	void InitActionInputEnums(IGameToEditorInterface* pGTE);
+	void InitActionMapsEnums(IGameToEditorInterface* pGTE);
 	bool ConfigureNetContext( bool on );
 	static void OnChangeEditorMode( ICVar * );
 	void EnablePlayer(bool bPlayer);
 	static void ResetClient(IConsoleCmdArgs*);
-	static const char *GetGameRulesName();
+	static void SetGameRules();
 
 	IGameRef			m_pGame;
 	IGameStartup	*m_pGameStartup;

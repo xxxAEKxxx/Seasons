@@ -114,9 +114,9 @@ void CWeaponAttachmentManager::CreatePlayerBoneAttachments()
 			Vec3 attachmentOffset(ZERO);
 			Ang3 attachmentRotation(ZERO);
 
-			for (int i = 0; i < weaponAttachmentCount; ++i)
+			for (int a = 0; a < weaponAttachmentCount; ++a)
 			{
-				const XmlNodeRef childNode = weaponAttachmentNode->getChild(i);
+				const XmlNodeRef childNode = weaponAttachmentNode->getChild(a);
 
 				if(childNode == (IXmlNode*)NULL)
 					continue;

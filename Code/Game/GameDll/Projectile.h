@@ -119,6 +119,8 @@ public:
 
 	virtual void InitWithAI( );
 
+	bool ShouldHaveExploded() const { return m_bShouldHaveExploded; }
+
 protected:
 	CWeapon *GetWeapon();
 
@@ -173,6 +175,8 @@ protected:
 	bool			m_hitListener;
 
 	IPhysicalEntity *m_obstructObject;
+
+	bool			m_bShouldHaveExploded;
 };
 
 #endif

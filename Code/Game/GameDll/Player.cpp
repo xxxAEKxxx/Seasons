@@ -74,6 +74,8 @@ History:
 
 #include "HitDeathReactions.h"
 
+#include "Network/Lobby/GameLobby.h"
+
 #include "HUD/UIManager.h"
 
 // enable this to check nan's on position updates... useful for debugging some weird crashes
@@ -266,6 +268,14 @@ CPlayer::~CPlayer()
 	
 	if (m_pVehicleClient)
 	{
+		if (IVehicle* pVehicle = GetLinkedVehicle())
+		{
+			if (IVehicleSeat* pSeat = pVehicle->GetSeatForPassenger(GetEntity()->GetId()))
+			{
+				m_pVehicleClient->OnExitVehicleSeat(pSeat);
+			}
+		}
+
 		g_pGame->GetIGameFramework()->GetIVehicleSystem()->RegisterVehicleClient(0);		
 		delete m_pVehicleClient;
 	}
@@ -324,7 +334,15 @@ void CPlayer::InitClient(int channelId )
 
 void CPlayer::InitLocalPlayer()
 {
+	CActor::InitLocalPlayer();
+
 	GetGameObject()->SetUpdateSlotEnableCondition( this, 0, eUEC_WithoutAI );
+
+	IGameObjectExtension* pInteractor = GetInteractor();
+	if (pInteractor && !GetGameObject()->GetUpdateSlotEnables(pInteractor, 0))
+	{
+		GetGameObject()->EnableUpdateSlot(pInteractor, 0);
+	}
 
 	m_pVehicleClient = new CVehicleClient;
 	m_pVehicleClient->Init();
@@ -336,10 +354,24 @@ void CPlayer::InitLocalPlayer()
 
 	if (IsClient() && !gEnv->bMultiplayer)
 		gEnv->pSoundSystem->AddEventListener(this, true);
+
+	CGameRules *pGameRules = g_pGame->GetGameRules();
+	if (g_pGame->IsGameSessionHostMigrating() && pGameRules)
+	{
+		pGameRules->OnHostMigrationGotLocalPlayer(this);
 	}
 
-void CPlayer::InitInterference()
+	if (gEnv->bMultiplayer)
 	{
+		if (CGameLobby *pGameLobby = g_pGame->GetGameLobby())
+		{
+			pGameLobby->OnHaveLocalPlayer();
+		}
+	}
+}
+
+void CPlayer::InitInterference()
+{
   m_interferenceParams.clear();
 
   IEntityClassRegistry* pRegistry = gEnv->pEntitySystem->GetClassRegistry();
@@ -353,7 +385,7 @@ void CPlayer::InitInterference()
 
   if (pClass = pRegistry->FindClass("Hunter"))    
     m_interferenceParams.insert(std::make_pair(pClass,SAlienInterferenceParams(40.f)));      
-	}
+}
 
 void CPlayer::BindInputs( IAnimationGraphState * pAGState )
 {
@@ -889,12 +921,6 @@ void CPlayer::Update(SEntityUpdateContext& ctx, int updateSlot)
 
 		if (m_pPlayerInput.get())
 			GetGameObject()->EnablePostUpdates(this);
-	}
-
-	if (IsClient())
-	{
-		if (!m_pInteractor)
-			m_pInteractor = GetGameObject()->AcquireExtension("Interactor");
 	}
 
 	UpdateWeaponRaising();
@@ -3210,20 +3236,10 @@ void CPlayer::Revive( bool fromInit )
 		pCharacter->EnableStartAnimation(true);
 
 	ResetAnimations();
-	// if we're coming from initialize, then we're not part of the game object yet -- therefore we can't
-	// receive events from the animation graph, and hence, we'll delay the initial update until PostInit()
-	// is called...
-	//if (!fromInit)
-	//	UpdateAnimGraph();
-
-	//	m_nanoSuit.Reset(this);
-	//	m_nanoSuit.Activate(m_params.nanoSuitActive);
-
+	
 	if (!fromInit || GetISystem()->IsSerializingFile() == 1)
 		ResetAnimGraph();
 
-//	GetInventory()->HolsterItem(true);
-//	GetInventory()->HolsterItem(false);
 	CItem *pCurrentItem = GetItem(GetInventory()->GetCurrentItem());
 	if (pCurrentItem)
 		pCurrentItem->Select(true);
@@ -3283,7 +3299,14 @@ void CPlayer::Revive( bool fromInit )
 
 	if (m_pHitDeathReactions)
 		m_pHitDeathReactions->OnRevive();
+
+	// restore interactor
+	IGameObjectExtension* pInteractor = GetInteractor();
+	if (pInteractor && !GetGameObject()->GetUpdateSlotEnables(pInteractor, 0))
+	{
+		GetGameObject()->EnableUpdateSlot(pInteractor, 0);
 	}
+}
 
 void CPlayer::Kill()
 {
@@ -3710,8 +3733,21 @@ void CPlayer::SerializeXML( XmlNodeRef& node, bool bLoading )
 	}
 
 void CPlayer::SetAuthority( bool auth )
+{
+	// we've been given authority of this entity, mark the physics as changed
+	// so that we send a current position, failure to do this can result in server/client
+	// disagreeing on where the entity is. most likely to happen on restart
+	if(auth)
 	{
+		CHANGED_NETWORK_STATE(this, eEA_Physics);
+
+		if (g_pGame->IsGameSessionHostMigrating())
+		{
+			// If we're migrating, we've probably set our selected item before we were allowed to, resend it here
+			CHANGED_NETWORK_STATE(this, ASPECT_CURRENT_ITEM);
+		}
 	}
+}
 
 //------------------------------------------------------------------------
 void CPlayer::Freeze(bool freeze)
@@ -4524,32 +4560,35 @@ void CPlayer::HandleEvent( const SGameObjectEvent& event )
 						m_openingParachute = true;
 		}
 		break;
-	default:
-		{
-			// HitDeathReactions event handling
-			bHandled = m_pHitDeathReactions && m_pHitDeathReactions->HandleEvent(event);
-
-			if (!bHandled)
+		default:
 			{
-				CActor::HandleEvent(event);
-								if (event.event == eGFE_BecomeLocalPlayer)
-								{
-										GetGameObject()->SetAutoDisablePhysicsMode(eADPM_Never);
+				// HitDeathReactions event handling
+				bHandled = m_pHitDeathReactions && m_pHitDeathReactions->HandleEvent(event);
 
-					SetActorModel();
-										m_lookAim.Reset();
-					InitActorAttachments();
-					Physicalize();
+				if (!bHandled)
+				{
+					CActor::HandleEvent(event);
+					if (event.event == eGFE_BecomeLocalPlayer)
+					{
+						if (!(g_pGame->IsGameSessionHostMigrating() && gEnv->bServer))
+						{
+							GetGameObject()->SetAutoDisablePhysicsMode(eADPM_Never);
 
-										//Screen FX only for local player
-										if(!m_screenEffects)
-												m_screenEffects = new CScreenEffects(this);
+							SetActorModel();
+							m_lookAim.Reset();
+							InitActorAttachments();
+							Physicalize();
 
-										ResetFPView();
-								}
+							//Screen FX only for local player
+							if(!m_screenEffects)
+								m_screenEffects = new CScreenEffects(this);
+
+							ResetFPView();
 						}
+					}
 				}
-		}
+			}
+	}
 }
 
 void CPlayer::OnCollision(EventPhysCollision *physCollision)
@@ -5296,11 +5335,11 @@ bool CPlayer::IsLadderUsable()
 		{
 			CPlayer::s_ladderMaterial = ladderSurface->GetId();
 		}
-}
+	}
 
 	//Is it a ladder?
 	if( surfaceTypeId == CPlayer::s_ladderMaterial )
-{
+	{
 		IStatObj* staticLadder = NULL;
 		Matrix34 worldTM;
 		Matrix34 partLocalTM;
@@ -5310,23 +5349,23 @@ bool CPlayer::IsLadderUsable()
 		ppart.partid  = partId;
 		ppart.pMtx3x4 = &partLocalTM;
 		if (pPhysicalEntity->GetParams( &ppart ))
-{
+		{
 			if (ppart.pPhysGeom && ppart.pPhysGeom->pGeom)
-	{
+			{
 				void *ptr = ppart.pPhysGeom->pGeom->GetForeignData(0);
 
 				pe_status_pos ppos;
 				ppos.pMtx3x4 = &worldTM;
 				if (pPhysicalEntity->GetStatus(&ppos) != 0)
-		{
+				{
 					worldTM = worldTM * partLocalTM;
 					staticLadder = (IStatObj*)ptr;
 				}
+			}
 		}
-	}
 
 		if(!staticLadder)
-	return false;
+			return false;
 
 		//Check OffHand 
 		if(COffHand* pOffHand = static_cast<COffHand*>(GetItemByClass(CItem::sOffHandClass)))
@@ -5338,9 +5377,9 @@ bool CPlayer::IsLadderUsable()
 
 		//Is ladder vertical? 
 		if(ladderUp.z<0.85f)
-	{
+		{
 			return false;
-	}
+		}
 
 		AABB box = staticLadder->GetAABB();
 		Vec3 center = worldTM.GetTranslation() + 0.5f*ladderOrientation;
@@ -5349,52 +5388,30 @@ bool CPlayer::IsLadderUsable()
 		m_stats.ladderBottom = center;
 		m_stats.ladderOrientation = ladderOrientation;
 		m_stats.ladderUpDir = ladderUp;
-
 		m_stats.ladderPhysicalEntity = pPhysicalEntity;
 		m_stats.ladderPartId         = partId;
 
-/*
-		//Test angle between player and ladder	
-		IMovementController* pMC = GetMovementController();
-		if(pMC)
-{
-			SMovementState info;
-			pMC->GetMovementState(info);
-
-			//Predict if the player try to enter the top of the ladder from the opposite side
-			float zDistance = m_stats.ladderTop.z - pRay->pt.z;
-			if(zDistance<1.0f && ladderOrientation.Dot(-info.eyeDirection)<0.0f)
-{
-		return true;
-			}
-// 			else if(ladderOrientation.Dot(-info.eyeDirection)<0.5f)
-// 			{
-// 				return false;
-// 			}
-		}	
-*/
-
 		IScriptTable* pScriptTable = pLadderEntity->GetScriptTable();
 		if (!pScriptTable)
-		return false;
+			return false;
 
 		HSCRIPTFUNCTION isUsableFct = 0;
 		pScriptTable->GetValue( "IsUsable", isUsableFct );
 		if(!isUsableFct)
-		return false;
+			return false;
 
 		bool res;
 		Script::CallReturn(
-			pScriptTable->GetScriptSystem(), 
-			isUsableFct, 
-			pScriptTable, 
-			GetEntity()->GetScriptTable(),
-			res);
+				pScriptTable->GetScriptSystem(), 
+				isUsableFct, 
+				pScriptTable, 
+				GetEntity()->GetScriptTable(),
+				res);
 
 		return res;
-}
+	}
 	else
-{
+	{
 		return false;
 	}
 }
@@ -5406,10 +5423,10 @@ void CPlayer::RequestGrabOnLadder(ELadderActionType reason)
 		GrabOnLadder(reason);
 	}
 	else
-		{
+	{
 		GetGameObject()->InvokeRMI(SvRequestGrabOnLadder(), LadderParams(m_stats.ladderTop, m_stats.ladderBottom, m_stats.ladderOrientation, reason), eRMI_ToServer);
-		}
 	}
+}
 
 void CPlayer::GrabOnLadder(ELadderActionType reason)
 {
@@ -5427,71 +5444,55 @@ void CPlayer::GrabOnLadder(ELadderActionType reason)
 	{
 		IMovementController* pMC = GetMovementController();
 		if(pMC)
-{
+		{
 			bool enteringFromBottom(true);
 
 			if (m_stats.isThirdPerson)
-	{
+			{
 				// there is no look direction from a ThirdPerson character that reflects the
 				// the players intention - instead, his body direction will give this info
 				Vec3 charPos = GetEntity()->GetWorldPos();
 				// The character should be close to the ladders top, not more that a meter difference in height
 				if (fabsf(m_stats.ladderTop.z - charPos.z) < 1.0f)
 					enteringFromBottom = false;
-		}
-	else
-	{
+			}
+			else
+			{
 				const ray_hit *pRay = GetGameObject()->GetWorldQuery()->GetLookAtPoint(2.0f);
 				SMovementState info;
 				pMC->GetMovementState(info);
 
 				//Predict if the player try to enter the top of the ladder from the opposite side
 				if(pRay)
-	{
+				{
 					float zDistance = m_stats.ladderTop.z - pRay->pt.z;
 					if(zDistance<1.0f && m_stats.ladderOrientation.Dot(-info.eyeDirection)<0.0f)
 						enteringFromBottom = false; // entering from top
-	}
-}
+				}
+			}
 
-// 			const ray_hit *pRay = GetGameObject()->GetWorldQuery()->GetLookAtPoint(2.0f);
-// 			SMovementState info;
-// 			pMC->GetMovementState(info);
-
-			//Predict if the player try to enter the top of the ladder from the opposite side
-//			if(pRay)
-{
+			{
 				if(!enteringFromBottom)
-	{
+				{
 					//Move the player in front of the ladder
 					Matrix34 entryPos = GetEntity()->GetWorldTM();
 					entryPos.SetTranslation(m_stats.ladderTop-(m_stats.ladderUpDir*2.5f));
-					//GetEntity()->SetWorldTM(entryPos);
 
-					//Player orientation
-					//GetEntity()->SetRotation(Quat(Matrix33::CreateOrientation(-m_stats.ladderOrientation,m_stats.ladderUpDir,gf_PI)));
-					//m_stats.playerRotation = GetEntity()->GetRotation();
-		
 					m_stats.ladderEnterLocation.t = entryPos.GetTranslation();
 					m_stats.ladderEnterLocation.q = Quat(Matrix33::CreateOrientation(-m_stats.ladderOrientation,m_stats.ladderUpDir,gf_PI));
-	}
+				}
 				else
 				{
 					//Move the player in front of the ladder
 					Matrix34 entryPos = GetEntity()->GetWorldTM();
 					entryPos.SetTranslation(Vec3(m_stats.ladderBottom.x,m_stats.ladderBottom.y,min(max(entryPos.GetTranslation().z,m_stats.ladderBottom.z),m_stats.ladderTop.z-2.4f)));
-					//GetEntity()->SetWorldTM(entryPos);
-		
-					//Player orientation
-					//GetEntity()->SetRotation(Quat(Matrix33::CreateOrientation(-m_stats.ladderOrientation,m_stats.ladderUpDir,gf_PI)));
-					//m_stats.playerRotation = GetEntity()->GetRotation();
 
 					m_stats.ladderEnterLocation.t = entryPos.GetTranslation();
 					m_stats.ladderEnterLocation.q = Quat(Matrix33::CreateOrientation(-m_stats.ladderOrientation,m_stats.ladderUpDir,gf_PI));
 				}
 			}
 		}
-}
+	}
 
 	if (gEnv->bServer)
 		GetGameObject()->InvokeRMI(ClGrabOnLadder(), LadderParams(m_stats.ladderTop, m_stats.ladderBottom, m_stats.ladderOrientation, reason), eRMI_ToRemoteClients);
@@ -5500,11 +5501,11 @@ void CPlayer::GrabOnLadder(ELadderActionType reason)
 void CPlayer::RequestLeaveLadder(ELadderActionType reason)
 {
 	if(gEnv->bServer)
-{
+	{
 		LeaveLadder(reason);
-}
+	}
 	else
-{
+	{
 		GetGameObject()->InvokeRMI(SvRequestLeaveLadder(), LadderParams(m_stats.ladderTop, m_stats.ladderBottom, m_stats.ladderOrientation, reason), eRMI_ToServer);
 	}
 }
@@ -5518,7 +5519,7 @@ void CPlayer::LeaveLadder(ELadderActionType reason)
 		return;
 
 	if(reason==eLAT_ExitTop)
-{
+	{
 		m_stats.isExitingLadder = true;
 		UpdateLadderAnimation(CPlayer::eLS_ExitTop,eLDIR_Up);
 	}
@@ -5532,7 +5533,7 @@ void CPlayer::LeaveLadder(ELadderActionType reason)
 			m_pAnimatedCharacter->RequestPhysicalColliderMode(eColliderMode_Undefined, eColliderModeLayer_Game, "Player::LeaveLadder");
 
 		HolsterItem(false);
-		
+
 		// SNH: moved this here from CPlayerMovement::ProcessExitLadder
 		{
 			Matrix34 finalPlayerPos = GetEntity()->GetWorldTM();
@@ -5560,46 +5561,45 @@ void CPlayer::LeaveLadder(ELadderActionType reason)
 			}
 			if(reason!=eLAT_ReachedEnd)
 				GetEntity()->SetWorldTM(finalPlayerPos);	
-					}
+		}
 		UpdateLadderAnimation(CPlayer::eLS_Exit,CPlayer::eLDIR_Stationary);
-				}
+	}
 
 	if (gEnv->bServer)
 		GetGameObject()->InvokeRMI(ClLeaveLadder(), LadderParams(m_stats.ladderTop, m_stats.ladderBottom, m_stats.ladderOrientation, reason), eRMI_ToAllClients);
-
-			}
+}
 
 
 //------------------------------------------------------------------------
 IMPLEMENT_RMI(CPlayer, SvRequestGrabOnLadder)
-		{
+{
 	if(IsLadderUsable() && m_stats.ladderTop.IsEquivalent(params.topPos) && m_stats.ladderBottom.IsEquivalent(params.bottomPos))
-		{
+	{
 		GrabOnLadder(static_cast<ELadderActionType>(params.reason));
-			}
+	}
 	return true;
-		}
+}
 
 //------------------------------------------------------------------------
 IMPLEMENT_RMI(CPlayer, SvRequestLeaveLadder)
 {
 	if(m_stats.isOnLadder)
-		{
+	{
 		if(m_stats.ladderTop.IsEquivalent(params.topPos) && m_stats.ladderBottom.IsEquivalent(params.bottomPos))
-			{
+		{
 			LeaveLadder(static_cast<ELadderActionType>(params.reason));
-			}
 		}
-	
-	return true;
 	}
+
+	return true;
+}
 
 //------------------------------------------------------------------------
 IMPLEMENT_RMI(CPlayer, ClGrabOnLadder)
-	{
+{
 	// other players should always be attached to the ladder they are told to
 	if(!IsClient())
-		{
+	{
 		m_stats.ladderTop = params.topPos;
 		m_stats.ladderBottom = params.bottomPos;
 		m_stats.ladderOrientation = params.ladderOrientation;
@@ -5607,11 +5607,11 @@ IMPLEMENT_RMI(CPlayer, ClGrabOnLadder)
 	}
 
 	if(!IsClient() || (IsLadderUsable() && m_stats.ladderTop.IsEquivalent(params.topPos) && m_stats.ladderBottom.IsEquivalent(params.bottomPos)))
-			{
+	{
 		GrabOnLadder(static_cast<ELadderActionType>(params.reason));
-			}
+	}
 	return true;
-		}
+}
 
 //------------------------------------------------------------------------
 IMPLEMENT_RMI(CPlayer, ClLeaveLadder)
@@ -5628,60 +5628,60 @@ IMPLEMENT_RMI(CPlayer, ClLeaveLadder)
 bool CPlayer::UpdateLadderAnimation(ELadderState eLS, ELadderDirection eLDIR, float time /*=0.0f*/)
 {
 	switch(eLS)
-{
-			case eLS_ExitTop:
-				m_pAnimatedCharacter->GetAnimationGraphState()->SetInput(m_inputSignal,"exit_ladder_top");
-				//break;
-
-			case eLS_Exit:			
-				m_pAnimatedCharacter->GetAnimationGraphState()->SetInput(m_inputAction,"idle");
-				break;
-
-			case eLS_Climb:
 	{
-					// [11/19/2009 evgeny] Is the ladder still there? :)
-					pe_status_pos pos;
-					pos.partid  = m_stats.ladderPartId;
-					Matrix34 partTM;
-					pos.pMtx3x4 = &partTM;
-					if (m_stats.ladderPhysicalEntity && (!m_stats.ladderPhysicalEntity->GetStatus(&pos) || !(partTM.GetColumn1().IsEquivalent(m_stats.ladderOrientation))))
+	case eLS_ExitTop:
+		m_pAnimatedCharacter->GetAnimationGraphState()->SetInput(m_inputSignal,"exit_ladder_top");
+		//break;
+
+	case eLS_Exit:			
+		m_pAnimatedCharacter->GetAnimationGraphState()->SetInput(m_inputAction,"idle");
+		break;
+
+	case eLS_Climb:
 		{
-						RequestLeaveLadder(eLAT_Jump);
-						return false;
+			// [11/19/2009 evgeny] Is the ladder still there? :)
+			pe_status_pos pos;
+			pos.partid  = m_stats.ladderPartId;
+			Matrix34 partTM;
+			pos.pMtx3x4 = &partTM;
+			if (m_stats.ladderPhysicalEntity && (!m_stats.ladderPhysicalEntity->GetStatus(&pos) || !(partTM.GetColumn1().IsEquivalent(m_stats.ladderOrientation))))
+			{
+				RequestLeaveLadder(eLAT_Jump);
+				return false;
+			}
 		}
-	}
 
-				m_pAnimatedCharacter->GetAnimationGraphState()->SetInput(m_inputAction,"climbLadder");
-				if (eLDIR != eLDIR_Stationary) 
-					m_pAnimatedCharacter->GetAnimationGraphState()->SetInput("ObjectDirection",eLDIR == eLDIR_Up ? "up" : "down");
+		m_pAnimatedCharacter->GetAnimationGraphState()->SetInput(m_inputAction,"climbLadder");
+		if (eLDIR != eLDIR_Stationary) 
+			m_pAnimatedCharacter->GetAnimationGraphState()->SetInput("ObjectDirection",eLDIR == eLDIR_Up ? "up" : "down");
 
-				break;
+		break;
 
-			default:
-				break;
+	default:
+		break;
 	}
 	//Manual animation Update
 
 	if(eLS==eLS_Climb)
 	{			
 		if (ICharacterInstance *pCharacter = GetEntity()->GetCharacter(0))
-{
+		{
 			ISkeletonAnim* pSkeletonAnim = pCharacter->GetISkeletonAnim();
 			assert(pSkeletonAnim);
-	
+
 			if (uint32 numAnimsLayer = pSkeletonAnim->GetNumAnimsInFIFO(0))
 			{
 				int animNum = pSkeletonAnim->GetNumAnimsInFIFO(0) - 1;
 				CAnimation &animation = pSkeletonAnim->GetAnimFromFIFO(0, animNum); // get the anim on top of stack
 				if (animation.m_AnimParams.m_nFlags & CA_MANUAL_UPDATE)
-	{
+				{
 					pSkeletonAnim->ManualSeekAnimationInFIFO(0, animNum, time, eLDIR == eLDIR_Up);
 					return true;
 				}
 			}
 		}
 	}
-	
+
 	return false;
 }
 
@@ -6622,7 +6622,7 @@ void CPlayer::AnimationEvent(ICharacterInstance *pCharacter, const AnimEventInst
 				flags |= FLAG_SOUND_VOICE;
 
 			if(IEntitySoundProxy* pSoundProxy = static_cast<IEntitySoundProxy*>(GetEntity()->GetProxy(ENTITY_PROXY_SOUND)))
-				pSoundProxy->PlaySound(event.m_CustomParameter, offset, FORWARD_DIRECTION, flags, eSoundSemantic_Animation, 0, 0);
+				pSoundProxy->PlaySound(event.m_CustomParameter, offset, FORWARD_DIRECTION, flags, 0, eSoundSemantic_Animation, 0, 0);
 	}
 }
 	}
@@ -6769,11 +6769,11 @@ void CPlayer::ExecuteFootStep( ICharacterInstance* pCharacter, const float frame
 		f32 fZRotation = 0.0f;
 		Vec3 vDeltaMovment(0,0,0);
 		if (frameTime > 0.0f)
-{
+		{
 			fZRotation = abs( RAD2DEG( pSkeletonAnim->GetRelMovement().q.GetRotZ() ) ) / frameTime;
 			Vec3 vRelTrans = pSkeletonAnim->GetRelMovement().t;
 			Vec3 vCurrentVel = pSkeletonAnim->GetCurrentVelocity() * frameTime;
-			vDeltaMovment = ( vRelTrans - vCurrentVel) / frameTime;
+			vDeltaMovment = (vCurrentVel - vRelTrans) / frameTime;
 		}
 
 		ISkeletonPose *pSkeletonPose = pCharacter->GetISkeletonPose();
@@ -7314,4 +7314,16 @@ void CPlayer::Reset( bool toGame )
 {
 		if(IListener* pListener = gEnv->pSoundSystem->GetListener(GetEntityId()))
 				pListener->SetUnderwater(0.0f);
+}
+
+IGameObjectExtension* CPlayer::GetInteractor()
+{
+	if(IsClient())
+	{
+		if (!m_pInteractor)
+			m_pInteractor = GetGameObject()->AcquireExtension("Interactor");
+		return m_pInteractor;
+	}
+
+	return NULL;
 }

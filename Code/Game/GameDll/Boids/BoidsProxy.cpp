@@ -85,6 +85,14 @@ void CBoidsProxy::ProcessEvent( SEntityEvent &event )
 		if (m_pFlock)
 			m_pFlock->Reset();
 		break;
+	case ENTITY_EVENT_HIDE:
+	case ENTITY_EVENT_INVISIBLE:
+		m_pFlock->HideAllBoids(true);
+		break;
+	case ENTITY_EVENT_UNHIDE:
+	case ENTITY_EVENT_VISIBLE:
+		m_pFlock->HideAllBoids(false);
+		break;
 	}
 }
 

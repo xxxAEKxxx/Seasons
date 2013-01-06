@@ -34,8 +34,6 @@ namespace CryGameCode
 				Debug.Log("[SinglePlayer.OnRevive] Failed to get the player. Check the log for errors.");
 				return;
 			}
-
-			player.Init();
 		}
 	}
 }

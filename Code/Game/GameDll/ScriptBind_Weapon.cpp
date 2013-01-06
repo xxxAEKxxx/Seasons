@@ -72,7 +72,7 @@ CScriptBind_Weapon::CScriptBind_Weapon(ISystem *pSystem, IGameFramework *pGameFr
 	m_pSS(pSystem->GetIScriptSystem()),
 	m_pGameFW(pGameFramework)
 {
-	Init(m_pSS, m_pSystem, 1);
+	Init(m_pSS, 1);
 
 	RegisterMethods();
 	RegisterGlobals();

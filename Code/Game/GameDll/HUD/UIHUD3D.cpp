@@ -23,6 +23,9 @@
 #include "GameCVars.h"
 #include "Actor.h"
 
+#include <IGameFramework.h>
+#include <IGameRulesSystem.h>
+
 #define HUD3D_PREFAB_LIB   "Prefabs/HUD.xml"
 #define HUD3D_PREFAB_NAME  "HUD.HUD_3D"
 
@@ -72,7 +75,7 @@ void CUIHUD3D::OnSystemEvent( ESystemEvent event, UINT_PTR wparam, UINT_PTR lpar
 {
 	switch ( event )
 	{
-	case ESYSTEM_EVENT_LEVEL_LOAD_END:
+	case ESYSTEM_EVENT_LEVEL_GAMEPLAY_START:
 		SpawnHudEntities();
 		break;
 	case ESYSTEM_EVENT_LEVEL_UNLOAD:
@@ -180,7 +183,20 @@ void CUIHUD3D::SpawnHudEntities()
 	if (gEnv->IsEditor() && gEnv->IsEditing())
 		return;
 
-	XmlNodeRef node = gEnv->pSystem->LoadXmlFromFile(HUD3D_PREFAB_LIB);
+	const char* hudprefab = NULL;
+	IGameRules* pGameRules = gEnv->pGame->GetIGameFramework()->GetIGameRulesSystem()->GetCurrentGameRules();
+	if (pGameRules)
+	{
+		IScriptTable* pTable = pGameRules->GetEntity()->GetScriptTable();
+		if (pTable)
+		{
+			if (!pTable->GetValue("hud_prefab", hudprefab))
+				hudprefab = NULL;
+		}
+	}
+	hudprefab = hudprefab ? hudprefab : HUD3D_PREFAB_LIB;
+
+	XmlNodeRef node = gEnv->pSystem->LoadXmlFromFile(hudprefab);
 	if (node)
 	{
 		// get the prefab with the name defined in HUD3D_PREFAB_NAME
@@ -339,15 +355,7 @@ void CUIHUD3D::OnVisCVarChange( ICVar * )
 		pHud3D->SetVisible( bVisible );
 
 	if (gEnv->pFlashUI)
-	{
-		IUIElement* pHud2d = gEnv->pFlashUI->GetUIElement("HUD2D");
-		if (pHud2d && pHud2d->IsInit())
-			pHud2d->SetVisible(bVisible);
-
-		IUIElement* pHud3d = gEnv->pFlashUI->GetUIElement("HUD3D");
-		if (pHud3d && pHud3d->IsInit())
-			pHud3d->SetVisible(bVisible);
-	}
+		gEnv->pFlashUI->SetHudElementsVisible(bVisible);
 }
 
 ////////////////////////////////////////////////////////////////////////////

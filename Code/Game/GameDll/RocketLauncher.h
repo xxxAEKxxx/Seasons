@@ -36,6 +36,7 @@ public:
 	virtual void UpdateFPView(float frameTime);
 	virtual void PickUp(EntityId pickerId, bool sound, bool select/* =true */, bool keepHistory/* =true */, const char *setup = NULL);
 	virtual void Drop(float impulseScale, bool selectNext/* =true */, bool byDeath/* =false */);
+	virtual void DropImmediate(float impulseScale, bool selectNext/* =true */, bool byDeath/* =false */);
 	virtual void ProcessEvent(SEntityEvent& event);
 
 	virtual void GetAttachmentsAtHelper(const char *helper, CCryFixedStringListT<5, 30> &attachments);

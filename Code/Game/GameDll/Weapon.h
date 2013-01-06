@@ -52,10 +52,10 @@ class CWeapon :
 	struct PlayLeverLayer;
 
 protected:
-	typedef std::map<string, int>								TFireModeIdMap;
-	typedef std::vector<IFireMode *>						TFireModeVector;
-	typedef std::map<string, int>								TZoomModeIdMap;
-	typedef std::vector<IZoomMode *>						TZoomModeVector;
+	typedef std::map<string, int>						TFireModeIdMap;
+	typedef std::vector<IFireMode *>					TFireModeVector;
+	typedef std::map<string, int>						TZoomModeIdMap;
+	typedef std::vector<IZoomMode *>					TZoomModeVector;
 	typedef std::map<IEntityClass*, int>				TAmmoMap;
 
 	struct SListenerInfo
@@ -589,11 +589,14 @@ public:
 	SWeaponAmmo GetFirstAmmo();
 	SWeaponAmmo GetNextAmmo();
 
+	const DynArray<string>* GetCompatibleAccessories() const { return &m_compatibleAccessories; }
+
 protected:
 	virtual bool ReadItemParams(const IItemParamsNode *params);
 	const IItemParamsNode *GetFireModeParams(const char *name);
 	const IItemParamsNode *GetZoomModeParams(const char *name);
 	void InitFireModes(const IItemParamsNode *firemodes);
+	void InitCompatibleAccessories(const IItemParamsNode *accessories);
 	void InitZoomModes(const IItemParamsNode *zoommodes);
 	void InitAmmos(const IItemParamsNode *ammo);
 	void InitAIData(const IItemParamsNode *aiDescriptor);
@@ -618,6 +621,8 @@ protected:
 
 	TZoomModeIdMap		m_zmIds;
 	TZoomModeVector		m_zoommodes;
+
+	DynArray<string>	m_compatibleAccessories;
 
 	TAmmoMap					m_ammo;
 	TAmmoMap					m_bonusammo;

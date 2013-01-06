@@ -422,6 +422,22 @@ int CGameStartup::Update(bool haveFocus, unsigned int updateFlags)
 		returnCode = m_pMod->Update(haveFocus, updateFlags);
 	}
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if defined(ENABLE_STATS_AGENT)
 	CStatsAgent::Update();
 #endif
@@ -553,7 +569,7 @@ int CGameStartup::Run( const char * autoStartLevelName )
 	if (autoStartLevelName)
 	{
 		//load savegame
-		if(CryStringUtils::stristr(autoStartLevelName, ".CRYSISJMSF") != 0 )
+		if(CryStringUtils::stristr(autoStartLevelName, ".CRYENGINEJMSF") != 0 )
 		{
 			CryFixedStringT<256> fileName (autoStartLevelName);
 			// NOTE! two step trimming is intended!
@@ -579,11 +595,12 @@ int CGameStartup::Run( const char * autoStartLevelName )
 
 	AllowAccessibilityShortcutKeys(false);
 
-	for(;;)
+	for (;;)
 	{
 		MSG msg;
+		bool bQuit = false;
 
-		if (PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))
+		while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 		{
 			if (msg.message != WM_QUIT)
 			{
@@ -592,22 +609,24 @@ int CGameStartup::Run( const char * autoStartLevelName )
 			}
 			else
 			{
- 				break;
-			}
-		}
-		else
-		{
-			if (!Update(true, 0))
-			{
-				// need to clean the message loop (WM_QUIT might cause problems in the case of a restart)
-				// another message loop might have WM_QUIT already so we cannot rely only on this 
-				while(PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))
-				{
-					TranslateMessage(&msg);
-					DispatchMessage(&msg);
-				}
+				bQuit = true;
 				break;
 			}
+		}
+
+		if (bQuit)
+			break;
+
+		if (!Update(true, 0))
+		{
+			// need to clean the message loop (WM_QUIT might cause problems in the case of a restart)
+			// another message loop might have WM_QUIT already so we cannot rely only on this 
+			while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+			break;
 		}
 	}
 #else
@@ -615,6 +634,8 @@ int CGameStartup::Run( const char * autoStartLevelName )
 	if (gEnv && gEnv->pHardwareMouse)
 		gEnv->pHardwareMouse->DecrementCounter();
 
+#ifndef GRINGO
+	// we do the mainloop directly in the gringo launcher for proper metro style event dispatching
 	for(;;)
 	{
 		if (!Update(true, 0))
@@ -622,6 +643,8 @@ int CGameStartup::Run( const char * autoStartLevelName )
 			break;
 		}
 	}
+#endif
+
 #endif //WIN32
 
 	return 0;
@@ -808,7 +831,6 @@ LRESULT CALLBACK CGameStartup::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 				if (event.pSymbol)
 					event.keyId = event.pSymbol->keyId;
 
-				event.timestamp = GetTickCount();
 				event.inputChar = (wchar_t)wParam;
 				gEnv->pInput->PostInputEvent(event);
 			}

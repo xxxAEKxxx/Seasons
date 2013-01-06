@@ -33,6 +33,7 @@ struct IUIGameEventSystem : public IUIPseudoRTTI
 	virtual void UnloadEventSystem() = 0;
 
 	virtual void UpdateView( const SViewParams &viewParams ) {}
+	virtual void OnUpdate( float fDelta ) {}
 
 	virtual void LoadProfile( IPlayerProfile* pProfile ) {}
 	virtual void SaveProfile( IPlayerProfile* pProfile ) const {}

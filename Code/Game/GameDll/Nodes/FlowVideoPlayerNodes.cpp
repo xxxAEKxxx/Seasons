@@ -78,9 +78,10 @@ public:
 
 			if (m_pElement)
 			{
+				m_pElement->RemoveEventListener(this);
+				m_pElement->CallFunction("Stop");
 				m_pElement->Unload();
 				m_pElement->SetVisible(false);
-				m_pElement->RemoveEventListener(this);
 			}
 
 			m_pElement = NULL;

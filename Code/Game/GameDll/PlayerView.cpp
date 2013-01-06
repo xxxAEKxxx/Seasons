@@ -933,7 +933,7 @@ void CPlayerView::ViewSpectatorTarget(SViewParams &viewParams)
 
 	geom_contact *pContact = 0;          
 	float hitDist = gEnv->pPhysicalWorld->PrimitiveWorldIntersection(sphere.type, &sphere, dir, ent_static|ent_terrain|ent_rigid|ent_sleeping_rigid,
-		&pContact, 0, (geom_colltype_player<<rwi_colltype_bit) | rwi_stop_at_pierceable, 0, 0, 0, pSkipEntities, nSkip);
+		&pContact, 0, geom_colltype_player, 0, 0, 0, pSkipEntities, nSkip);
 
 	// even when we have contact, keep the camera the same height above the target
 	float minHeightDiff = dir.z;
@@ -951,7 +951,7 @@ void CPlayerView::ViewSpectatorTarget(SViewParams &viewParams)
 			sphere.center -= dir.GetNormalizedSafe() * 0.05f;
 
 			float newHitDist = gEnv->pPhysicalWorld->PrimitiveWorldIntersection(sphere.type, &sphere, Vec3(0,0,minHeightDiff), ent_static|ent_terrain|ent_rigid|ent_sleeping_rigid,
-				&pContact, 0, (geom_colltype_player<<rwi_colltype_bit) | rwi_stop_at_pierceable, 0, 0, 0, pSkipEntities, nSkip);
+				&pContact, 0, geom_colltype_player, 0, 0, 0, pSkipEntities, nSkip);
 
 			float raiseDist = minHeightDiff - (goal.z - worldPos.z) - wallSafeDistance;
 			if(newHitDist != 0)
@@ -1007,7 +1007,7 @@ void CPlayerView::ViewSpectatorTarget(SViewParams &viewParams)
 
 	Matrix33 rotation = Matrix33::CreateRotationVDir((entPos - viewParams.position).GetNormalizedSafe());
 
-	viewParams.rotation = GetQuatFromMat33(rotation);	
+	viewParams.rotation = Quat(rotation);	
 	m_io.bUsePivot = true;
 	m_io.stats_bobCycle = 0.0;
 }
@@ -1103,7 +1103,7 @@ void CPlayerView::ViewDeathCamTarget(SViewParams &viewParams)
 	viewParams.position -= dir;
 
 	viewParams.fov = m_in.defaultFov*oldFOVScale*(gf_PI/180.0f);;
-	viewParams.rotation = GetQuatFromMat33(rotation);	
+	viewParams.rotation = Quat(rotation);	
 	m_io.bUsePivot = true;
 	m_io.stats_bobCycle = 0.0;
 }

@@ -17,6 +17,7 @@
 #include <IGame.h>
 #include <IGameFramework.h>
 #include <IFlashUI.h>
+#include "Game.h"
 
 IUIEventSystemFactory* IUIEventSystemFactory::s_pFirst = NULL;
 IUIEventSystemFactory* IUIEventSystemFactory::s_pLast;
@@ -86,7 +87,7 @@ CUIManager::CUIManager()
 	m_soundListener = gEnv->pSoundSystem->CreateListener();
 	InitSound();
 	gEnv->pSystem->GetISystemEventDispatcher()->RegisterListener( this );
-
+	g_pGame->GetIGameFramework()->RegisterListener(this, "CUIManager", eFLPriority_HUD);
 	LoadProfile();
 }
 
@@ -107,7 +108,7 @@ CUIManager::~CUIManager()
 	}
 
 	gEnv->pSystem->GetISystemEventDispatcher()->RemoveListener( this );
-
+	g_pGame->GetIGameFramework()->UnregisterListener(this);
 }
 
 IUIGameEventSystem* CUIManager::GetUIEventSystem(const char* type) const
@@ -115,6 +116,17 @@ IUIGameEventSystem* CUIManager::GetUIEventSystem(const char* type) const
 	TUIEventSystems::const_iterator it = m_EventSystems.find(type);
 	assert(it != m_EventSystems.end());
 	return it != m_EventSystems.end() ? it->second : NULL;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+void CUIManager::OnPostUpdate(float fDeltaTime)
+{
+	TUIEventSystems::const_iterator it = m_EventSystems.begin();
+	TUIEventSystems::const_iterator end = m_EventSystems.end();
+	for (;it != end; ++it)
+	{
+		it->second->OnUpdate(fDeltaTime);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

@@ -26,6 +26,14 @@ struct ISystem;
 class CScriptBind_Game :
 	public CScriptableBase
 {
+	enum EGameCacheResourceType
+	{
+		eGCRT_Texture = 0,
+		eGCRT_TextureDeferredCubemap = 1,
+		eGCRT_StaticObject = 2,
+		eGCRT_Material = 3,
+	};
+	
 public:
 	CScriptBind_Game(ISystem *pSystem, IGameFramework *pGameFramework);
 	virtual ~CScriptBind_Game();
@@ -62,6 +70,8 @@ protected:
 	// Description:
 	//		Checks if the given entity is player.
 	int IsPlayer(IFunctionHandler *pH, ScriptHandle entityId);
+
+	int CacheResource(IFunctionHandler *pH, const char* whoIsRequesting, const char* resourceName, int resourceType, int resourceFlags);
 
 private:
 	void RegisterGlobals();

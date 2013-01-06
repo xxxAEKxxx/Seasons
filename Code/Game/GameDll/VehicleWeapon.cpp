@@ -155,7 +155,6 @@ void CVehicleWeapon::Update( SEntityUpdateContext& ctx, int update)
     }
     
 		CheckForFriendlyAI(ctx.fFrameTime);
-		CheckForFriendlyPlayers(ctx.fFrameTime);
   }
 }
 
@@ -379,39 +378,4 @@ void CVehicleWeapon::CheckForFriendlyAI(float frameTime)
 			}
 		}
 	}
-}
-
-//---------------------------------------------------------------------------
-void CVehicleWeapon::CheckForFriendlyPlayers(float frameTime)
-{
-	CActor* pOwner = GetOwnerActor();
-
-	if(pOwner && pOwner->IsPlayer() && gEnv->bMultiplayer)
-	{
-		m_timeToUpdate-=frameTime;
-		if(m_timeToUpdate>0.0f)
-			return;
-
-		m_timeToUpdate = 0.15f;
-
-		if(IMovementController* pMC = pOwner->GetMovementController())
-		{
-			SMovementState info;
-			pMC->GetMovementState(info);
-
-			ray_hit rayhit;
-			IPhysicalEntity* pSkipEnts[10];
-			int nSkip = CSingle::GetSkipEntities(this, pSkipEnts, 10);	
-
-			int intersect = gEnv->pPhysicalWorld->RayWorldIntersection(info.weaponPosition, info.aimDirection * 150.0f, ent_all,
-				rwi_stop_at_pierceable|rwi_colltype_any, &rayhit, 1, pSkipEnts, nSkip);
-
-			IEntity* pLookAtEntity = NULL;
-
-			if(intersect && rayhit.pCollider)
-				pLookAtEntity = m_pEntitySystem->GetEntityFromPhysics(rayhit.pCollider);
-
-			bool bFriendly = false;
-		}
-	}		
 }

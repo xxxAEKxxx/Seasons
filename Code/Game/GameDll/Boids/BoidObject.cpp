@@ -130,7 +130,7 @@ void CBoidObject::PlaySound( int nIndex )
 		{
 			IEntitySoundProxy* pSndProxy = (IEntitySoundProxy*)pEntity->CreateProxy(ENTITY_PROXY_SOUND);
 			Vec3 ofs(0,0,0),dir(FORWARD_DIRECTION);
-			pSndProxy->PlaySound( m_flock->m_bc.sounds[nIndex],ofs,dir,FLAG_SOUND_DEFAULT_3D, eSoundSemantic_Living_Entity );
+			pSndProxy->PlaySound( m_flock->m_bc.sounds[nIndex],ofs,dir,FLAG_SOUND_DEFAULT_3D, 0, eSoundSemantic_Living_Entity );
 		}
 	}
 }

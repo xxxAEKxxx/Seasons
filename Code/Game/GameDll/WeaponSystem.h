@@ -141,6 +141,8 @@ public:
 
 	void Serialize(TSerialize ser);
 
+	void OnResumeAfterHostMigration();
+
 private: 
 	void CreatePool(IEntityClass *pClass);
 	void FreePool(IEntityClass *pClass);

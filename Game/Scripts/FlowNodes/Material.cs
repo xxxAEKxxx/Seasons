@@ -1,24 +1,25 @@
 ﻿using CryEngine;
+using CryEngine.FlowSystem;
 
 namespace CryGameCode
 {
-	[FlowNode(Name = "Material", UICategory = "MaterialGraph")]
+	[FlowNode(Name = "Material", Category = "MaterialGraph")]
 	public class MaterialNode : FlowNode
 	{
-		[Port(Name = "Material", Type = PortType.Material)]
+        [Port(Name = "Material", StringPortType = StringPortType.Material)]
 		public void MaterialName(string name) { }
 
 		[Port(Description = "Gets the material")]
 		public void Get()
 		{
-			var material = Material.Find(GetPortString(MaterialName));
+			var material = Material.Find(GetPortValue<string>(MaterialName));
 			if(material == null)
 				return;
 
-			var subMatId = GetPortInt(Submaterial);
+            var subMatId = GetPortValue<int>(Submaterial);
 			if(subMatId != -1)
 			{
-				material = material.GetSubmaterial(GetPortInt(Submaterial));
+                material = material.GetSubmaterial(GetPortValue<int>(Submaterial));
 				if(material == null)
 					return;
 			}
@@ -36,12 +37,12 @@ namespace CryGameCode
 		[Port(Description = "Sets the entity's material")]
 		public void Set()
 		{
-			var material = Material.Find(GetPortString(MaterialName));
+            var material = Material.Find(GetPortValue<string>(MaterialName));
 
 			if(material == null)
 				return;
 
-			var subMatId = GetPortInt(Submaterial);
+            var subMatId = GetPortValue<int>(Submaterial);
 
 			if(subMatId != -1)
 			{
@@ -51,26 +52,26 @@ namespace CryGameCode
 					return;
 			}
 
-			if(IsVec3PortActive(DiffuseColor))
-				material.DiffuseColor = GetPortVec3(DiffuseColor);
+			if(IsPortActive<Color>(DiffuseColor))
+                material.DiffuseColor = GetPortValue<Color>(DiffuseColor);
 
-			if(IsVec3PortActive(EmissiveColor))
-				material.EmissiveColor = GetPortVec3(EmissiveColor);
+            if (IsPortActive<Color>(EmissiveColor))
+                material.EmissiveColor = GetPortValue<Color>(EmissiveColor);
 
-			if(IsVec3PortActive(SpecularColor))
-				material.SpecularColor = GetPortVec3(SpecularColor);
+            if (IsPortActive<Color>(SpecularColor))
+                material.SpecularColor = GetPortValue<Color>(SpecularColor);
 
-			if(IsFloatPortActive(AlphaTest))
-				material.AlphaTest = GetPortFloat(AlphaTest);
+            if (IsPortActive<float>(AlphaTest))
+                material.AlphaTest = GetPortValue<float>(AlphaTest);
 
-			if(IsFloatPortActive(Opacity))
-				material.Opacity = GetPortFloat(Opacity);
+            if (IsPortActive<float>(Opacity))
+                material.Opacity = GetPortValue<float>(Opacity);
 
-			if(IsFloatPortActive(Glow))
-				material.Glow = GetPortFloat(Glow);
+            if (IsPortActive<float>(Glow))
+                material.Glow = GetPortValue<float>(Glow);
 
-			if(IsFloatPortActive(Shininess))
-				material.Shininess = GetPortFloat(Shininess);
+            if (IsPortActive<float>(Shininess))
+                material.Shininess = GetPortValue<float>(Shininess);
 		}
 
 		[Port(Description = "If not -1, attempts to get a submaterial at the specified slot")]
@@ -100,20 +101,20 @@ namespace CryGameCode
 		[Port(Name = "Shininess")]
 		public OutputPort<float> ShininessOutput { get; set; }
 
-		[Port(Type = PortType.Color)]
-		public void DiffuseColor(Vec3 value) { }
+        [Port]
+		public void DiffuseColor(Color value) { }
 
 		[Port(Name = "DiffuseColor")]
 		public OutputPort<Vec3> DiffuseColorOutput { get; set; }
 
-		[Port(Type = PortType.Color)]
-		public void EmissiveColor(Vec3 value) { }
+        [Port]
+		public void EmissiveColor(Color value) { }
 
 		[Port(Name = "EmissiveColor")]
 		public OutputPort<Vec3> EmissiveColorOutput { get; set; }
 
-		[Port(Type = PortType.Color)]
-		public void SpecularColor(Vec3 value) { }
+        [Port]
+		public void SpecularColor(Color value) { }
 
 		[Port(Name = "SpecularColor")]
 		public OutputPort<Vec3> SpecularColorOutput { get; set; }

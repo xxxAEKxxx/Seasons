@@ -1132,7 +1132,7 @@ void CPlayerMovement::ProcessTurning()
 		Vec3 right = m_turnTarget.GetColumn0();
 		Vec3 up = m_upVector.GetNormalized();
 		Vec3 forward = (up % right).GetNormalized();
-		m_turnTarget = GetQuatFromMat33( Matrix33::CreateFromVectors(forward%up, forward, up) );
+		m_turnTarget = Quat( Matrix33::CreateFromVectors(forward%up, forward, up) );
 
 		if (ROTATION_AFFECTS_THIRD_PERSON_MODEL)
 		{
@@ -1433,7 +1433,7 @@ void CPlayerMovement::AdjustPlayerPositionOnLadder(CPlayer &player)
 	if(pEntity)
 	{
 		//In some cases the rotation is not correct, force it if neccessary
-		if(!pEntity->GetRotation().IsEquivalent(m_stats.playerRotation))
+		if(!Quat::IsEquivalent(pEntity->GetRotation(), m_stats.playerRotation))
 			pEntity->SetRotation(Quat(Matrix33::CreateOrientation(-m_stats.ladderOrientation,m_stats.ladderUpDir,gf_PI)));
 
 		Vec3 projected = ProjectPointToLine(pEntity->GetWorldPos(),m_stats.ladderBottom,m_stats.ladderTop);

@@ -628,7 +628,7 @@ bool CWeaponSystem::ScanXML(XmlNodeRef &root, const char *xmlFile)
 		desc.params=pAmmoParams;
 	}
 	else
-		desc.configurations.insert(std::make_pair<string, const SAmmoParams*>(configName, pAmmoParams));
+		desc.configurations.insert(std::make_pair(configName, pAmmoParams));
 
 	return true;
 }
@@ -873,6 +873,29 @@ void CWeaponSystem::Serialize(TSerialize ser)
 	}
 }
 
+//-----------------------------------------------------------------------
+void CWeaponSystem::OnResumeAfterHostMigration()
+{
+	if (gEnv->bServer)
+	{
+		// Need to find all the projectiles that would have exploded had we been a server
+		TProjectileMap::const_iterator end = m_projectiles.end();
+		TProjectileMap::iterator it = m_projectiles.begin();
+		while (it != end)
+		{
+			CProjectile *pProjectile = it->second;
+			// Move the iterator along before dealing with the projectile since it might get removed
+			// from the map and this would invalidate the iterator if we were still pointing at it
+			++ it;
+			if (pProjectile && pProjectile->ShouldHaveExploded())
+			{
+				pProjectile->Explode(true);
+			}
+		}
+	}
+}
+
+//-----------------------------------------------------------------------
 void CWeaponSystem::GetMemoryUsage(ICrySizer * s) const
 {
 	SIZER_SUBCOMPONENT_NAME(s, "WeaponSystem");

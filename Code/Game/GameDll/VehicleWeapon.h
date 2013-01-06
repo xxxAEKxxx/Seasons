@@ -68,7 +68,6 @@ protected:
 
   bool CheckWaterLevel() const;
   void CheckForFriendlyAI(float frameTime);
-	void CheckForFriendlyPlayers(float frameTime);
 
   IVehicle* m_pVehicle;
   IVehiclePart* m_pPart;
