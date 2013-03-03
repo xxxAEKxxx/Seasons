@@ -105,7 +105,7 @@ public:
 			InputPortConfig_Void( "Get", _HELP("Trigger \"On*\" outputs according to current state.")),
 			InputPortConfig_Void( "Enable", _HELP("Trigger to enable")),
 			InputPortConfig_Void( "Disable", _HELP("Trigger to enable")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig out_ports[] = 
 		{
@@ -127,7 +127,7 @@ public:
 			OutputPortConfig<bool>     ( "OnLeaveSpecator", _HELP("Triggered when Actor leaves specator mode.")),
 			OutputPortConfig<int>    ( "OnHealthChange", _HELP("Triggered when Actors health changed. Outputs current health.")),
 			OutputPortConfig<bool>     ( "OnToggleThirdPerson", _HELP("Triggered when Actors view mode changed. Outputs true for third person otherwise false.")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.nFlags |= EFLN_TARGET_ENTITY;
 		config.pInputPorts = in_ports;
@@ -420,7 +420,7 @@ public:
 			InputPortConfig_Void( "Get", _HELP("Force node to trigger current state") ),
 			InputPortConfig_Void( "Enable", _HELP("Trigger to enable")),
 			InputPortConfig_Void( "Disable", _HELP("Trigger to enable")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig outputs[] = {
 			OutputPortConfig_Void( "OnWeaponChange",	_HELP( "Triggers if weapon changed" ) ),
@@ -449,7 +449,7 @@ public:
 			OutputPortConfig<string>  ( "ZoomName",	_HELP( "Weapons zoom name" ) ),
 			OutputPortConfig<int>     ( "CurrZoomStep",	_HELP( "ZoomMode zoom name" ) ),
 			OutputPortConfig<int>     ( "MaxZoomStep",	_HELP( "Weapons zoom name" ) ),
-			{0}
+			OutputPortConfig_Null()
 		};
 
 		config.nFlags |= EFLN_TARGET_ENTITY;
@@ -767,7 +767,7 @@ public:
 		static const SInputPortConfig in_ports[] = 
 		{
 			InputPortConfig_Void  ( "Trigger", _HELP("Trigger to get difficulty level." )),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig out_ports[] = 
 		{
@@ -775,7 +775,7 @@ public:
 			OutputPortConfig_Void  ( "Normal", _HELP("Normal") ),
 			OutputPortConfig_Void  ( "Hard", _HELP("Hard") ),
 			OutputPortConfig_Void  ( "Delta", _HELP("Delta") ),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = in_ports;
 		config.pOutputPorts = out_ports;
@@ -838,13 +838,13 @@ public:
 			InputPortConfig<float> ( "SetFOV", _HELP("Trigger to override Camera's FieldOfView." )),
 			InputPortConfig_Void   ( "GetFOV", _HELP("Trigger to get current Camera's FieldOfView." )),
 			InputPortConfig_Void   ( "ResetFOV", _HELP("Trigger to reset FieldOfView to default value." )),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig out_ports[] = 
 		{
 			OutputPortConfig<float>  ( "CurFOV", _HELP("Current FieldOfView") ),
 			OutputPortConfig_Void    ( "ResetDone", _HELP("Triggered after Reset") ),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = in_ports;
 		config.pOutputPorts = out_ports;
@@ -973,7 +973,7 @@ public:
 		{
 			InputPortConfig_Void   ( "Enable", _HELP("Trigger to enable this node" )),
 			InputPortConfig_Void   ( "Disable", _HELP("Trigger to disable this node" )),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig out_ports[] = 
 		{
@@ -982,7 +982,7 @@ public:
 			OutputPortConfig<bool>   ( "VisibleOnScreen", _HELP("True if visible on screen, otherwise false") ),
 			OutputPortConfig<int>  ( "FalloffX", _HELP("-1 if entity is left from viewfrustrum, 0 if inside, 1 if right") ),
 			OutputPortConfig<int>  ( "FalloffY", _HELP("-1 if entity is above the viewfrustrum, 0 if inside, 1 if beneath") ),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.nFlags |= EFLN_TARGET_ENTITY;
 		config.pInputPorts = in_ports;
@@ -1104,12 +1104,12 @@ public:
 			InputPortConfig<float> ( "Px", 0.5, _HELP("X pos on screen (0-1)") ),
 			InputPortConfig<float> ( "Py", 0.5, _HELP("Y pos on screen (0-1)") ),
 			InputPortConfig<float> ( "Depth", 0, _HELP("Depth of the new position") ),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig out_ports[] = 
 		{
 			OutputPortConfig<Vec3>  ( "WorldPos", _HELP("World position of the object") ),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = in_ports;
 		config.pOutputPorts = out_ports;

@@ -233,8 +233,8 @@
 			</spread>
 			<!-- We can also add some muzzleflashes and light FX when firing... -->
 			<muzzleflash>
-				<firstperson effect="weapon_fx.scar.muzzle_flash.muzzle_flash_fp" helper="muzzle_flash_effect" light_helper="muzzle_flash_light" light_radius="2" light_time="0.010" light_color="1,1,0.8" light_diffuse_mult="8" />
-				<thirdperson effect="weapon_fx.scar.muzzle_flash.muzzle_flash_tp" helper="weapon_term" light_helper="weapon_term" light_radius="2.5" light_time="0.01" light_color="1,1,0.8" light_diffuse_mult="8" />
+				<firstperson effect="weapon_fx.scar.muzzle_flash.muzzle_flash_fp" helper="muzzle_flash_effect" light_helper="muzzle_flash_light" light_radius="2" light_time="0.01" light_color="1,0.5,0.25" light_diffuse_mult="2" />
+				<thirdperson effect="weapon_fx.scar.muzzle_flash.muzzle_flash_tp" helper="weapon_term" light_helper="weapon_term" light_radius="2.5" light_time="0.01" light_color="1,0.5,0.25" light_diffuse_mult="2" />
 			</muzzleflash>
 			<!-- or even reject some shells when firing. Take a look at the use of the attachments/helpers that we defined before -->
 			<reject>
@@ -318,6 +318,10 @@
 				<param name="angular_impulse" value="0.3" />
 				<param name="back_impulse" value="0.3" />
 			</recoil>
+			<muzzleflash>
+				<firstperson effect="weapon_fx.scar.muzzle_flash.muzzle_flash_fp" helper="muzzle_flash_effect" light_helper="muzzle_flash_light" light_radius="2" light_time="0.033" light_color="1,0.5,0.25" light_diffuse_mult="2" />
+				<thirdperson effect="weapon_fx.scar.muzzle_flash.muzzle_flash_tp" helper="weapon_term" light_helper="weapon_term" light_radius="2.5" light_time="0.033" light_color="1,0.5,0.25" light_diffuse_mult="2" />
+			</muzzleflash>
 		</firemode>
 		<firemode name="Burst" type="Burst">
 			<tracer>
@@ -336,7 +340,7 @@
 				<param name="geometry" value="objects/effects/tracer_standard_red_new.cgf" />
 				<param name="effectFP" value="weapon_fx.scar.tracer.tracer_fp" />
 				<param name="effect" value="weapon_fx.scar.tracer.tracer_tp" />
-				<paran name="speed" value="400" />
+				<param name="speed" value="400" />
 				<param name="speedFP" value="450" />
 				<param name="frequency" value="1" />
 				<param name="helper_fp" value="weapon_term" />

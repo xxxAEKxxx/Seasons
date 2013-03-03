@@ -77,7 +77,7 @@ void CVehicleDamageBehaviorBurn::Activate(bool activate)
     m_pVehicle->SetObjectUpdate(this, IVehicle::eVOU_AlwaysUpdate);
     m_timerId = m_pVehicle->SetTimer(-1, 20000, this); // total burn of 60 secs
 
-    if (!m_pVehicle->IsDestroyed() && !m_pVehicle->IsFlipped() && gEnv->pAISystem )
+    if (!m_pVehicle->IsDestroyed() && !m_pVehicle->IsFlipped() && gEnv->pAISystem && gEnv->pAISystem->GetSmartObjectManager())
       gEnv->pAISystem->GetSmartObjectManager()->SetSmartObjectState(m_pVehicle->GetEntity(), "Exploding");        
 
 	m_pVehicle->NeedsUpdate(IVehicle::eVUF_AwakePhysics);

@@ -302,8 +302,8 @@ function Elevator:Sound(snd, loop)
 		self.soundIds={};
 	end
 
-	local id=self:PlaySoundEvent(snd, g_Vectors.v000, g_Vectors.v010, SOUND_DEFAULT_3D, SOUND_SEMANTIC_MECHANIC_ENTITY);
-	--local id=self:PlaySoundEventEx(snd, SOUND_DEFAULT_3D, 1, g_Vectors.v000, 0, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);	
+	local id=self:PlaySoundEvent(snd, g_Vectors.v000, g_Vectors.v010, SOUND_DEFAULT_3D, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
+	--local id=self:PlaySoundEventEx(snd, SOUND_DEFAULT_3D, 1, g_Vectors.v000, 0, 0, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);	
 	
 	if (loop) then
 		self.soundIds[snd] = id;

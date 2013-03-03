@@ -51,7 +51,7 @@ BasicAITable = {
 		
 		esCommConfig = "",
 		esVoice = "",
-		fileModel = "Objects/Characters/neutral_male/sdk_character_male_v2.cdf",
+		fileModel = "Objects/Characters/sdk_player/sdk_player.cdf",
 		nModelVariations=0,
 		bTrackable=1,
 		bSquadMate=0,

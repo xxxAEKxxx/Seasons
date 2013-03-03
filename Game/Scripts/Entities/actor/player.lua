@@ -33,10 +33,10 @@ Player = {
 			sightrange = 50,
 		}	,
 		--
-		fileModel = "Objects/Characters/Agent/Agent.cdf",
-		clientFileModel = "Objects/Characters/Agent/Agent.cdf",
+		fileModel = "Objects/characters/SDK_player/SDK_Player.cdf",
+		clientFileModel = "Objects/characters/SDK_player/SDK_Player.cdf",
 		fpItemHandsModel = "Objects/Weapons/Agent_fp/Agent_fp_Global.chr",
-		objFrozenModel= "Objects/Characters/Agent/Agent.cdf",
+		objFrozenModel= "Objects/characters/SDK_player/SDK_Player.cdf",
 		fileHitDeathReactionsParamsDataFile = "Libs/HitDeathReactionsData/HitDeathReactions_PlayerSP.xml",
 		
 		CharacterSounds =
@@ -260,9 +260,7 @@ function Player:PhysicalizeActor()
 end
 
 function Player:OnRevive()
-	if AI then
-      CryAction.RegisterWithAI(self.id, AIOBJECT_PLAYER, self.Properties, self.PropertiesInstance);
-   end
+	BasicActor.OnRevive(self);
 end
 
 function Player:SetModel(model, arms, frozen, fp3p)
@@ -446,7 +444,7 @@ end
 function Player:StartThrusterSounds(afterburn)
 			
 	if (not self.thrusterSound or not Sound.IsPlaying(self.thrusterSound)) then	
-		self.thrusterSound = self:PlaySoundEvent("sounds/interface:suit:thrusters_1p", g_Vectors.v000, g_Vectors.v010, SOUND_DEFAULT_3D, SOUND_SEMANTIC_PLAYER_FOLEY);
+		self.thrusterSound = self:PlaySoundEvent("sounds/interface:suit:thrusters_1p", g_Vectors.v000, g_Vectors.v010, SOUND_DEFAULT_3D, 0, SOUND_SEMANTIC_PLAYER_FOLEY);
 		Sound.SetSoundLoop(self.thrusterSound,1);
 	end
 	
@@ -823,7 +821,7 @@ function Player:SayOrder( soundName, answer, entity )
 		ZeroVector(g_Vectors.temp_v1);
 		g_Vectors.temp_v1.z = 0.6;
 		
-		local soundHandle = self:PlaySoundEvent(orderSound, g_Vectors.temp_v1, g_Vectors.v000, SOUND_DEFAULT_3D, SOUND_SEMANTIC_AI_READABILITY);
+		local soundHandle = self:PlaySoundEvent(orderSound, g_Vectors.temp_v1, g_Vectors.v000, SOUND_DEFAULT_3D, 0, SOUND_SEMANTIC_AI_READABILITY);
 		
 		local soundLength = 500;
 		if (soundHandle) then
@@ -1323,7 +1321,7 @@ function Player:SuitOverloadProto()
 	if( self.lastOverloadTime ) then
 		local	dt = _time - self.lastOverloadTime;
 		if( dt < 30.0 ) then
-			self:PlaySoundEventEx("sounds/interface:suit:temperature_beep", 0, 1, {x=0,y=0,z=0}, 0, 0, SOUND_SEMANTIC_NANOSUIT);
+			self:PlaySoundEventEx("sounds/interface:suit:temperature_beep", 0, 1, {x=0,y=0,z=0}, 0, 0, 0, SOUND_SEMANTIC_NANOSUIT);
 			return;
 		end
 	end
@@ -1331,7 +1329,7 @@ function Player:SuitOverloadProto()
 
 	HUD:AddInfoMessage("overloading_suit");
 
-	self:PlaySoundEventEx("Sounds/interface:suit:nano_suit_energy_pulse_1p", 0, 1, {x=0,y=0,z=0}, 0, 0, SOUND_SEMANTIC_NANOSUIT);
+	self:PlaySoundEventEx("Sounds/interface:suit:nano_suit_energy_pulse_1p", 0, 1, {x=0,y=0,z=0}, 0, 0, 0, SOUND_SEMANTIC_NANOSUIT);
 
 	Script.SetTimerForFunction(1000, "Player.OnSuitOverload",self);
 end
@@ -1420,7 +1418,7 @@ function Player:OnFrost(shooterId, weaponId, frost)
       if (currTime - (self.lastFrostSound or 0) > 0.1) then
     	  for i,val in ipairs(self.playerFrostSounds) do
     	    if (oldAmt < val and newAmt >= val) then    	      
-    	      self:PlaySoundEvent("sounds/interface:hud:freeze_burst", g_Vectors.v000, g_Vectors.v010, 0, SOUND_SEMANTIC_HUD);
+    	      self:PlaySoundEvent("sounds/interface:hud:freeze_burst", g_Vectors.v000, g_Vectors.v010, 0, 0, SOUND_SEMANTIC_HUD);
     	      self.lastFrostSound = currTime;
     	      break;
     	    end
@@ -1438,7 +1436,7 @@ function Player:OnUnfreezeShake(deltaFreeze)
   
   if (deltaFreeze>0) then
     -- next stage reached
-    self:PlaySoundEvent("sounds/interface:hud:freeze_player", g_Vectors.v000, g_Vectors.v010, SOUND_2D, SOUND_SEMANTIC_HUD);    
+    self:PlaySoundEvent("sounds/interface:hud:freeze_player", g_Vectors.v000, g_Vectors.v010, SOUND_2D, 0, SOUND_SEMANTIC_HUD);    
     
     local effect = "breakable_objects.frozen_human.vapor_gun";        
     local item = self.inventory:GetCurrentItem();
@@ -1448,7 +1446,7 @@ function Player:OnUnfreezeShake(deltaFreeze)
   else    
     local currTime = System.GetCurrTime();
     if (currTime - self.lastUnfreezeShake > 0.25) then    
-      self:PlaySoundEvent("sounds/interface:suit:frozen_trying_to_unfreeze", g_Vectors.v000, g_Vectors.v010, SOUND_2D, SOUND_SEMANTIC_NANOSUIT);    
+      self:PlaySoundEvent("sounds/interface:suit:frozen_trying_to_unfreeze", g_Vectors.v000, g_Vectors.v010, SOUND_2D, 0, SOUND_SEMANTIC_NANOSUIT);    
       self.lastUnfreezeShake = currTime;
     end
   end    

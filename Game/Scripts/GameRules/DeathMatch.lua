@@ -281,14 +281,16 @@ function DeathMatch.Server:OnReset()
 end
 
 ----------------------------------------------------------------------------------------------------
-function DeathMatch.Server:OnVehicleSubmerged(entityId, ratio)
-	local vehicle = System.GetEntity(entityId);
-	if (vehicle and vehicle.vehicle) then
-		NotifyDeathToTerritoryAndWave(vehicle);
-		vehicle.vehicle:Destroy();
-		BroadcastEvent(vehicle, "Dead");
-	end
-end
+-- Destroy vehicle when submerged
+--
+--function DeathMatch.Server:OnVehicleSubmerged(entityId, ratio)
+--	local vehicle = System.GetEntity(entityId);
+--	if (vehicle and vehicle.vehicle) then
+--		NotifyDeathToTerritoryAndWave(vehicle);
+--		vehicle.vehicle:Destroy();
+--		BroadcastEvent(vehicle, "Dead");
+--	end
+--end
 
 ----------------------------------------------------------------------------------------------------
 function DeathMatch.Client:OnReset()
@@ -453,15 +455,15 @@ function DeathMatch.Client:OnUpdate( frameTime )
 end
 
 ----------------------------------------------------------------------------------------------------
-function DeathMatch:ShowScores( enable )
+function DeathMatch:EnableUpdateScores( enable )
 	SimpleLog( "[ DeathMatch ] ShowScores" );
-	self.showScores = enable;
+	self.enableUpdateScores = enable;
 end
 
 ----------------------------------------------------------------------------------------------------
 function DeathMatch:EndGame( enable )
 	SimpleLog( "[ DeathMatch ] EndGame" );
-	self.showScores = enable;
+	self.enableUpdateScores = enable;
 	self.game:ForceScoreboard( enable );
 	self.game:FreezeInput( enable );
 end
@@ -469,7 +471,7 @@ end
 ----------------------------------------------------------------------------------------------------
 function DeathMatch:UpdateScores()
 	SimpleLog( "[ DeathMatch ] UpdateScores" );
-	if ( not self.showScores ) then
+	if( not self.enableUpdateScores) then
 		return;
 	end
 	
@@ -477,7 +479,7 @@ function DeathMatch:UpdateScores()
 		return;
 	end
 	
-	local players = self.game:GetPlayers();
+	local players = System.GetEntitiesByClass( "Player" );
 	if ( not players ) then
 		return;
 	end
@@ -522,25 +524,33 @@ function DeathMatch:RevivePlayer( channelId, player, keepEquip )
 		keepEquip = false;
 	end
 	
-	local spawnId;
-	local zOffset;
-	spawnId, zOffset = self.game:GetSpawnLocation( player.id, true, true, NULL_ENTITY, 50, player.death_pos );
+	if (not System.IsEditor()) then
 	
-	if ( spawnId ) then
-		local spawn = System.GetEntity( spawnId )
-		if ( spawn ) then
-			spawn:Spawned( player );
+		local spawnId;
+		local zOffset;
+		spawnId, zOffset = self.game:GetSpawnLocation( player.id, true, true, NULL_ENTITY, 50, player.death_pos );
+	
+		if ( spawnId ) then
+			local spawn = System.GetEntity( spawnId )
+			if ( spawn ) then
+				spawn:Spawned( player );
 
-			local pos = spawn:GetWorldPos( g_Vectors.temp_v1 );
-			pos.z = pos.z + zOffset;
+				local pos = spawn:GetWorldPos( g_Vectors.temp_v1 );
+				pos.z = pos.z + zOffset;
 			
-			local angles = spawn:GetWorldAngles( g_Vectors.temp_v2 );
+				local angles = spawn:GetWorldAngles( g_Vectors.temp_v2 );
 		
-			local teamId = self.game:GetTeam( player.id );
-			self.game:RevivePlayer( player.id, pos, angles, teamId, not keepEquip );
+				local teamId = self.game:GetTeam( player.id );
+				self.game:RevivePlayer( player.id, pos, angles, teamId, not keepEquip );
 
-			spawnSuccess = true;
+				spawnSuccess = true;
+			end
 		end
+	else
+	    -- in Editor we want to revive at the current player position in the perspective view
+		local teamId = self.game:GetTeam( player.id );
+		self.game:RevivePlayer( player.id, player:GetWorldPos(), player:GetAngles(), teamId, not keepEquip );
+		spawnSuccess = true;
 	end
 	
 	-- make the game realise the areas we're in right now...

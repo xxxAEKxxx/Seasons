@@ -113,7 +113,7 @@ void CSingleTG::UpdateAutoAim(float frameTime)
 	// re-get targets from gametokens
 	UpdateTargets();
 
-	if(m_iSerializeIgnoreUpdate) 	//workaround serialization requested by design & RnD
+	if(m_iSerializeIgnoreUpdate) 	//hacky serialization requested by design & RnD
 	{
 		m_iSerializeIgnoreUpdate--;		
 		if(m_iSerializeIgnoreUpdate <= 0)
@@ -304,7 +304,7 @@ void CSingleTG::UpdateTargets()
 //-----------------------------------------------
 void CSingleTG::Serialize(TSerialize ser)
 {
-	//workaround serialization requested by design & RnD
+	//hacky serialization requested by design & RnD
 	m_idSerializeTarget = m_lockedTarget;
 	m_fSerializeProgress = m_fStareTime;
 	ser.Value("m_idSerializeTarget", m_idSerializeTarget);

@@ -1293,7 +1293,7 @@ int CScriptBind_Actor::GetClosestAttachment(IFunctionHandler *pH, int characterS
   if (!pClosestAtt)
     return pH->EndFunction();
   
-	//FIXME FIXME: E3 workaround
+	//FIXME FIXME: E3 hack
 	char attachmentName[64];
 	strncpy(attachmentName,pClosestAtt->GetName(),63);
 	attachmentName[63] = 0;

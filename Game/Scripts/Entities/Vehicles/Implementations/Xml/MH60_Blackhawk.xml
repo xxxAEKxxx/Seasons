@@ -7,7 +7,7 @@
   <DamageMultipliers>
    <DamageMultiplier damageType="bullet" multiplier="0.02" id="idbulletmult"/>
    <DamageMultiplier damageType="melee" multiplier="0"/>
-   <DamageMultiplier damageType="collision" multiplier="0.35"/>
+   <DamageMultiplier damageType="collision" multiplier="0.5"/>
    <DamageMultiplier damageType="rocket" multiplier="10"/>
   </DamageMultipliers>
   <DamagesGroups>
@@ -39,17 +39,17 @@
   </DamagesGroups>
  </Damages>
  <Components>
-  <Component name="BackRotor" damageMax="150" major="1" minBound="-1.6001,-11.939,1.7024" maxBound="1.6001,-08.5796,5.3024001" useBoundsFromParts="0" hullAffection="0.75" id="idBackRotor">
+  <Component name="BackRotor" damageMax="150" major="1" minBound="-1.6001,-11.939,1.7024" maxBound="1.6001,-08.5796,5.3024001" useBoundsFromParts="0" hullAffection="1" id="idBackRotor">
    <DamageMultipliers>
     <DamageMultiplier damageType="bullet" multiplier="0.1"/>
     <DamageMultiplier damageType="melee" multiplier="0.0"/>
-    <DamageMultiplier damageType="collision" multiplier="0.1"/>
+    <DamageMultiplier damageType="collision" multiplier="0.5"/>
    </DamageMultipliers>
    <DamageBehaviors>
-    <DamageBehavior class="Effect" damageRatioMin="0.5" damageRatioMax="0.75">
+    <DamageBehavior class="Effect" damageRatioMin="0.25" damageRatioMax="0.5">
      <Effect effect="BackRotorDamaged" disableAfterExplosion="1"/>
     </DamageBehavior>
-    <DamageBehavior class="Effect" damageRatioMin="0.75">
+    <DamageBehavior class="Effect" damageRatioMin="0.5">
      <Effect effect="BackRotorExplosion" disableAfterExplosion="1"/>
     </DamageBehavior>
     <DamageBehavior class="MovementNotification" damageRatioMin="1">
@@ -60,7 +60,7 @@
     </DamageBehavior>
    </DamageBehaviors>
   </Component>
-  <Component name="Engine" damageMax="200" major="1" minBound="-1.75,-3.0576,2.0325999" maxBound="1.75,1.9277,3.6919" useBoundsFromParts="0" hullAffection="0" id="idRotor">
+  <Component name="Engine" damageMax="200" major="1" minBound="-1.75,-3.0576,2.0325999" maxBound="1.75,1.9277,3.6919" useBoundsFromParts="0" hullAffection="1" id="idRotor">
    <DamageMultipliers>
     <DamageMultiplier damageType="bullet" multiplier="0.02"/>
     <DamageMultiplier damageType="melee" multiplier="0.0"/>
@@ -69,10 +69,10 @@
     <DamageBehavior class="Group" damageRatioMin="1">
      <Group name="DestroyEngine"/>
     </DamageBehavior>
-    <DamageBehavior class="Effect" damageRatioMin="0.25" damageRatioMax="0.75">
+    <DamageBehavior class="Effect" damageRatioMin="0.1" damageRatioMax="0.5">
      <Effect effect="EngineDamaged25" disableAfterExplosion="1"/>
     </DamageBehavior>
-    <DamageBehavior class="Effect" damageRatioMin="0.75" damageRatioMax="1">
+    <DamageBehavior class="Effect" damageRatioMin="0.5" damageRatioMax="1">
      <Effect effect="EngineDamaged75" disableAfterExplosion="1"/>
     </DamageBehavior>
    </DamageBehaviors>
@@ -85,18 +85,18 @@
     <DamageBehavior class="Group" damageRatioMin="1">
      <Group name="DestroyEngine"/>
     </DamageBehavior>
-    <DamageBehavior class="Effect" damageRatioMin="0.25" damageRatioMax="0.75" ignoreVehicleDestruction="1">
+    <DamageBehavior class="Effect" damageRatioMin="0.1" damageRatioMax="0.5" ignoreVehicleDestruction="1">
      <Effect effect="HullDamaged25"/>
     </DamageBehavior>
-    <DamageBehavior class="Effect" damageRatioMin="0.75" damageRatioMax="1" ignoreVehicleDestruction="1">
+    <DamageBehavior class="Effect" damageRatioMin="0.5" damageRatioMax="1" ignoreVehicleDestruction="1">
      <Effect effect="HullDamaged75"/>
     </DamageBehavior>
    </DamageBehaviors>
   </Component>
-  <Component name="Cockpit" damageMax="0" major="1" minBound="0,0,0" maxBound="0,0,0" useBoundsFromParts="0">
+  <Component name="Cockpit" damageMax="0" major="1" minBound="0,0,0" maxBound="0,0,0" useBoundsFromParts="0" hullAffection="1">
    <DamageBehaviors />
   </Component>
-  <Component name="RotorTails" damageMax="100" major="0" minBound="-9.4877005,-9.1875,3.0402999" maxBound="9.4856997,8.0595999,3.9052999" useBoundsFromParts="0" hullAffection="0" id="idRotor">
+  <Component name="RotorTails" damageMax="100" major="0" minBound="-9.4877005,-9.1875,3.0402999" maxBound="9.4856997,8.0595999,3.9052999" useBoundsFromParts="0" hullAffection="1" id="idRotor">
    <DamageMultipliers>
     <DamageMultiplier damageType="collision" multiplier="1"/>
    </DamageMultipliers>
@@ -160,8 +160,8 @@
   <Helper name="frontLightGreen" position="1.4993,2.1415,0.64960003" direction="1,0,0" part="body"/>
   <Helper name="tailLightWhite" position="-0.0055999998,-11.1232,3.9351001" direction="0,-1,0" part="body"/>
   <Helper name="tailLightRed" position="0.0082,-10.4493,4.2666998" direction="0,0,1" part="body"/>
-  <Helper name="bottomLightWhite" position="-0.0208,-5.6581998,0.58990002" direction="0,0,-1" part="body"/>
- </Helpers>
+  <Helper name="bottomLightWhite" position="0.0015,-5.6501999,0.5722" direction="0,0,-1" part="body"/>
+</Helpers>
  <Actions>
  </Actions>
  <Seats>
@@ -274,7 +274,7 @@
  <MovementParams>
   <Helicopter
 	  engineWarmupDelay="3"
-	  enginePowerMax="4.0"
+	  enginePowerMax="2"
 	  rotationDamping="20"
 	  altitudeMax="500"
 	  rotorDiskTiltScale="0.44999999"
@@ -282,16 +282,16 @@
 	  rollResponsiveness="18"
 	  yawResponsiveness="29"
 	  maxYawRate="3.142"
-	  maxFwdSpeed="35"
-	  maxLeftSpeed="36"
-	  maxSpeed="9"
-	  maxUpSpeed="15"
-	  velDamping="0.0"
+	  maxFwdSpeed="10"
+	  maxLeftSpeed="10"
+	  maxSpeed="10"
+	  maxUpSpeed="10"
+	  velDamping="0.3"
 	  basicSpeedFraction="0.69999999"
 	  yawDecreaseWithSpeed="12"
 	  tiltPerVelDifference="0.039999999"
 	  maxTiltAngle="0.55000001"
-	  maxRollAngle="45"
+	  maxRollAngle="60"
 	  extraRollForTurn="0.5"
 	  rollForTurnForce="0.5"
 	  yawPerRoll="-0.1"

@@ -40,14 +40,14 @@ public:
 			InputPortConfig< float >( "SmoothTime", 1, _HELP( "" ) ),
 			InputPortConfig< float >( "FocusRangeFactor", 4, _HELP( "" ) ),
 			InputPortConfig< bool >( "DebugEnabled", false, _HELP( "" ) ),
-			{ 0 }
+			InputPortConfig_Null()
 		};
 
 		static const SOutputPortConfig outputs[] =
 		{
 			OutputPortConfig< float >( "FocusDistance", _HELP( "" ) ),
 			OutputPortConfig< float >( "FocusRange", _HELP( "" ) ),
-			{ 0 }
+			OutputPortConfig_Null()
 		};
 		
 		config.pInputPorts = inputs;

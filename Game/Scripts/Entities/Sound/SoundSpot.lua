@@ -40,7 +40,7 @@ Net.Expose {
 
 function SoundSpot:OnSpawn()
 --	self:SetFlags(ENTITY_FLAG_CLIENT_ONLY, 0);
-
+	
 	if (System.IsEditor()) then
 		Sound.Precache(self.Properties.sndSource, 0);
 	end;
@@ -181,7 +181,7 @@ function SoundSpot:Play()
 	end;  
 	self.loop = self.Properties.bLoop;
   
-	self.soundid = self:PlaySoundEventEx(self.Properties.sndSource, sndFlags, self.Properties.fVolume, g_Vectors.v000, self.Properties.InnerRadius, self.Properties.OuterRadius, SOUND_SEMANTIC_SOUNDSPOT );
+	self.soundid = self:PlaySoundEventEx(self.Properties.sndSource, sndFlags, 0, self.Properties.fVolume, g_Vectors.v000, self.Properties.InnerRadius, self.Properties.OuterRadius, SOUND_SEMANTIC_SOUNDSPOT );
 	self.soundName = self.Properties.sndSource;
 	self.volume = self.Properties.fVolume;
 	self.InnerRadius = self.Properties.InnerRadius;

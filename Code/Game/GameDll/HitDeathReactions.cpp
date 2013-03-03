@@ -1199,7 +1199,7 @@ bool CHitDeathReactions::EndCurrentReactionInternal(bool bForceRagdollOnHit, boo
 	{
 		if (bFinished)
 		{
-			// This is a very workaround way to know if we are ending an animation-based reaction. It would be better to use IsExecutionType(eET_ReactionAnim), but
+			// This is a very hacky way to know if we are ending an animation-based reaction. It would be better to use IsExecutionType(eET_ReactionAnim), but
 			// the flag is removed on OnCustomAnimFinished to avoid infinite recursion on the EndReactionAnim() call above, so it's nulled here. 
 			// [*DavidR | 7/May/2010] ToDo: It would be nice to refactor this reaction end pipeline
 			const bool bAnimationBasedReaction = (m_currentCustomAnim.IsValid() || IsExecutionType(eET_AnimationGraphAnim)); 
@@ -1603,7 +1603,7 @@ void CHitDeathReactions::StartCollisionReaction(const Vec3& vNormal, const Vec3&
 			{
 				assert(IsInDeathReaction());
 
-				// workaround so the ragdoll is not activated on the EndCurrentReaction at the beginning of the Start
+				// hack so the ragdoll is not activated on the EndCurrentReaction at the beginning of the Start
 				SetInReaction(eRT_Hit);
 				StartDeathReaction(fakeHitInfo, m_pCollisionReactions->at(m_reactionOnCollision - 1));
 			}

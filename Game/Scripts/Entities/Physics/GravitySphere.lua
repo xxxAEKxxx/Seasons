@@ -1,5 +1,5 @@
 -- Zero Gravity entity
-		
+
 GravitySphere = {
 	Properties = {
 		bActive = 1,
@@ -11,10 +11,10 @@ GravitySphere = {
 	},
 
 		_PhysTable = { Area={}, },
-		
+
 		Editor={
 		Icon = "GravitySphere.bmp",
-		IconOnTop=1,
+		IconOnTop=0,
 		},
 }
 
@@ -65,9 +65,9 @@ function GravitySphere:PhysicalizeThis()
 		Area.falloff = Properties.Falloff;
 		Area.gravity = Properties.Gravity;
 		Area.damping = Properties.Damping;
-		
+
 		self:Physicalize( 0,PE_AREA,self._PhysTable );
-		
+
 		self:SetPhysicParams(PHYSICPARAM_FOREIGNDATA,{foreignData = ZEROG_AREA_ID});
 	else
 		self:DestroyPhysics();

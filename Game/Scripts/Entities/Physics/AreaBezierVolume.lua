@@ -1,15 +1,19 @@
 AreaBezierVolume = {
 
-  type = "AreaBezierVolume",
-  Properties = 
-  {
-  	bEnabled = 1,  	
-  },
+type = "AreaBezierVolume",
+	Properties = {
+		bEnabled = 1,
+	},
+  
+	Editor={
+		Icon = "VisRegPoint.bmp",
+		IconOnTop=1,
+	},
 }
 
 -------------------------------------------------------
 function AreaBezierVolume:OnLoad(table)
-  self.bEnabled = table.bEnabled
+	self.bEnabled = table.bEnabled
 	if(self.bEnabled == 1) then
 		self:Event_Enable();
 	else
@@ -19,7 +23,7 @@ end
 
 -------------------------------------------------------
 function AreaBezierVolume:OnSave(table)
-  table.bEnabled = self.bEnabled
+	table.bEnabled = self.bEnabled
 end
 
 

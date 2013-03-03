@@ -462,6 +462,7 @@ SoundExclusive.Client={
 	
 --System.LogToConsole("--> EX init ");	
 		self:CliSrv_OnInit()
+		self:RegisterForAreaEvents(1);
 --		self:CliSrv_OnInit()
 	end,
 	OnShutDown=function(self)

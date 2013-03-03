@@ -80,7 +80,7 @@ namespace CryGameCode
 		[Port]
 		public void AlphaTest(float value) { }
 
-		[Port(Name = "Alpha Test")]
+		[Port(Name = "AlphaTest")]
 		public OutputPort<float> AlphaTestOutput { get; set; }
 
 		[Port]

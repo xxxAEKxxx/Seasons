@@ -4642,7 +4642,7 @@ void CGameLobby::InsertUser(SCryUserInfoResult* user)
 	{
 		if(pSessionName)
 		{
-			// this won't work for host migration, but its a bit of a workaround
+			// this won't work for host migration, but its a bit of a hack
 			// to allow server/client functionality to still work
 			pSessionName->m_onlineStatus = eOAS_Initialised;
 		}
@@ -8702,12 +8702,16 @@ void CGameLobby::SetAutomaticMutingState(ELobbyAutomaticVOIPType newType)
 
 	for (int i = 0; i < numPlayers; ++ i)
 	{
-		SSessionNames::SSessionName *pPlayer = &m_nameList.m_sessionNames[i];
-		CryUserID localUser = gEnv->pNetwork->GetLobby()->GetLobbyService()->GetUserID(GameLobby_GetCurrentUserIndex());
-		const bool bIsLocalUser = pPlayer && localUser.IsValid() && (localUser == pPlayer->m_userId);
-		if (pPlayer && bIsLocalUser==false)
+		SSessionNames::SSessionName* pPlayer = &m_nameList.m_sessionNames[i];
+
+		if (pPlayer)
 		{
-			SetAutomaticMutingStateForPlayer(pPlayer, m_autoVOIPMutingType);
+			const CryUserID localUser = gEnv->pNetwork->GetLobby()->GetLobbyService()->GetUserID(GameLobby_GetCurrentUserIndex());
+			const bool bIsLocalUser = localUser.IsValid() && (localUser == pPlayer->m_userId);
+			if (!bIsLocalUser)
+			{
+				SetAutomaticMutingStateForPlayer(pPlayer, m_autoVOIPMutingType);
+			}
 		}
 	}
 }

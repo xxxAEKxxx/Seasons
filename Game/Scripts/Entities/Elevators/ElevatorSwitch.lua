@@ -163,6 +163,6 @@ end
 function ElevatorSwitch.Client:ClUsed()
 	local sound=self.Properties.Sounds.soundSoundOnPress;
 	if (sound and sound~="") then
-		self:PlaySoundEvent(self.Properties.Sounds.soundSoundOnPress, g_Vectors.v000, g_Vectors.v010, SOUND_DEFAULT_3D, SOUND_SEMANTIC_MECHANIC_ENTITY);
+		self:PlaySoundEvent(self.Properties.Sounds.soundSoundOnPress, g_Vectors.v000, g_Vectors.v010, SOUND_DEFAULT_3D, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
 	end
 end

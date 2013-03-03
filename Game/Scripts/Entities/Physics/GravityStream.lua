@@ -2,8 +2,8 @@ Script.ReloadEntityScript( "GravityValve" )
 
 GravityStream = {
 
-		Editor={
-		Icon = "item.bmp",
+		Editor = {
+		Icon = "GravitySphere.bmp",
 		IconOnTop=1,
 		},
 

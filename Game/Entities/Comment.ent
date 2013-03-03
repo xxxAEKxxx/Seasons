@@ -1,4 +1,5 @@
 <Entity
  Name="Comment"
- Script="Scripts/Entities/Others/Comment.lua" 
+ Script="Scripts/Entities/Others/Comment.lua"
+ Invisible="1"
 />

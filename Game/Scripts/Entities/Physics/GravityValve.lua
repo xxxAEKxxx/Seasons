@@ -14,11 +14,9 @@ GravityValve = {
 	_PhysTableSpl = { Area={points={},}, },
 	_Points = {},
 	_Caps = {},
-	
-	Editor={
-		--Model="Editor/Objects/T.cgf",
-		--Model="Editor/Objects/box.cgf",
-		Icon="item.bmp",
+
+	Editor = {
+		Icon="GravitySphere.bmp",
 		ShowBounds = 1,
 	},
 }
@@ -97,7 +95,7 @@ function GravityValve:CreateCylinderArea( from, to, radius, strength )
 	Area.gravity = ScaleVector( Area.axis, strength )
 	Area.uniform = 1
 	Area.falloff = 0
-	
+
 	return Area
 end
 
@@ -108,7 +106,7 @@ function GravityValve:CreateSphereArea( radius, gravity )
 	Area.uniform = 1
 	Area.falloff = 0
 	Area.gravity = ScaleVector( gravity, 8 )
-	
+
 	return Area
 end
 
@@ -145,56 +143,56 @@ function GravityValve:SetActive( bActive )
 	--Log("GravityValve:SetActive "..tostring(bActive).." on valve "..self:GetName())
 	if bActive == 1 then
 		if (self.Properties.bSpline == 1) then
-			
+
 			local Area = self._PhysTableSpl.Area;
 			local splinePoints = self._PhysTableSpl.Area.points;
-			
+
 			for p = 1, n do
 				splinePoints[p] = {x=0,y=0,z=0};
 				Points[p]:GetWorldPos(splinePoints[p]);
 				--Log("Gravity Stream point "..p..":"..Vec2Str(splinePoints[p]));
 			end
-		
+
 			Area.type = AREA_SPLINE;
 			Area.radius = self.Properties.Radius;
 			--Area.uniform = 1;
 			Area.falloff = 0;
 			Area.gravity = {x=0,y=0,z=self.Properties.Strength};
 			Area.damping = 2.0;
-						
+
 			self:Physicalize(0, PE_AREA, self._PhysTableSpl);
-			
+
 			self:SetPhysicParams(PHYSICPARAM_FOREIGNDATA,{foreignData = ZEROG_AREA_ID});
 		else
 			local params = {}
 			params.class = "GravityStreamCap"
 			params.orientation = {x=1,y=0,z=0}
-	
+
 			for p = 2, n do
 				self:CreateCylinderArea( Points[p-1]:GetPos(), Points[p]:GetPos(), self.Properties.Radius, self.Properties.Strength )
 				Points[p]:Physicalize(0, PE_AREA, self._PhysTableCyl)
-				
+
 				Points[p]:SetPhysicParams(PHYSICPARAM_FOREIGNDATA,{foreignData = ZEROG_AREA_ID});
-				
+
 				if p > 2 then
 					params.position = Points[p-1]:GetPos()
 					local ent = System.SpawnEntity( params )
 					table.insert( Caps, ent.id )
 					self:CreateSphereArea( self.Properties.Radius, self._PhysTableCyl.Area.gravity )
 					ent:Physicalize(0, PE_AREA, self._PhysTableSph)
-					
+
 					ent:SetPhysicParams(PHYSICPARAM_FOREIGNDATA,{foreignData = ZEROG_AREA_ID});
 				end
 			end
 		end
 	elseif bActive == 0 and self.bActive then
-		
+
 		self:DestroyPhysics();
-	
-		for p = 2, n do		  
+
+		for p = 2, n do
 			Points[p]:DestroyPhysics()
 		end
-	
+
 		self:OnDestroy()
 	end
 	self.bActive = bActive

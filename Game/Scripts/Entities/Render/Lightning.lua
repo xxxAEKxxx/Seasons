@@ -125,7 +125,7 @@ function Lightning:OnTimer( nTimerId )
 		local Effects = self.Properties.Effects;
 		if (Effects.sound_Sound ~= "") then
 			local sndFlags = bor(SOUND_2D,SOUND_RELATIVE);
-			self.soundid = self:PlaySoundEvent(Effects.sound_Sound, self.vStrikeOffset, g_Vectors.v010, sndFlags, SOUND_SEMANTIC_AMBIENCE_ONESHOT);
+			self.soundid = self:PlaySoundEvent(Effects.sound_Sound, self.vStrikeOffset, g_Vectors.v010, sndFlags, 0, SOUND_SEMANTIC_AMBIENCE_ONESHOT);
 		end
 	end
 end
@@ -302,7 +302,7 @@ function Lightning:Event_Strike()
 			self:SetTimer( 2,self:GetValueWithVariation(Timing.fThunderDelay,Timing.fThunderDelayVariation)*1000 );
 			
 			--local sndFlags = bor(SOUND_2D,SOUND_RELATIVE);
-			--self.soundid = self:PlaySoundEvent(Effects.sound_Sound, self.vStrikeOffset, g_Vectors.v010, sndFlags, SOUND_SEMANTIC_AMBIENCE_ONESHOT);
+			--self.soundid = self:PlaySoundEvent(Effects.sound_Sound, self.vStrikeOffset, g_Vectors.v010, sndFlags, 0, SOUND_SEMANTIC_AMBIENCE_ONESHOT);
 		end
 						
 		self:SetTimer( 1,self:GetValueWithVariation(Timing.fLightningDuration,0.5)*1000 );

@@ -63,14 +63,14 @@ public:
 	{
 		static const SInputPortConfig inputs[] = {
 			InputPortConfig_Void  ( "Get", _HELP("Get minimap info") ),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig outputs[] = {
 			OutputPortConfig_Void		( "OnGet",	_HELP( "Tirggers of port <Get> is activeated" ) ),
 			OutputPortConfig<string>( "MapFile",	_HELP( "Name of minimap dds file" ) ),
 			OutputPortConfig<int>		( "Width",		_HELP( "Minimap width" ) ),
 			OutputPortConfig<int>		( "Height",		_HELP( "Minimap height" ) ),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = inputs;
 		config.pOutputPorts = outputs;
@@ -136,14 +136,14 @@ public:
 			InputPortConfig_Void("Get", _HELP("Trigger outputs.")),
 			InputPortConfig_Void("Enable", _HELP("Trigger to enable")),
 			InputPortConfig_Void("Disable", _HELP("Trigger to enable")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig outputs[] = {
 			OutputPortConfig_Void	( "OnPosChange",_HELP( "Triggers if position has changed" ) ),
 			OutputPortConfig<float>	("PosX",		_HELP( "X pos on minimap" ) ),
 			OutputPortConfig<float>	("PosY",		_HELP( "Y pos on minimap" ) ),
 			OutputPortConfig<int>	  ("Rotation",	_HELP( "Minimap rotation" ) ),
-			{0}
+			OutputPortConfig_Null()
 		};
 
 		config.pInputPorts = inputs;

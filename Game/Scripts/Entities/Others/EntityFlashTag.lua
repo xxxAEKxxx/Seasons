@@ -7,6 +7,7 @@ EntityFlashTag = {
 		bAutoGenAIHidePts = 0,
 		
 		object_Model = "Objects/default/plane.cgf",
+		fScale = 2.0,
 	},
 
 	Client = {},
@@ -35,6 +36,8 @@ function EntityFlashTag:SetFromProperties()
 	end
 		
 	self:LoadObject(0,Properties.object_Model);
+	self:SetScale(Properties.fScale);
+	
 end
 
 ------------------------------------------------------------------------------------------------------

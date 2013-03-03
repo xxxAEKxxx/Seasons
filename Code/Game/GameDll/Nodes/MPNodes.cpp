@@ -73,7 +73,7 @@ public:
 		static const SInputPortConfig in_ports[] = 
 		{
 			InputPortConfig<float>("GameEndTime", _HELP("Number of seconds remaining at which to trigger the EndGameNear output")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig out_ports[] = 
 		{
@@ -84,7 +84,7 @@ public:
 			OutputPortConfig_Void( "GameWon", _HELP("Triggered when local player's team wins the game")),
 			OutputPortConfig_Void( "GameLost", _HELP("Triggered when local player's team loses the game")),
 			OutputPortConfig_Void( "GameTied", _HELP("Triggered when neither team wins the game")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = in_ports;
 		config.pOutputPorts = out_ports;
@@ -302,14 +302,14 @@ public:
 		static const SInputPortConfig in_ports[] = 
 		{
 			InputPortConfig_Void( "GetGameType", _HELP("Activate this to retrigger relevent outputs")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig out_ports[] = 
 		{
 			OutputPortConfig_Void( "DeathMatch", _HELP("Triggered on level load if DeathMatch game")),
 			OutputPortConfig_Void( "SinglePlayer", _HELP("Triggered on level load if it is a Singleplayer game")),
 			OutputPortConfig<string>("GameRulesName", _HELP("Outputs the current game rules name")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = in_ports;
 		config.pOutputPorts = out_ports;
@@ -395,13 +395,13 @@ public:
 		static const SInputPortConfig in_ports[] = 
 		{
 			InputPortConfig_Void( "Get", _HELP("Activate this to retrigger relevent outputs")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig out_ports[] = 
 		{
 			OutputPortConfig_Void( "True", _HELP("Triggered if Multiplayer game")),
 			OutputPortConfig_Void( "False", _HELP("Triggered if it is a Singleplayer game")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = in_ports;
 		config.pOutputPorts = out_ports;

@@ -21,9 +21,11 @@ function MusicStinger:OnLoad(stm)
 end
 
 function MusicStinger:CliSrv_OnInit()
+	self:RegisterForAreaEvents(1);
 end
 
 function MusicStinger:OnShutDown()
+	self:RegisterForAreaEvents(0);
 end
 
 function MusicStinger:Client_OnEnterArea( player,areaId )

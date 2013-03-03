@@ -177,6 +177,9 @@ CVehicleMovementArcadeWheeled::CVehicleMovementArcadeWheeled()
 	m_gears.averageWheelRadius = 1.f;
 
 	m_handling.contactNormal.zero();
+
+	m_surfaceFriction[0] = 1.0f; m_surfaceFriction[1] = 1.0f; 
+	m_surfaceFriction[2] = 1.0f; m_surfaceFriction[3] = 1.0f; 
 }
 
 //------------------------------------------------------------------------
@@ -1281,7 +1284,7 @@ void CVehicleMovementArcadeWheeled::DebugDrawMovement(const float deltaTime)
 		Vec3 minMarker(cosf(angleOffset1), sinf(angleOffset1), 0.f);
 		Vec3 maxMarker(cosf(angleOffset2), sinf(angleOffset2), 0.f);
 
-		float topSpeed = m_gears.curGear==SVehicleGears::kReverse ? -m_pSharedParams->handling.reverseSpeed : m_pSharedParams->handling.topSpeed;
+		float topSpeed = m_gears.curGear==SVehicleGears::kReverse ? -m_pSharedParams->handling.reverseSpeed : m_maxSpeed;
 		float speedNorm = angleOffset1 + clamp(speedMs/topSpeed, 0.f, 1.f) * angleDiff;
 		float rpm = angleOffset1 + m_gears.curRpm * angleDiff;
 		Vec3 speedDial(cosf(speedNorm), sinf(speedNorm), 0.f);
@@ -2334,7 +2337,7 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 	//=============================================
 	// Speed Reduction from steering
 	//=============================================
-	float topSpeed = (float)__fsel(speed, m_pSharedParams->handling.topSpeed, m_pSharedParams->handling.reverseSpeed);
+	float topSpeed = (float)__fsel(speed, m_maxSpeed, m_pSharedParams->handling.reverseSpeed);
 	float scale = m_action.bHandBrake ? 1.f : 1.f - (m_pSharedParams->handling.reductionAmount * fabsf(steering));// * approxExp(m_pSharedParams->handling.reductionRate*dt);
 	topSpeed = topSpeed * scale;
 	float throttle = m_isEnginePowered ? m_movementAction.power * scale : 0.f;
@@ -2476,7 +2479,7 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 				float frictionImpulse = forcePerWheel * dt;
 				frictionImpulse = max(frictionImpulse, minFrictionImpulse);
 
-				// Grip based on slip speed (workaround)
+				// Grip based on slip speed (hacky)
 				const float grip = m_pSharedParams->handling.grip1 + (m_pSharedParams->handling.grip2 - m_pSharedParams->handling.grip1) * approxOneExp(w->slipSpeed * m_pSharedParams->handling.gripK);
 				frictionImpulse *= grip;
 				clampedImpulseInit(&maxTractionImpulse[i], -frictionImpulse, frictionImpulse);
@@ -2503,9 +2506,9 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 				}
 				w->lastW = w->w;
 
-				if ((w->w * w->radius) > m_pSharedParams->handling.topSpeed)
+				if ((w->w * w->radius) > m_maxSpeed)
 				{
-					float target = m_pSharedParams->handling.topSpeed / w->radius;
+					float target = m_maxSpeed / w->radius;
 					w->w = target;
 				}
 				else if ((w->w * w->radius) > topSpeed)
@@ -2521,8 +2524,8 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 				}
 			}
 
-			maxTractionImpulse[i].min *= m_handling.compressionScale * contact;
-			maxTractionImpulse[i].max *= m_handling.compressionScale * contact;
+			maxTractionImpulse[i].min *= m_handling.compressionScale * contact * m_surfaceFriction[i];
+			maxTractionImpulse[i].max *= m_handling.compressionScale * contact * m_surfaceFriction[i];
 
 			if (w->contactNormal.dot(zAxis)<0.3f)
 			{
@@ -2551,8 +2554,8 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 				clampedImpulseInit(&maxLateralImpulse[i], -frictionImpulse, frictionImpulse);
 			}
 
-			maxLateralImpulse[i].min *= m_handling.compressionScale * contact;
-			maxLateralImpulse[i].max *= m_handling.compressionScale * contact;
+			maxLateralImpulse[i].min *= m_handling.compressionScale * contact * m_surfaceFriction[i];
+			maxLateralImpulse[i].max *= m_handling.compressionScale * contact * m_surfaceFriction[i];
 		}
 
 		const int numIterations = 4;
@@ -2575,6 +2578,19 @@ void CVehicleMovementArcadeWheeled::InternalPhysicsTick(float dt)
 			for (int i=0; i<numWheels; i++)
 			{
 				SVehicleWheel* w = &m_wheels[i];
+
+				// Check the surface per wheel and store the friction for later
+				float wheelfriction = -1.0f;
+				float dummy;
+				unsigned int flags;
+				gEnv->pPhysicalWorld->GetSurfaceParameters(m_wheelStatus[i].contactSurfaceIdx, dummy, wheelfriction, flags);
+				
+				// if we found a surface under our wheel, multiply it
+				if(wheelfriction >= 0.0f)
+				{
+					 m_surfaceFriction[i] = wheelfriction;
+				}
+
 				SolveFriction(dVel, dAngVel, vel, angVel, &m_chassis, w, &maxTractionImpulse[i], &maxLateralImpulse[i], solverERP, dt);
 			}
 			vel = vel + dVel;
@@ -2789,7 +2805,7 @@ void CVehicleMovementArcadeWheeled::TickGears(float dt, float averageWheelSpeed,
 	if (m_isEnginePowered)
 	{
 		// Update the target rpm, smoothly
-		const float topSpeed = (float)__fsel(forwardSpeed, m_pSharedParams->handling.topSpeed, m_pSharedParams->handling.reverseSpeed);
+		const float topSpeed = (float)__fsel(forwardSpeed, m_maxSpeed, m_pSharedParams->handling.reverseSpeed);
 		const float wheelRpm = (averageWheelSpeed * m_gears.averageWheelRadius) / topSpeed;	// Normalised between 0 and 1
 		const float ratio = m_pSharedParams->gears.ratios[m_gears.curGear];
 		const float invRatio = m_pSharedParams->gears.invRatios[m_gears.curGear];
@@ -2951,7 +2967,7 @@ void CVehicleMovementArcadeWheeled::GetMovementState(SMovementState& movementSta
 		return;
 
 	movementState.minSpeed = 0.f;
-	movementState.maxSpeed = m_pSharedParams->handling.topSpeed;
+	movementState.maxSpeed = m_maxSpeed;
 	movementState.normalSpeed = movementState.maxSpeed;
 }
 

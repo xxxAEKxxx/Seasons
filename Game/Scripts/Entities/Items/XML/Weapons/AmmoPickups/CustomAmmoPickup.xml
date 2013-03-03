@@ -6,7 +6,7 @@
 		<param name="ammo_pickup_sound" value="sounds/weapons:weapon_accessories:pickup_weapon_fp" />
 	</params>
 	<geometry>
-		<firstperson name="Objects/library/pickups/ammo_box/ammo_box.cgf"/>
-		<thirdperson name="Objects/library/pickups/ammo_box/ammo_box.cgf"/>
+		<firstperson name="Objects/weapons/ammo/ammo_box/ammo_box.cgf"/>
+		<thirdperson name="Objects/weapons/ammo/ammo_box/ammo_box.cgf"/>
 	</geometry>
 </item>

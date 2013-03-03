@@ -314,7 +314,7 @@ protected:
 
 	struct SPowerSlide
 	{
-		float lateralSpeedFraction[2];   // Percentage of forward speed to transfer as side speed (workaround), [0] normal driving, [1] powerlock/handbrake turning
+		float lateralSpeedFraction[2];   // Percentage of forward speed to transfer as side speed (hack), [0] normal driving, [1] powerlock/handbrake turning
 		float spring;                    // How quickly to apply that lerping
 	};
 
@@ -392,6 +392,8 @@ protected:
 	int m_frictionState;
 
 	SSharedParamsConstPtr	m_pSharedParams;
+	float m_surfaceFriction[4]; // per wheel
+
 
 private:
 	virtual void ProcessAI_Racing(const float deltaTime, float fCurrentSpeed, float fTargetSpeed, float degDesiredSteer);

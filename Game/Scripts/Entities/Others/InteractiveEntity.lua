@@ -2,30 +2,29 @@ InteractiveEntity = {
 	Client = {},
 	Server = {},
 	Properties = {
-		fileModel 					= "objects/library/props/gasstation/vending_machine_drinks.cgf",
-		ModelSubObject			= "main",
-		fileModelDestroyed	= "",
-		DestroyedSubObject	= "remain",
-		bTurnedOn	= 0,
-		bUsable	= 1,
-		bTwoState	= 0,
-		UseMessage = "",
+		fileModel = "objects/props/misc/vending_machine/vending_machine.cgf",
+		ModelSubObject = "",
+		fileModelDestroyed = "",
+		DestroyedSubObject = "",
+		bTurnedOn = 0,
+		bUsable = 1,
+		bTwoState = 0,
+		UseMessage = "Use",
 		OnUse = {
 			fUseDelay = 0,
-			fCoolDownTime = 1,
+			fCoolDownTime = 0.1,
 			bEffectOnUse = 0,
-			bSoundOnUse = 0,
+			bSoundOnUse = 1,
 			bSpawnOnUse = 0,
 			bChangeMatOnUse = 0,
 		},
 		Sound = {
-			soundSound = "sounds/physics:destructibles:body_shatter",
+			soundSound = "sounds/vehicles:vehicle_accessories:light",
 			soundTurnOnSound = "",
 			soundTurnOffSound = "",
-			
 		},
 		Effect = {
-			ParticleEffect="explosions.gauss.hit",
+			ParticleEffect="",
 			bPrime=0,
 			Scale=1,
 			CountScale=1,
@@ -37,47 +36,43 @@ InteractiveEntity = {
 			vOffset = {x=0, y=0, z=0},
 			vRotation = {x=0, y=0, z=0},
 		},
-		fHealth = 75,
+		fHealth = 100,
 		Physics = {
 			bRigidBody=1,
 			bRigidBodyActive = 1,
 			bResting = 1,
 			Density = -1,
 			Mass = 300,
-      Buoyancy=
-			{
+		Buoyancy = {
 				water_density = 1000,
 				water_damping = 0,
-				water_resistance = 1000,	
+				water_resistance = 1000,
 			},
-			
 			bStaticInDX9Multiplayer = 1,
 		},
-		Breakage =
-		{
+		Breakage = {
 			fLifeTime = 10,
 			fExplodeImpulse = 0,
 			bSurfaceEffects = 1,
 		},
-		Destruction =	{
-			bExplode				= 1,
-			Effect					= "explosions.monitor.a",
-			EffectScale			= 1,
-			Radius					= 0,
-			Pressure				= 0,
-			Damage					= 0,
-			Decal						= "",
-			Direction				= {x=0, y=0.2, z=1},
-			vOffset 				= {x=0, y=0, z=0},
+		Destruction = {
+			bExplode = 1,
+			Effect = "explosions.monitor.a",
+			EffectScale = 1,
+			Radius = 0,
+			Pressure = 0,
+			Damage = 0,
+			Decal = "",
+			Direction = {x=0, y=0.2, z=1},
+			vOffset = {x=0, y=0, z=0},
 		},
-		Vulnerability	=
-		{
+		Vulnerability = {
 			fDamageTreshold = 0,
-			bExplosion = 1,
-			bCollision = 1,
-			bMelee		 = 1,
-			bBullet		 = 1,
-			bOther	   = 1,
+			bExplosion = 0,
+			bCollision = 0,
+			bMelee = 0,
+			bBullet = 0,
+			bOther = 0,
 		},
 		SpawnEntity = {
 			iSpawnLimit = 1,
@@ -99,12 +94,11 @@ InteractiveEntity = {
 			},
 		},
 	},
-		Editor={
+		Editor = {
 		Icon = "Item.bmp",
 		IconOnTop=1,
 	},
-	LastHit =
-	{
+	LastHit = {
 		impulse = {x=0,y=0,z=0},
 		pos = {x=0,y=0,z=0},
 	},
@@ -114,8 +108,8 @@ InteractiveEntity = {
 	turnoffsoundid = nil,
 	FXSlot = -1,
 	spawncount = 0,
-	iDelayTimer 	= -1,
-	iCoolDownTimer 	= -1,
+	iDelayTimer = -1,
+	iCoolDownTimer = -1,
 	iTurnOffSoundTimer = -1,
 	bCoolDown = 0,
 	shooterId = 0,
@@ -130,7 +124,6 @@ MakeInterestingToAI(InteractiveEntity, 1);
 local Physics_DX9MP_Simple = {
 	bPhysicalize = 1, -- True if object should be physicalized at all.
 	bPushableByPlayers = 0,
-		
 	Density = -1,
 	Mass = -1,
 	bStaticInDX9Multiplayer = 1,
@@ -210,9 +203,9 @@ function InteractiveEntity:PhysicalizeThis(slot)
 	local physics = self.Properties.Physics;
 	if (CryAction.IsImmersivenessEnabled() == 0) then
 		physics = Physics_DX9MP_Simple;
-	end	
+	end
 	EntityCommon.PhysicalizeRigid( self,slot,physics,1 );
-	
+
 	if (physics.Buoyancy) then
 		self:SetPhysicParams(PHYSICPARAM_BUOYANCY, physics.Buoyancy);
 	end
@@ -226,14 +219,14 @@ function InteractiveEntity.Server:OnHit(hit)
 	elseif (pass and hit.type=="bullet") then pass = NumberToBool(vul.bBullet);
 	elseif (pass and hit.type=="melee") then pass = NumberToBool(vul.bMelee);
 	elseif (pass) then pass = NumberToBool(vul.bOther); end
-	
+
 	if(pass)then
 		local damage= hit.damage;
 		self.shooterId=hit.shooterId;
 		BroadcastEvent( self,"Hit" );
 		self.health=self.health-damage;
 		if(self.health<=0 and CryAction.IsImmersivenessEnabled()~=0)then
-			self:GotoState("Destroyed");	
+			self:GotoState("Destroyed");
 		end;
 	end;
 end;
@@ -257,7 +250,7 @@ function InteractiveEntity:OnUsed(user, idx)
 				self:Use(user, idx);
 			end;
 		end;
-	end;	
+	end;
 end;
 
 InteractiveEntity.ResetMat = function(self)
@@ -336,7 +329,7 @@ function InteractiveEntity:DoSpawn()
 	self.spawncount=self.spawncount+1;
 	if(spawnedEntity~=nil)then
 		spawnedEntity.health=5;
-		
+
 		local pos = self:GetWorldPos();
 		local dirX = self:GetDirectionVector(0);
 		local dirY = self:GetDirectionVector(1);
@@ -344,11 +337,11 @@ function InteractiveEntity:DoSpawn()
 		local offset= g_Vectors.temp_v1;
 
 		CopyVector(offset,self.Properties.SpawnEntity.vOffset);
-		
+
 		pos.x = pos.x + dirX.x * offset.x + dirY.x * offset.y + dirZ.x * offset.z;
 		pos.y = pos.y + dirX.y * offset.x + dirY.y * offset.y + dirZ.y * offset.z;
 		pos.z = pos.z + dirX.z * offset.x + dirY.z * offset.y + dirZ.z * offset.z;
-		
+
 		spawnedEntity:SetWorldPos(pos);
 		spawnedEntity:SetAngles(self.Properties.SpawnEntity.vRotation);
 		if(props.fImpulse>0)then
@@ -381,7 +374,7 @@ function InteractiveEntity:DoEffect()
 		self.FXSlot=self:LoadParticleEffect( -1, self.Properties.Effect.ParticleEffect,self.Properties.Effect);
 		self:SetSlotPos(self.FXSlot,self.Properties.Effect.vOffset);
 		self:SetSlotAngles(self.FXSlot,self.Properties.Effect.vRotation);
-  end;
+	end;
 end;
 
 function InteractiveEntity:RemoveEffect()
@@ -396,11 +389,10 @@ function InteractiveEntity:Play()
 	local on=self.Properties.Sound.soundTurnOnSound;
 	local sndFlags=bor(SOUND_DEFAULT_3D, 0);
 	if(on~="")then
-
-			self.soundid=self:PlaySoundEvent(on,g_Vectors.v000,g_Vectors.v010,sndFlags,SOUND_SEMANTIC_MECHANIC_ENTITY);
+			self.soundid=self:PlaySoundEvent(on,g_Vectors.v000,g_Vectors.v010,sndFlags, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
 	end;
 	if(snd~="")then
-			self.soundid=self:PlaySoundEvent(snd,g_Vectors.v000,g_Vectors.v010,sndFlags,SOUND_SEMANTIC_MECHANIC_ENTITY);
+			self.soundid=self:PlaySoundEvent(snd,g_Vectors.v000,g_Vectors.v010,sndFlags, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
 	end;
 end;
 
@@ -412,7 +404,7 @@ function InteractiveEntity:Stop(stopsound)
 	if(stopsound==1)then
 		local snd=self.Properties.Sound.soundTurnOffSound;
 		local sndFlags=bor(SOUND_DEFAULT_3D,0);
-		self.turnoffsoundid=self:PlaySoundEvent(snd,g_Vectors.v000,g_Vectors.v010,sndFlags,SOUND_SEMANTIC_MECHANIC_ENTITY);
+		self.turnoffsoundid=self:PlaySoundEvent(snd,g_Vectors.v000,g_Vectors.v010,sndFlags, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
 	end;
 end;
 
@@ -420,7 +412,7 @@ function InteractiveEntity:Explode()
 	local props=self.Properties;
 	local hitPos = self.LastHit.pos;
 	local hitImp = self.LastHit.impulse;
-		
+
 	self:BreakToPieces( 
 		0, 0,
 		props.Breakage.fExplodeImpulse,
@@ -432,20 +424,20 @@ function InteractiveEntity:Explode()
 	self:Stop(0);
 	if(NumberToBool(self.Properties.Destruction.bExplode))then
 		local explosion=self.Properties.Destruction;
-		
+
 		local pos = self:GetWorldPos();
 		local dirX = self:GetDirectionVector(0);
 		local dirY = self:GetDirectionVector(1);
 		local dirZ = self:GetDirectionVector(2);
 		local offset={x=0,y=0,z=0};
 		CopyVector(offset,explosion.vOffset);
-		
+
 		pos.x = pos.x + dirX.x * offset.x + dirY.x * offset.y + dirZ.x * offset.z;
 		pos.y = pos.y + dirX.y * offset.x + dirY.y * offset.y + dirZ.y * offset.z;
 		pos.z = pos.z + dirX.z * offset.x + dirY.z * offset.y + dirZ.z * offset.z;
 		local explo_pos=pos;
-		
-		g_gameRules:CreateExplosion(self.shooterId,self.id,explosion.Damage,explo_pos,explosion.Direction,explosion.Radius,nil,explosion.Pressure,explosion.HoleSize,explosion.Effect,explosion.EffectScale);	
+
+		g_gameRules:CreateExplosion(self.shooterId,self.id,explosion.Damage,explo_pos,explosion.Direction,explosion.Radius,nil,explosion.Pressure,explosion.HoleSize,explosion.Effect,explosion.EffectScale);
 	end;
 	self:RemoveDecals();
 	self:SetCurrentSlot(1);
@@ -597,7 +589,7 @@ InteractiveEntity.Server.Destroyed=
 		self:ActivateOutput("Destroyed",1);
 	end,
 	OnEndState = function( self )
-		
+
 	end,
 }
 

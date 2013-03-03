@@ -139,7 +139,7 @@ function Dialog:Play()
 	end;  
 	
   
-	self.soundid = self:PlaySoundEvent(self.Properties.dialogLine, g_Vectors.v000, g_Vectors.v010, sndFlags, SOUND_SEMANTIC_DIALOG);
+	self.soundid = self:PlaySoundEvent(self.Properties.dialogLine, g_Vectors.v000, g_Vectors.v010, sndFlags, 0, SOUND_SEMANTIC_DIALOG);
 	self.dialogLine = self.Properties.dialogLine;
 
   if (self.soundid ~= nil) then

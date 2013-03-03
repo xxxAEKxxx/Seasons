@@ -191,6 +191,7 @@ void CRapid::Update(float frameTime, uint32 frameId)
 		Accelerate(m_pShared->rapidparams.deceleration);
 
 	UpdateRotation(frameTime);
+
 	UpdateSound(frameTime);
 }
 

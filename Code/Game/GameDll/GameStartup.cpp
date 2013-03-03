@@ -118,7 +118,7 @@ public:
 			break;
 		case ESYSTEM_EVENT_LEVEL_LOAD_START:
 			{
-				// workaround for needed for Crysis - to reset cvar set in level.cfg
+				// hack for needed for Crysis - to reset cvar set in level.cfg
 				ICVar *pCVar = gEnv->pConsole->GetCVar("r_EyeAdaptationBase");		assert(pCVar);
 
 				float fOldVal = pCVar->GetFVal();
@@ -150,6 +150,9 @@ HMODULE CGameStartup::m_systemDll = 0;
 string CGameStartup::m_rootDir;
 string CGameStartup::m_binDir;
 string CGameStartup::m_reqModName;
+
+int CGameStartup::m_lastMoveX = 0;
+int CGameStartup::m_lastMoveY = 0;
 
 bool CGameStartup::m_initWindow = false;
 
@@ -183,8 +186,15 @@ IGameRef CGameStartup::Init(SSystemInitParams &startupParams)
 
 	if (!InitFramework(startupParams))
 	{
+
+
+
 		return 0;
 	}
+
+
+
+
 
 	// Configuration for this game
 	ICVar *pCVar = gEnv->pConsole->GetCVar("ai_CompatibilityMode");
@@ -635,7 +645,7 @@ int CGameStartup::Run( const char * autoStartLevelName )
 		gEnv->pHardwareMouse->DecrementCounter();
 
 #ifndef GRINGO
-	// we do the mainloop directly in the gringo launcher for proper metro style event dispatching
+	
 	for(;;)
 	{
 		if (!Update(true, 0))
@@ -868,9 +878,20 @@ LRESULT CALLBACK CGameStartup::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 	case WM_MOUSEMOVE:
 		if(gEnv && gEnv->pHardwareMouse)
 		{
+			m_lastMoveX = LOWORD(lParam);
+			m_lastMoveY = HIWORD(lParam);
 			gEnv->pHardwareMouse->Event(LOWORD(lParam),HIWORD(lParam),HARDWAREMOUSEEVENT_MOVE);
 		}
 		return 0;
+#if (_WIN32_WINNT >= 0x0400) || (_WIN32_WINDOWS > 0x0400)
+	case WM_MOUSEWHEEL:
+		if(gEnv && gEnv->pHardwareMouse)
+		{
+			short wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+			gEnv->pHardwareMouse->Event(m_lastMoveX, m_lastMoveY,HARDWAREMOUSEEVENT_WHEEL, wheelDelta);
+		}
+		return 0;
+#endif
 	case WM_LBUTTONDOWN:
 		if(gEnv && gEnv->pHardwareMouse)
 		{

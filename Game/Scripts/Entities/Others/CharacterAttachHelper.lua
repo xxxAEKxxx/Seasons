@@ -5,6 +5,7 @@ CharacterAttachHelper = {
 	Properties =
 	{
 		BoneName = "Bip01 Head",
+		bUsePlayer = 0,
 	},
 }
 
@@ -23,6 +24,9 @@ end
 --------------------------------------------------------------------------
 function CharacterAttachHelper:OnShutDown()
 	local parent = self:GetParent();
+	if (self.Properties.bUsePlayer ~= 0) then
+		parent = g_localActor;
+	end
 	if (parent) then
 	  -- Attach this entity to the parent.
 		parent:DestroyAttachment( 0,self:GetName() );
@@ -32,6 +36,9 @@ end
 --------------------------------------------------------------------------
 function CharacterAttachHelper:OnPropertyChange()
 	local parent = self:GetParent();
+	if (self.Properties.bUsePlayer ~= 0) then
+		parent = g_localActor;
+	end
 	if (parent) then
 		parent:DestroyAttachment( 0,self:GetName() );
 		-- Attach this entity to the parent.
@@ -42,6 +49,9 @@ end
 --------------------------------------------------------------------------
 function CharacterAttachHelper:MakeAttachment()
 	local parent = self:GetParent();
+	if (self.Properties.bUsePlayer ~= 0) then
+		parent = g_localActor;
+	end
 	if (parent) then
 		parent:DestroyAttachment( 0,self:GetName() );
 		parent:CreateBoneAttachment( 0,self.Properties.BoneName,self:GetName() );

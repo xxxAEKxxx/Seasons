@@ -294,6 +294,13 @@ private:
 };
 
 template <>
+inline Vec3 CMeshHelpers::ToVec3<CryHalf4>(const CryHalf4& v)
+{
+	return ::ToVec3(v);
+}
+
+
+template <>
 inline Vec3 CMeshHelpers::ToVec3<Vec3>(const Vec3& v)
 {
 	return v;
@@ -345,7 +352,7 @@ public:
 	// geometry data
 	uint16* m_pIndices;  //indices used for the final render-mesh
 	Vec3* m_pPositions;
-	Vec3f16* m_pPositionsF16;
+	CryHalf4* m_pPositionsF16;
 	Vec3* m_pNorms;
 	Vec3* m_pFaceNorms;
 	SMeshTangents* m_pTangents;
@@ -1053,7 +1060,7 @@ public:
 				}
 				else
 				{
-					p = m_pPositionsF16[index].ToVec3();
+					p = ToVec3(m_pPositionsF16[index]);
 					pp = &p;
 				}
 				if (!_finite(pp->x))
@@ -1347,7 +1354,7 @@ private:
 			m_numVertices = max(m_streamSize[POSITIONS], m_streamSize[POSITIONSF16]);
 			break;
 		case POSITIONSF16:
-			m_pPositionsF16 = (Vec3f16*)pStream;
+			m_pPositionsF16 = (CryHalf4*)pStream;
 			m_numVertices = max(m_streamSize[POSITIONS], m_streamSize[POSITIONSF16]);
 			break;
 		case NORMALS:
@@ -1422,7 +1429,7 @@ UNIQUE_IFACE struct IIndexedMesh
 	{
 		const SMeshFace*     m_pFaces;    // pointer to array of faces
 		const Vec3*          m_pVerts;    // pointer to array of vertices in f32 format
-		const Vec3f16*       m_pVertsF16; // pointer to array of vertices in f16 format
+		const CryHalf4*      m_pVertsF16; // pointer to array of vertices in f16 format
 		const Vec3*          m_pNorms;    // pointer to array of normals
 		const SMeshColor*    m_pColor;    // pointer to array of vertex colors
 		const SMeshTexCoord* m_pTexCoord; // pointer to array of texture coordinates

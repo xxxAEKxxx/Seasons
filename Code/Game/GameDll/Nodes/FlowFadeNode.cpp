@@ -435,13 +435,13 @@ public:
 			InputPortConfig<Vec3> ("color_FadeColor", _HELP("Target Color to fade to")),
 			InputPortConfig<string> ("tex_TextureName", _HELP("Texture Name")),
 			InputPortConfig<bool> ("UpdateAlways", false, _HELP("If checked, the Fader will be updated always, otherwise only if game is not paused.")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig outputs[] = {
 			OutputPortConfig_Void("FadedIn", _HELP("FadedIn")),
 			OutputPortConfig_Void("FadedOut", _HELP("FadedOut")),
 			OutputPortConfig<Vec3> ("CurColor", _HELP("Current Faded Color")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = inputs;
 		config.pOutputPorts = outputs;

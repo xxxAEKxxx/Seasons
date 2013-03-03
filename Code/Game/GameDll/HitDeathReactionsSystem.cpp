@@ -1114,7 +1114,7 @@ void CHitDeathReactionsSystem::LoadReactionsParams(const CActor& actor, IScriptT
 			GetReactionParamsFromScript(actor, it.value.table, reactionParams, thisReactionId);
 
 			// On load, write the reactionId on the reaction script table
-			// [*DavidR | 23/Feb/2010] workaround: reactionId is the index (in the range [1..size]) of the reaction 
+			// [*DavidR | 23/Feb/2010] Hacky: reactionId is the index (in the range [1..size]) of the reaction 
 			// on the container, negative if is a death reaction container, positive if is a hit reaction container, 0 is invalid
 			// Collision reactions ids follow death reactions ids (I hate me)
 			it.value.table->SetValue(REACTION_ID, thisReactionId);

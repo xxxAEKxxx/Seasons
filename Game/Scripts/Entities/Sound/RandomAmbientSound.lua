@@ -332,6 +332,7 @@ RandomAmbientSound.Server={
 
 RandomAmbientSound.Client={
 	OnInit=function(self)
+		self:RegisterForAreaEvents(1);
 		self:CliSrv_OnInit()
 		self:OnMove();
 	end,

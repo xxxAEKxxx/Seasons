@@ -92,10 +92,17 @@ function AmbientVolume:OnPropertyChange()
 
 	--System.Log("AV: Prop change");
 
-	if (self.soundName ~= self.Properties.soundName or self.bEnabled ~= self.Properties.bEnabled) then
-		-- changes to Enable or Soundname require a reset
+	if (self.soundName ~= self.Properties.soundName) then
+		-- changes Soundname require a reset
+		self:OnReset();
+	end
+	if (self.bEnabled ~= self.Properties.bEnabled) then
+		-- changes to Enable require a reset
 		--self.bEnabled = self.Properties.bEnabled;
 		self:OnReset();
+		if(self.Properties.bEnabled) then
+			self:Play();
+		end
 	end
 	
 	Sound.SetSoundVolume(self.soundid, 1.0*self.fFade);
@@ -164,7 +171,6 @@ end
 AmbientVolume["Server"] = {
 	OnInit= function (self)
 		self.started = 0;
-		self:NetPresent(0);
 		self:SetFlags(ENTITY_FLAG_VOLUME_SOUND,0);
 
 		--self:SetSoundEffectRadius(self.Properties.OuterRadius);
@@ -183,9 +189,9 @@ AmbientVolume["Client"] = {
 		self.soundName = "";
 		self.soundid = nil;
 		--self.bSensitive = 0;
-		self:NetPresent(0);
 		self:SetFlags(ENTITY_FLAG_VOLUME_SOUND,0);
 		self:SetSoundEffectRadius(self.Properties.OuterRadius);
+		self:RegisterForAreaEvents(1);
 		
 			--System.Log("Play sound"..self.Properties.soundName);
 		end,
@@ -194,11 +200,7 @@ AmbientVolume["Client"] = {
 	----------------------------------------------------------------------------------------
 	OnShutDown = function(self)
 	end,
-	OnEnterArea = function(self, player, nAreaID, fFade)
-	  --System.Log("OnEnterArea-Client");
-	  --System.Log("AV: OnEnterArea-Client - Fade: "..tostring(fFade));
-		if (g_localActorId ~= player.id and player.class~="CameraSource") then	return end;	 
-		   
+	OnLocalClientEnterArea = function(self, player, nAreaID, fFade)
 	  self.inside = 1;
 	  if (self.soundid == nil) then
 	    self:Play();
@@ -223,13 +225,7 @@ AmbientVolume["Client"] = {
 	  end;
 	  
 	end,
-	OnProceedFadeArea = function(self, player, nAreaID, fFade)
-	  --System.Log("AV: OnMoveInsideArea-Client: "..tostring(nAreaID).."-"..tostring(fFade));
-	  --System.Log("AV: self-Fade now: "..tostring(self.fFade));
-
-		if (g_localActorId ~= player.id and player.class~="CameraSource") then	return end;	    
-			  
-			  
+	OnLocalClientProceedFadeArea = function(self, player, nAreaID, fFade)
 		--System.Log("Sound ID now: "..tostring(self.soundid));
 		
 	  if (self.soundid == nil) then
@@ -254,44 +250,28 @@ AmbientVolume["Client"] = {
 	  end;
 	  
 	end,
-	OnEnterNearArea = function(self, player, nAreaID, fFade)
-	  --System.Log("OnEnterNearArea-Client");
-		if (g_localActorId ~= player.id and player.class~="CameraSource") then	return end;	    
-		--System.Log("Is Camera or Player!");
-		   
+	OnLocalClientEnterNearArea = function(self, player, nAreaID, fFade) 
 	  if (self.soundid == nil) then
 	    self:Play();
 	  end;
 	end,
-	OnMoveNearArea = function(self, player, nAreaID, fFade)
-	  --System.Log("OnMoveNearArea-Client");
-		if (g_localActorId ~= player.id and player.class~="CameraSource") then	return end;	    
-		
+	
+	OnLocalClientMoveNearArea = function(self, player, nAreaID, fFade)		
 	  if (self.soundid == nil) then
 	    self:Play();
 	  end;
 	end,
-	OnLeaveNearArea = function(self, player, nAreaID, fFade)
-	  --System.Log("OnLeaveNearArea-Client");
-	  
-	  --System.Log(player.class);
-	  --System.Log(tostring(player.id));
-	  --System.Log(tostring(g_localActorId));
-
-	  
-		if (g_localActorId ~= player.id and player.class~="CameraSource") then	return end;	    
-		
+	
+	OnLocalClientLeaveNearArea = function(self, player, nAreaID, fFade)		
 	  if (self.inside ~= 1) then
 	    self:Stop();
 	  end;
 	end,
-	OnLeaveArea = function(self, player, nAreaID, fFade)
-		if (g_localActorId ~= player.id and player.class~="CameraSource") then	return end;	    
-		
+	
+	OnLocalClientLeaveArea = function(self, player, nAreaID, fFade)
 	  self.inside = 0;
-	  --System.Log("OLeaveArea-Client");
-	  --self:Stop();
 	end,
+	
 	OnTimer = function(self, timerid, msec)
 		
 		--System.Log("------------ AB OnTimer :"..timerid);
@@ -306,6 +286,7 @@ AmbientVolume["Client"] = {
 	end,
 	
 	OnUnBindThis = function(self)
+		System.LogToConsole("OnUnBindThis-Client");
 		self:Stop();
 		self.inside = 0;
 	end,	
@@ -340,7 +321,7 @@ function AmbientVolume:Play()
   
  	-- need to use *really* large max distance so a Play event does not cull the sound based on distance
  	-- we dont want the sound be rejected
-	self.soundid = self:PlaySoundEventEx(self.Properties.soundName, sndFlags, 0, g_Vectors.v000, 0, 0, SOUND_SEMANTIC_AMBIENCE );
+	self.soundid = self:PlaySoundEventEx(self.Properties.soundName, sndFlags, 0, 0, g_Vectors.v000, 0, 0, SOUND_SEMANTIC_AMBIENCE );
 	
 	-- helps to fade in the ambient without pops.
 	Sound.SetFadeTime(self.soundid, 1.0, 300);
@@ -393,17 +374,14 @@ end
 function AmbientVolume:Event_Deactivate(sender)
   --System.Log( "AV :FG event - Deactivate");
   self.Properties.bEnabled = 0;
-  self:Stop();
+  self:OnPropertyChange();
 end
 
 ----------------------------------------------------------------------------------------------------
 function AmbientVolume:Event_Activate(sender)
 	--System.Log( "AV :FG event - Active");
-  self.Properties.bEnabled = 1;
-  if (self.inside == 1) then
-  	self:Play();
-  end;
-  --self:OnReset();
+	self.Properties.bEnabled = 1;
+	self:OnPropertyChange();
 end
 
 function AmbientVolume:Event_Radius( sender, fRadius )

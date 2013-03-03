@@ -11,6 +11,11 @@ typedef union floatint_union {float f; uint32 i;} floatint_union;
 
 #	if defined(WIN32) || defined(WIN64) || defined(LINUX) || defined(GRINGO)
 
+__forceinline CryHalf CryConvertFloatToHalf(const CryHalf Value)
+{
+	return Value;
+}
+
 __forceinline CryHalf CryConvertFloatToHalf(const float Value)
 {
 #ifdef LINUX
@@ -45,6 +50,11 @@ __forceinline CryHalf CryConvertFloatToHalf(const float Value)
 		Result = ((IValue + 0x0FFFU + ((IValue >> 13U) & 1U)) >> 13U)&0x7FFFU; 
 	}
 	return (CryHalf)(Result|Sign);
+}
+
+__forceinline float CryConvertHalfToFloat(const float Value)
+{
+	return Value;
 }
 
 __forceinline float CryConvertHalfToFloat(const CryHalf Value)
@@ -121,7 +131,7 @@ __forceinline float CryConvertHalfToFloat(const CryHalf Value)
 	return Result;
 }
 
-#	elif defined(PS3)
+#elif defined(PS3) || defined(CAFE)
 
 #include <CryHalf_branchfree.inl>
 

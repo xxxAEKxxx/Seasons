@@ -187,6 +187,7 @@ ReverbVolume.Server={
 ----------------------------------------------------------------------------------------
 ReverbVolume.Client={
 	OnInit=function(self)
+		self:RegisterForAreaEvents(1);
 		self:CliSrv_OnInit()
 		self:OnMove();
 	end,

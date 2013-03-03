@@ -1,6 +1,7 @@
 <EntityScheduler>
 	<!-- game rules -->
 	<Class name="DeathMatch" policy="rule"/>
+	<Class name="Racing" policy="rule"/>
 		
 	<!-- actors -->
 	<Class name="Player" policy="dude" own="own"/>
@@ -32,6 +33,7 @@
 	<!-- basic physicalized objects -->
 	<Class name="Default" policy="phys"/>
 	<Class name="BasicEntity" policy="phys"/>
+	<Class name="DestroyableLight" policy="phys"/>
 	<Class name="DestroyableObject" policy="phys"/>
 	<Class name="PressurizedObject" policy="phys"/>
 	<Class name="RigidBodyEx" policy="phys"/>
@@ -75,8 +77,6 @@
 	<Class name="Lightning" policy="obj"/>	
 	<Class name="GravityBox" policy="obj"/>	
 	<Class name="SpectatorPoint" policy="obj"/>
-	<Class name="BuyZone" policy="capt"/>
-	<Class name="HQ" policy="capt"/>
 	<Class name="FogVolume" policy="obj"/>
 	<Class name="AreaTrigger" policy="obj"/>
 	<Class name="MusicPlayPattern" policy="obj"/>	
@@ -87,6 +87,7 @@
 	<Class name="GeomEntity" policy="obj"/>
 	<Class name="AITerritory" policy="obj"/>
 	<Class name="AIWave" policy="obj"/>
+	<Class name="FlowgraphEntity" policy="obj"/>
 
 	<!-- fallback -->
 	<Default policy="obj"/>

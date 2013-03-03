@@ -192,7 +192,7 @@ bool CVehicleActionEntityAttachment::DetachEntity()
 		IVehicleSystem* pVehicleSystem = gEnv->pGame->GetIGameFramework()->GetIVehicleSystem();
 		assert(pVehicleSystem);
 
-    // FIXME: remove this workaround, replace by e.g. buddy constraint 
+    // FIXME: remove this hack, replace by e.g. buddy constraint 
 		if (IVehicle* pVehicle = pVehicleSystem->GetVehicle(m_entityId))
 		{
 			int hitType = g_pGame->GetGameRules()->GetHitTypeId("disableCollisions");

@@ -20,6 +20,7 @@ for i,vehicle in pairs(VehicleSystem.VehicleImpls) do
   	{		
   		bDisableEngine = 0,
   		Paint = "",
+  		bDamageOnFlipped = 1,
   		bFrozen = 0,    	
   		FrozenModel = "",
   		Modification = "",
@@ -158,6 +159,11 @@ for i,vehicle in pairs(VehicleSystem.VehicleImpls) do
 		BroadcastEvent(self, "DisableMovement");
   end
   
+  gVehicle.Event_Destroy = function(self)
+		self.vehicle:Destroy();
+		BroadcastEvent(self, "Destroy");
+  end
+  
   function MakeRespawnable(entity)
 	if (entity.Properties) then
 		entity.Properties.Respawn={
@@ -181,7 +187,8 @@ for i,vehicle in pairs(VehicleSystem.VehicleImpls) do
 			EnableEngine = { gVehicle.Event_EnableEngine, "bool" },
 			DisableEngine = { gVehicle.Event_DisableEngine, "bool" },
 			EnableMovement  = { gVehicle.Event_EnableMovement, "bool" },		
-			DisableMovement = { gVehicle.Event_DisableMovement, "bool" },	
+			DisableMovement = { gVehicle.Event_DisableMovement, "bool" },
+			Destroy = { gVehicle.Event_Destroy, "bool" },
 		},
 		Outputs =
 		{
@@ -191,6 +198,7 @@ for i,vehicle in pairs(VehicleSystem.VehicleImpls) do
 			DisableEngine = "bool",
 			EnableMovement = "bool",
 			DisableMovement = "bool",
+			Destroy = "bool",
 			Dead = "bool",
 		},
 	};

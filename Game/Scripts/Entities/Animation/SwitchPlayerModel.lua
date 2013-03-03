@@ -34,10 +34,10 @@ SwitchPlayerModel =
 	Properties =
 	{	
 		bActive					= 1,
-		object_PlayerModel		= "Objects/Characters/neutral_male/sdk_character_male.cdf",		-- player model
-		object_ClientModel		= "Objects/Characters/neutral_male/sdk_character_male.cdf",		-- client player model
+		object_PlayerModel		= "Objects/Characters/sdk_player/sdk_player.cdf",		-- player model
+		object_ClientModel		= "Objects/Characters/sdk_player/sdk_player.cdf",		-- client player model
 		object_ArmsModel		= "Objects/Weapons/arms_fp/arms_fp.cdf",						-- 1st person arms model
-		object_FrozenModel		= "Objects/Characters/neutral_male/sdk_character_male.cdf",		-- 3rd person frozen model		
+		object_FrozenModel		= "Objects/Characters/sdk_player/sdk_player.cdf",		-- 3rd person frozen model		
 	},
 	
 	-- editor 

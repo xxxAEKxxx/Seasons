@@ -174,7 +174,7 @@ function Flash:Event_Strike()
 		-- Play Flash sound.
 		if (Effects.sound_Sound ~= "") then
 			local sndFlags = bor(SOUND_DEFAULT_2D,0);
-			self.soundid = self:PlaySoundEvent(Effects.sound_Sound, g_Vectors.v000, g_Vectors.v010, sndFlags, SOUND_SEMANTIC_AMBIENCE_ONESHOT);
+			self.soundid = self:PlaySoundEvent(Effects.sound_Sound, g_Vectors.v000, g_Vectors.v010, sndFlags, 0, SOUND_SEMANTIC_AMBIENCE_ONESHOT);
 		end
 
 		self:Activate(1);

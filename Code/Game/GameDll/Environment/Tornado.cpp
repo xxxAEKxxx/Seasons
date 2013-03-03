@@ -462,7 +462,7 @@ void CTornado::UpdateFlow()
 			float attractionImpulse(m_attractionImpulse);
 			float upImpulse(m_upImpulse);
 
-			//FIXME:kind of workaround, living entities needs some "help" to get out of the vortex
+			//FIXME:kind of hacky, living entities needs some "help" to get out of the vortex
 			if (ppEnt->GetType() == PE_LIVING)
 			{
 				upImpulse *= 0.75f;

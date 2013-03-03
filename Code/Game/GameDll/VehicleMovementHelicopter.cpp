@@ -336,7 +336,7 @@ void CVehicleMovementHelicopter::OnEvent(EVehicleMovementEvent event, const SVeh
 	{
 		m_steeringDamage = min(m_steeringDamage, params.fValue);
 
-		// bit workaround - we never get a repair message for the last bit (as the damage level hasn't changed).
+		// bit hacky - we never get a repair message for the last bit (as the damage level hasn't changed).
 		//	However, the helicopter only ever sends 1.0 or 0.0 to here...
 		if(params.fValue < 0.25)
 		{

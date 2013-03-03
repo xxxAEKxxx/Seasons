@@ -1133,7 +1133,7 @@ public:
   virtual void AddFrost(float frost);  
 
 	virtual void BindInputs( IAnimationGraphState * pAGState );
-	//marcok: GC workaround
+	//marcok: GC hack
 	virtual bool IsSwimming() {	return false; }
 	virtual bool ShouldSwim(){ return false; };
 

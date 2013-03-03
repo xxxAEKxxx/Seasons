@@ -49,11 +49,11 @@ public:
 			InputPortConfig<float>("ViewLimitPitch", _HELP("ViewLimitPitch (0.0=Freelook, 0.001=Lock)")),
 			InputPortConfig<bool> ("LockPlayer", false, _HELP("Lock the player's position")),
 			InputPortConfig<int>( "TryStance", -1, _HELP("Try to set Stance on Locking [works only if Player was linked beforehand]"), 0, _UICONFIG("enum_int:<ignore>=-1,Stand=0,Crouch=1,Prone=2,Relaxed=3,Stealth=4,Swim=5,ZeroG=6")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig outputs[] = {
 			OutputPortConfig_Void ("Done", _HELP("Trigger for Chaining")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = inputs;
 		config.pOutputPorts = outputs;
@@ -198,12 +198,12 @@ public:
 			InputPortConfig<EntityId> ("Target", _HELP("Target Entity Id") ),
 			InputPortConfig<int>  ("DrawPlayer", 0, _HELP("Draw the Player (Hide=-1, NoChange=0, Show=1)"), 0, _UICONFIG("enum_int:NoChange=0,Hide=-1,Show=1")),
 			InputPortConfig<bool> ("KeepTransformationOnUnlink", true, _HELP("Keep Transformation on Unlink")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig outputs[] = {
 			OutputPortConfig_Void ("Linked", _HELP("Trigger if Linked")),
 			OutputPortConfig_Void ("Unlinked", _HELP("Trigger if Unlinked")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = inputs;
 		config.pOutputPorts = outputs;

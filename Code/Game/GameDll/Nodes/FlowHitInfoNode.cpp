@@ -58,7 +58,7 @@ public:
 			InputPortConfig<EntityId>("TargetId",  _HELP("When connected, limit HitInfo to this target")),
 			InputPortConfig<string> ("Weapon", _HELP("When set, limit HitInfo to this weapon"), 0, _UICONFIG("enum_global:weapon")),
 			InputPortConfig<string> ("Ammo", _HELP("When set, limit HitInfo to this ammo"), 0, _UICONFIG("enum_global:ammos")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig outputs[] = {
 			OutputPortConfig<EntityId>("ShooterId", _HELP("EntityID of the Shooter")),
@@ -71,7 +71,7 @@ public:
 			OutputPortConfig<string>  ("HitType",  _HELP("Name of the HitType")),
 			OutputPortConfig<float>   ("Damage",    _HELP("Damage amout which was caused")),
 			OutputPortConfig<string>  ("Material",  _HELP("Name of the Material")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = inputs;
 		config.pOutputPorts = outputs;
@@ -241,7 +241,7 @@ public:
 			InputPortConfig<string> ("Weapon", _HELP("!DONT USE! -> Use Ammo!"), _HELP("!DONT USE! -> Use Ammo!"), _UICONFIG("enum_global:ammos")),
 			InputPortConfig<string> ("Ammo", _HELP("When set, limit ExplosionInfo to this ammo"), 0, _UICONFIG("enum_global:ammos")),
 			InputPortConfig<EntityId>("ImpactTargetId",  _HELP("When connected, limit ExplosionInfo to this Impact target (e.g. for Rockets)")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig outputs[] = {
 			OutputPortConfig<EntityId>("ShooterId", _HELP("EntityID of the Shooter")),
@@ -256,7 +256,7 @@ public:
 			OutputPortConfig<EntityId>("ImpactTargetId",  _HELP("EntityID of the Impact Target (e.g. for Rockets)")),
 			OutputPortConfig<Vec3>    ("ImpactNormal",  _HELP("Impact Normal (e.g. for Rockets)")),
 			OutputPortConfig<float>   ("ImpactVelocity",  _HELP("Impact Normal (e.g. for Rockets)")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = inputs;
 		config.pOutputPorts = outputs;
@@ -386,12 +386,12 @@ public:
 			InputPortConfig_Void  ("Freeze", _HELP("Trigger to freeze entity")),
 			InputPortConfig_Void  ("UnFreeze", _HELP("Trigger to un-freeze entity")),
 			InputPortConfig<bool> ("UseVapor", true, _HELP("Trigger to un-freeze entity")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig outputs[] = {
 			OutputPortConfig_Void("Frozen",   _HELP("Triggered on Freeze")),
 			OutputPortConfig_Void("UnFrozen", _HELP("Triggered on UnFreeze")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.nFlags |= EFLN_TARGET_ENTITY;
 		config.pInputPorts = inputs;

@@ -168,8 +168,12 @@ void CUILobbyMP::ServerFound(SCrySessionSearchResult session, string sServerName
 ////////////////////////////////////////////////////////////////////////////
 void CUILobbyMP::PlayerListReturn(const SUIArguments& players, const SUIArguments& playerids)
 {
+#ifndef CAFE
 	m_eventSender.SendEvent<eUIE_PlayerListReturn>(players);
 	m_eventSender.SendEvent<eUIE_PlayerIdListReturn>(playerids);
+
+
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -221,6 +225,11 @@ void CUILobbyMP::HostGame(bool bLan, string sMapPath, string sGameRules)
 	{
 		CGameLobby::SetLobbyService(bLan ? eCLS_LAN : eCLS_Online);
 				
+		if(!gEnv->pGameFramework->GetIGameRulesSystem()->HaveGameRules(sGameRules))
+		{
+			 sGameRules = "DeathMatch";
+		}
+
 		pGameLobby->CreateSessionFromSettings(sGameRules, sMapPath);
 	}
 }

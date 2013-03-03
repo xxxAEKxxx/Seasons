@@ -1184,7 +1184,7 @@ void CShark::ProcessRotation(float frameTime)
 	if (frameTime > 0.1f)
 		frameTime = 0.1f;
 
-	// Mikko: Separated the look and movement directions. This is a workaround! The reason is below (moved from the SetActorMovement):
+	// Mikko: Separated the look and movement directions. This is a HACK! The reason is below (moved from the SetActorMovement):
 	// >> Danny - old code had desired direction using vLookDir but this caused spinning behaviour
 	// >> when it was significantly different to vMoveDir
 

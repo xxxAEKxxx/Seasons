@@ -20,10 +20,9 @@ Ladder =
 
 		fileModel = "objects/structures/ladders/mp_ladder1.cgf",
 		fUseDistance = 2,
-		--sDirectionAxis = "x",
-  },
-  	
-  Editor={
+	},
+	  	
+	Editor={
 		Icon="Ladder.bmp",
 	},
   	
@@ -32,11 +31,8 @@ Ladder =
   		mass = 0,
   		density = 0,
   	},
-  	
-  	bottom_pos = {x=0,y=0,z=0},
-  	top_pos = {x=0,y=0,z=0},
-  	  	
-  Server = {},
+  	  	  	
+    Server = {},
 	Client = {},
 }
 
@@ -93,15 +89,11 @@ function Ladder:Reset(onSpawn)
 	
 	self.direction = self:GetDirectionVector(0);
 	
-	-- local axis = self.Properties.sDirectionAxis;
-	-- if (axis == "X" or axis == "x") then
-		-- self.direction = self:GetDirectionVector(0);
-	-- elseif (axis == "Y" or axis == "y") then
-		-- self.direction = self:GetDirectionVector(1);
-	-- else
-		-- self.direction = self:GetDirectionVector(2);
-	-- end
-	
+	if(onSpawn == 1)then
+		self.bottom_pos = {x=0,y=0,z=0};
+		self.top_pos = {x=0,y=0,z=0};
+	end
+		
 	local bottomTag = System.GetEntityByName(self:GetName().."_bottom");
 	local topTag = System.GetEntityByName(self:GetName().."_top");
 	
@@ -112,22 +104,26 @@ function Ladder:Reset(onSpawn)
 		--no helpers found: set some defaults		
 		local zAxis = self:GetDirectionVector(2);
 		local bbmin,bbmax = self:GetLocalBBox();
+		local worldPos = g_Vectors.temp_v1;
 		
-		self:GetWorldPos(self.bottom_pos);
+		self:GetWorldPos(worldPos);
+		
+		CopyVector(self.bottom_pos, worldPos);
+		CopyVector(self.top_pos, worldPos);
+				
 		self.bottom_pos.x = self.bottom_pos.x + zAxis.x * (bbmin.z + 1);
 		self.bottom_pos.y = self.bottom_pos.y + zAxis.y * (bbmin.z + 1);
 		self.bottom_pos.z = self.bottom_pos.z + zAxis.z * (bbmin.z + 1);
 		
-		self:GetWorldPos(self.top_pos);
 		self.top_pos.x = self.top_pos.x + zAxis.x * (bbmax.z - 0.25);
 		self.top_pos.y = self.top_pos.y + zAxis.y * (bbmax.z - 0.25);
 		self.top_pos.z = self.top_pos.z + zAxis.z * (bbmax.z - 0.25);
 						
-		CopyVector(g_Vectors.temp_v1,self.direction);
-		FastScaleVector(g_Vectors.temp_v1,g_Vectors.temp_v1,-0.5);
+		CopyVector(g_Vectors.temp_v2,self.direction);
+		FastScaleVector(g_Vectors.temp_v2,g_Vectors.temp_v2,-0.5);
 		
-		FastSumVectors(self.top_pos,self.top_pos,g_Vectors.temp_v1);
-		FastSumVectors(self.bottom_pos,self.bottom_pos,g_Vectors.temp_v1);		
+		FastSumVectors(self.top_pos,self.top_pos,g_Vectors.temp_v2);
+		FastSumVectors(self.bottom_pos,self.bottom_pos,g_Vectors.temp_v2);		
 	end
 end
 
@@ -142,11 +138,14 @@ function ProjectPointToLine(result,point,lineStart,lineEnd)
 	
 	local dot1 = dotproduct3d(result,line)
 	local dot2 = dotproduct3d(line,line);
-	local dot = dot1/dot2;
-
-	result.x = lineStart.x + line.x * dot;
-	result.y = lineStart.y + line.y * dot;
-	result.z = lineStart.z + line.z * dot;
+	
+	if(dot2 > 0)then
+		local dot = dot1/dot2;
+		
+		result.x = lineStart.x + line.x * dot;
+		result.y = lineStart.y + line.y * dot;
+		result.z = lineStart.z + line.z * dot;
+	end
 end
 
 function Ladder:IsUsable(user)
@@ -201,22 +200,4 @@ function Ladder:GetUsableMessage(idx)
 end
 
 function Ladder:OnUsed(user)	
-	--user wants to detach?
-	--if (user.ladderId == self.id) then
-		--user.actor:CreateCodeEvent({event = "ladder",ladderTop = g_Vectors.v000,ladderBottom = g_Vectors.v000});
-		--user.actor:SetExtensionParams("Interactor",{locker = self.id, lockId = NULL_ENTITY, lockIdx = 0});
-		--user.ladderId = nil;
-		--user:HolsterItem(false);
-
-		--return nil;
-	--end
-
-	--if (self:IsUsable(user) ~= 1) then
-		--return nil;
-	--end
-	
-	--user.actor:CreateCodeEvent({event = "ladder",ladderTop = self.top_pos,ladderBottom = self.bottom_pos});
-	--user.actor:SetExtensionParams("Interactor",{locker = self.id, lockId = self.id, lockIdx = 1});
-	--user.ladderId = self.id;	
-	--user:HolsterItem(true);
 end

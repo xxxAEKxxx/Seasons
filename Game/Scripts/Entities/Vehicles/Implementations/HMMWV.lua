@@ -28,22 +28,27 @@ HMMWV.AIProperties =
   
   AIMovementAbility = 
   {
-		walkSpeed = 7.0,
-		runSpeed = 15.0,
-		sprintSpeed = 25.0,
-		maneuverSpeed = 7.0,
-		maneuverTrh = 0.0,
+		maxAccel = 12,
+		maxDecel = 6,
 		minTurnRadius = 4,
 		maxTurnRadius = 15,    
-		pathType = "AIPATH_CAR",
-		pathLookAhead = 15,
+		walkSpeed = 50,
+		runSpeed = 50,	-- Maximum speed (without boost)
+		sprintSpeed = 50,
+
+		maneuverSpeed = 0,	-- Brake at peaks
+		slopeSlowDown = 0.02,
+
+		maneuverTrh = 0,
+		pathType = "AIPATH_RACING_CAR",
+		pathLookAhead = 30,
 		pathRadius = 2,
-		pathSpeedLookAheadPerSpeed = 3.0,
-		cornerSlowDown = 0.75,
+		pathSpeedLookAheadPerSpeed = 0,
+		cornerSlowDown = 0,
 		pathFindPrediction = 1.0,
-		velDecay = 130,
+		velDecay = 0,
 		resolveStickingInTrace = 0,
-		pathRegenIntervalDuringTrace = 4.0,
-		avoidanceRadius = 10.0,
+		pathRegenIntervalDuringTrace = 3,
+		avoidanceRadius = 3,
   }, 
 }

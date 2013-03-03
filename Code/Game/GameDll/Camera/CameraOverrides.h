@@ -69,7 +69,7 @@ private:
 	int									m_camOverrideType;
 	SCamModeSettings		m_overrideSettings;
 
-	//workaround way to fade out current override to normal settings
+	//hacky way to fade out current override to normal settings
 	float								m_fFadeOutCoverMode;
 
 	//horizontal offset for look at override

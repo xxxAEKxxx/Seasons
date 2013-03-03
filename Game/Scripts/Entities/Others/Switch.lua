@@ -16,13 +16,13 @@ Switch = {
 	Client = {},
 	Server = {},
 	Properties = {
-		fileModel 					= "objects/library/installations/electric/lightswitch/lightswitch_local1.cgf",
-		Switch 							= "",
-		ModelSubObject			= "",
-		fileModelDestroyed	= "",
-		DestroyedSubObject	= "",
+		fileModel = "",
+		Switch = "",
+		ModelSubObject = "",
+		fileModelDestroyed = "",
+		DestroyedSubObject = "",
 		fHealth = 100,
-		bUsable	= 1,
+		bUsable = 1,
 		UseMessage = "",
 		bTurnedOn = 1,
 		Physics = {
@@ -42,38 +42,39 @@ Switch = {
 			On = 45,
 			Off = -45,
 		},
-		SmartSwitch =	{
+		SmartSwitch = {
 			bUseSmartSwitch=0,
 			Entity = "",
 			TurnedOnEvent = "",
 			TurnedOffEvent = "",
 		},
-		Breakage =
-		{
+		Breakage = {
 			fLifeTime = 20,
 			fExplodeImpulse = 0,
 			bSurfaceEffects = 1,
 		},
-		Destruction =	{
-			bExplode				= 1,
-			Effect					= "explosions.rocket.wood",
-			EffectScale			= 0.2,
-			Radius					= 1,
-			Pressure				= 12,
-			Damage					= 0,
-			Decal						= "",
-			Direction				= {x=0, y=0.0, z=-1},
+		Destruction = {
+			bExplode = 1,
+			Effect = "explosions.rocket.wood",
+			EffectScale = 0.2,
+			Radius = 1,
+			Pressure = 12,
+			Damage = 0,
+			Decal = "",
+			Direction = {x=0, y=0.0, z=-1},
 		},
 	},
-		Editor={
-		Icon = "switch.bmp",
-		IconOnTop=1,
+
+	Editor = {
+	Icon = "switch.bmp",
+	IconOnTop=1,
 	},
+
 	States = {"TurnedOn","TurnedOff","Destroyed"},
 	fCurrentSpeed = 0,
 	fDesiredSpeed = 0,
-	LastHit =
-	{
+
+	LastHit = {
 		impulse = {x=0,y=0,z=0},
 		pos = {x=0,y=0,z=0},
 	},
@@ -203,7 +204,7 @@ function Switch:SpawnSwitch()
 		System.RemoveEntity(self.switch.id);
 		self.switch=nil;
 	end;
-	
+
 	local props=self.Properties.SwitchPos;
 	if(props.bShowSwitch==0)then return;end;
 	if(self.switch==nil)then
@@ -217,13 +218,13 @@ function Switch:SpawnSwitch()
 			spawnParams.name = self:GetName().."_switch";
 			spawnParams.flags = 0;
 			spawnParams.position=self:GetPos();
+
 			self.switch=System.SpawnEntity(spawnParams);
-			
 			self:AttachChild(self.switch.id,0);
 			self.switch:SetWorldPos(self:GetPos());
 			local rot={x=0,y=0,z=0};
 			self:GetAngles(rot);
-			
+
 			if(self.Properties.bTurnedOn==1)then
 				rot.y=props.On*g_Deg2Rad;
 			else
@@ -250,13 +251,14 @@ function Switch:SpawnSwitch()
 	end;
 end;
 
-function Switch:OnDestroy()	
+function Switch:OnDestroy()
 	if(self.switch)then
 		Entity.DetachThis(self.switch.id,0);
 		System.RemoveEntity(self.switch.id);
 		self.switch=nil;
 	end;
 end
+
 
 ----------------------------------------------------------------------------------------------------
 function Switch.Server:OnInit()
@@ -266,6 +268,7 @@ function Switch.Server:OnInit()
 		self.usable=1;
 	end;
 end;
+
 
 ----------------------------------------------------------------------------------------------------
 function Switch.Client:OnInit()
@@ -281,7 +284,7 @@ function Switch:OnUsed(user, idx)
 	elseif(self:GetState()=="TurnedOff")then
 		self:GotoState("TurnedOn");
 	elseif(self:GetState()=="Destroyed")then
-			return
+		return
 	end;
 	BroadcastEvent(self, "Used");
 end;
@@ -308,7 +311,7 @@ function Switch:PlaySound(sound)
 		local snd=self.Properties.Sound["sound"..sound];
 		local sndFlags=bor(SOUND_DEFAULT_3D, 0);
 		if(snd and snd~="")then
-				self.soundid=self:PlaySoundEvent(snd,g_Vectors.v000,g_Vectors.v010,sndFlags,SOUND_SEMANTIC_MECHANIC_ENTITY);
+				self.soundid=self:PlaySoundEvent(snd,g_Vectors.v000,g_Vectors.v010,sndFlags, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
 		else
 			--System.Log("Failed to play "..sound.." sound!");
 		end;
@@ -327,11 +330,11 @@ function Switch:CheckSmartSwitch(switch)
 		end
 		--Get closest
 		table.sort(targets, function(a, b)
-				local dista=self:GetDistance(a.id);
-				local distb=self:GetDistance(b.id);
-				if(dista<distb)then
-					return true;
-				end
+			local dista=self:GetDistance(a.id);
+			local distb=self:GetDistance(b.id);
+			if(dista<distb)then
+				return true;
+			end
 		end);
 		local target=targets[1];
 		if(target)then
@@ -339,8 +342,8 @@ function Switch:CheckSmartSwitch(switch)
 				local evtName="Event_"..props[switch];
 				local evtProc=target[evtName];
 				if(type(evtProc)=="function")then
-				  --System.Log("Sending: "..switch.." to "..target:GetName());
-				  evtProc(target);
+					--System.Log("Sending: "..switch.." to "..target:GetName());
+					evtProc(target);
 				else
 					System.Log(self:GetName().." was trying to send an invalid event! Check entity properties!");
 				end;
@@ -367,7 +370,6 @@ function Switch:Event_TurnedOff()
 	BroadcastEvent(self, "TurnedOff");
 	self:GotoState("TurnedOff");
 end;
-
 
 function Switch:Event_Switch()
 	if(self:GetState()~="Destroyed")then
@@ -408,7 +410,6 @@ Switch.Server.TurnedOn =
 		BroadcastEvent(self, "TurnedOn");
 	end,
 	OnEndState = function( self )
-
 	end,
 }
 
@@ -422,18 +423,16 @@ Switch.Server.TurnedOff =
 		BroadcastEvent(self, "TurnedOff")
 	end,
 	OnEndState = function( self )
-
 	end,
 }
 
-Switch.Server.Destroyed=
+Switch.Server.Destroyed =
 {
 	OnBeginState = function( self )
 		self:Explode();
 		BroadcastEvent(self, "Destroyed")
 	end,
 	OnEndState = function( self )
-		
 	end,
 }
 

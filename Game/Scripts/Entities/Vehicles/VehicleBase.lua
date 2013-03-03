@@ -99,6 +99,11 @@ end
 --------------------------------------------------------------------------
 function VehicleBase:InitVehicleBase()
 	self:OnPropertyChange();
+
+	-- To support spawn at the initial (rather than current) position and orientation
+	self.InitialPosition = self:GetPos();
+	self.InitialOrientation = {};
+	CopyVector(self.InitialOrientation, self:GetDirectionVector(1));
 end
 
 --------------------------------------------------------------------------
@@ -376,11 +381,6 @@ end
 function VehicleBase:ResetVehicleBase()
 	self.State.pos = self:GetWorldPos(self.State.pos);
 
-	-- To support spawn at the initial (rather than current) position and orientation
-	self.InitialPosition = self:GetPos();
-	self.InitialOrientation = {};
-	CopyVector(self.InitialOrientation, self:GetDirectionVector(1));
-	
 	-- disable the AI driver.
 	if (self.AIDriver) then
 		self:AIDriver( 0 );
@@ -611,6 +611,12 @@ end
 function VehicleBase:EnterVehicle(passengerId, seatId, isAnimationEnabled)
 	--Log("VehicleBase:EnterVehicle() - playerId = %s, seatId = %s", tostring(passengerId), tostring(seatId));
 	return self.vehicle:EnterVehicle(passengerId, seatId, isAnimationEnabled);
+end
+
+--------------------------------------------------------------------------
+function VehicleBase:ChangeSeat(passengerId, seatId)
+	--Log("VehicleBase:ChangeSeat() - playerId = %s, seatId = %s", tostring(passengerId), tostring(seatId));
+	return self.vehicle:ChangeSeat(passengerId, seatId);
 end
 
 --------------------------------------------------------------------------

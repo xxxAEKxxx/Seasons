@@ -13,7 +13,7 @@ ParticleEffect = {
 		bCountPerUnit=0,				-- Multiply count by attachment extent
 		Strength=-1,						-- Custom param control
 		esAttachType="",				-- BoundingBox, Physics, Render
-		esAttachForm="Surface",	-- Vertices, Edges, Surface, Volume
+		esAttachForm="",				-- Vertices, Edges, Surface, Volume
 		PulsePeriod=0,					-- Restart continually at this period.
 		NetworkSync=0,					-- Do I want to be bound to the network?
 	},
@@ -76,8 +76,13 @@ end
 
 -------------------------------------------------------
 function ParticleEffect:OnPropertyChange()
-	self:GotoState("");
 	self:OnReset();
+	if self.Properties.bActive ~= 0 then
+		self:GotoState( "" );
+		self:GotoState( "Active" );
+	else
+		self:GotoState( "Idle" );
+	end
 end
 
 -------------------------------------------------------
@@ -133,7 +138,10 @@ end
 
 
 function ParticleEffect:Event_Kill()
-  self:DeleteParticleEmitter( self.nParticleSlot );
+	if (self.nParticleSlot) then
+		self:DeleteParticleEmitter(self.nParticleSlot);
+	end;
+	self:GotoState( "Idle" );
   
 	if CryAction.IsServer() and self.allClients then
 		self.allClients:ClEvent_Kill();
@@ -161,8 +169,9 @@ ParticleEffect.Active =
 {
 	OnBeginState = function( self )
 	  if (not self.nParticleSlot) then
-		  self.nParticleSlot = self:LoadParticleEffect( -1, self.Properties.ParticleEffect, self.Properties );
+		  self.nParticleSlot = -1;
 		end
+	  self.nParticleSlot = self:LoadParticleEffect( self.nParticleSlot, self.Properties.ParticleEffect, self.Properties );
 	end,
 	
 	OnLeaveArea = function( self,entity,areaId )

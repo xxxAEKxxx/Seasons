@@ -7,7 +7,6 @@ Cloth =
 	{
 		mass = 5,
 		density = 200,
-
 		fileModel="Objects/props/misc/cloth/cloth.cgf",
 		gravity={x=0,y=0,z=-9.8},
 		damping = 0.3,
@@ -16,7 +15,7 @@ Cloth =
 		thickness = 0.06,
 		friction = 0,
 		hardness = 20,
-		air_resistance = 0,
+		air_resistance = 1,
 		wind = {x=0,y=0,z=0},
 		wind_event = {x=0,y=10,z=0},
 		wind_variance = 0.2,
@@ -73,7 +72,7 @@ function Cloth:OnReset()
 	if self.Properties.bCollideWithPhysical==1 then CollParams.collision_mask = CollParams.collision_mask+ent_rigid+ent_sleeping_rigid; end
 	if self.Properties.bCollideWithPlayers==1 then CollParams.collision_mask = CollParams.collision_mask+ent_living; end
 	self:SetPhysicParams(PHYSICPARAM_SOFTBODY, CollParams );
-	if LengthSqVector(self.Properties.wind)*self.Properties.air_resistance>0 then
+	if LengthSqVector(self.Properties.wind)*self.Properties.air_resistance>=0 then
 		self:AwakePhysics(1);
 	else
 		self:AwakePhysics(0);

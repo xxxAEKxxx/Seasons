@@ -33,7 +33,7 @@ function RandomSoundVolume:OnSpawn()
 	if (System.IsEditor()) then
 		Sound.Precache(self.Properties.soundName, SOUND_PRECACHE_LOAD_SOUND);
 	end;
-		
+	
 end
 
 function RandomSoundVolume:OnSave(save)
@@ -134,9 +134,7 @@ end
 RandomSoundVolume["Server"] = {
 	OnInit= function (self)
 		self.started = 0;
-		self:NetPresent(0);
 		--self:SetFlags(ENTITY_FLAG_VOLUME_SOUND,0);
-
 		--self:SetSoundEffectRadius(self.Properties.OuterRadius);
 	end,
 	OnShutDown= function (self)
@@ -153,7 +151,6 @@ RandomSoundVolume["Client"] = {
 		self.soundName = "";
 		self.soundid = nil;
 		self.NextStart = self.Properties.MinWaitTime;
-		self:NetPresent(0);
 		--self:SetFlags(ENTITY_FLAG_VOLUME_SOUND,0);
 		--self:SetSoundEffectRadius(self.Properties.OuterRadius);
 
@@ -164,23 +161,7 @@ RandomSoundVolume["Client"] = {
 	----------------------------------------------------------------------------------------
 	OnShutDown = function(self)
 	end,
-	
-	OnEnterArea = function(self, player, nAreaID, fFade)
-	
-	 --System.Log("RSV: OnEnterArea-Client - Fade: "..tostring(fFade));
-	
-		if (g_localActorId ~= player.id and player.class~="CameraSource") then	return end;	    
-
-	  self.inside = 1;
-	  
-	  if (self.bEnabled == 0) then	return end;	
-	  
-	  if (self.soundid == nil) then
-	   	self:SetTimer(0, self.Properties.MinWaitTime*1000);
-	    --self:Play();
-	  end;
-	end,
-	
+		
 	OnTimer=function(self, timerid, msec)
 	if (timerid == 0) then
 	  self:Play();
@@ -192,12 +173,19 @@ RandomSoundVolume["Client"] = {
 	 end;
 		--self:RemoveDecals();
 	end,
-	
-	OnProceedFadeArea = function(self, player, nAreaID, fFade)
-	  --System.Log("RSV: OnMoveInsideArea-Client: "..tostring(nParam).."-"..tostring(fParam));
-	  --System.Log("RSV: self-Fade now: "..tostring(self.fFade));
-		if (g_localActorId ~= player.id and player.class~="CameraSource") then	return end;
+		
+	OnLocalClientEnterArea = function(self, player, nAreaID, fFade)
+	  self.inside = 1;
+	  
+	  if (self.bEnabled == 0) then	return end;	
+	  
+	  if (self.soundid == nil) then
+	   	self:SetTimer(0, self.Properties.MinWaitTime*1000);
+	    --self:Play();
+	  end;
+	end,
 
+	OnLocalClientProceedFadeArea = function(self, player, nAreaID, fFade)
 	  if (self.fFade ~= fFade) then
 	  	--self.fFade = 1;
 	  	
@@ -231,15 +219,14 @@ RandomSoundVolume["Client"] = {
 
 	--end,
 	
-	OnLeaveArea = function(self, player, nAreaID, fFade)
-		if (g_localActorId ~= player.id and player.class~="CameraSource") then	return end;    
-
+	OnLocalClientLeaveArea = function(self, player, nAreaID, fFade)
 	  self.inside = 0;
 	  --System.Log("OLeaveArea-Client");
 	  self:Stop();
 	end,
 	
 	OnUnBindThis = function(self)
+		System.LogToConsole("OnUnBindThis-Client");
 		self:Stop();
 		self.inside = 0;
 	end,	
@@ -322,12 +309,12 @@ function RandomSoundVolume:Play()
 
  			-- need to use *really* large max distance so a Play event does not cull the sound based on distance
  			-- we dont want the sound be rejected
-			self.soundid = Sound.PlayEx(self.Properties.soundName, pos, sndFlags, self.fFade, 0, 0, SOUND_SEMANTIC_AMBIENCE_ONESHOT);
+			self.soundid = Sound.PlayEx(self.Properties.soundName, pos, sndFlags, 0, self.fFade, 0, 0, SOUND_SEMANTIC_AMBIENCE_ONESHOT);
 			--Sound.SetSoundVolume(self.soundid, 1.0*self.fFade);
 		end;
 	else
 	  --System.Log( "Playing on Proxy! ");
-		self.soundid = self:PlaySoundEventEx(self.Properties.soundName, sndFlags, self.fFade, g_Vectors.v000, 0, 0, SOUND_SEMANTIC_AMBIENCE_ONESHOT);
+		self.soundid = self:PlaySoundEventEx(self.Properties.soundName, sndFlags, 0, self.fFade, g_Vectors.v000, 0, 0, SOUND_SEMANTIC_AMBIENCE_ONESHOT);
 		--Sound.SetSoundVolume(self.soundid, 1.0*self.fFade);
 	end;
 	

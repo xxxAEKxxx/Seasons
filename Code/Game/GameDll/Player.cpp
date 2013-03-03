@@ -2795,7 +2795,7 @@ void CPlayer::UpdateStats(float frameTime)
 			m_stats.inAir += frameTime;
 			// Danny - changed this since otherwise AI has a fit going down stairs - it seems that when off
 			// the ground it can only decelerate.
-			// If you revert this (as it's an ugly workaround) - test AI on stairs!
+			// If you revert this (as it's an ugly hack) - test AI on stairs!
 			static float minTimeForOffGround = 0.5f;
 			if (m_stats.inAir > minTimeForOffGround || isPlayer)
 				m_stats.onGround = 0.0f;
@@ -3597,23 +3597,7 @@ void CPlayer::ResetAnimations()
 	if (pCharacter)
 	{
 		pCharacter->GetISkeletonAnim()->StopAnimationsAllLayers();
-
-//		if (m_pAnimatedCharacter)
-//			m_pAnimatedCharacter->GetAnimationGraphState()->Pause(true, eAGP_StartGame);
-		//disable any IK
-		//pCharacter->SetLimbIKGoal(LIMB_LEFT_LEG);
-		//pCharacter->SetLimbIKGoal(LIMB_RIGHT_LEG);
-		//pCharacter->SetLimbIKGoal(LIMB_LEFT_ARM);
-		//pCharacter->SetLimbIKGoal(LIMB_RIGHT_ARM);
-
-		//
-		for (int i=0;i<BONE_ID_NUM;++i)
-		{
-			int boneID = GetBoneID(i);
-			/*if (boneID>-1)
-				pCharacter->GetISkeleton()->SetPlusRotation(boneID, IDENTITY);*/
-		}
-
+		pCharacter->SetAnimationSpeed(1.0f);
 		pCharacter->GetISkeletonPose()->SetLookIK(false,0,ZERO);
 	}
 }
@@ -5289,7 +5273,7 @@ void CPlayer::PlaySound(EPlayerSounds sound, bool play, bool param /*= false*/, 
 			pSound->Stop();
 		m_sounds[sound] = 0;
 	}
-	}
+}
 
 //===========================LADDERS======================
 

@@ -96,6 +96,9 @@
    <Helpers />
    <MassBox size="1.7,5.5,1"/>
   </Part>
+  <Part name="navLight" class="Light" helper="navLight">
+   <Light type="HeliGreen"/>
+  </Part>
  </Parts>
  <Helpers>
 	<Helper name="driver_eye_pos" position="0,1,2.5" direction="0,1,-0.1"/>
@@ -126,6 +129,7 @@
 	<Helper name="engineSoundPos" position="0,-4.2,1.7" direction="0,-1,0"/>
 	<Helper name="centerPos" position="0,0.0122,0.85" direction="0,1,0"/>
 	<Helper name="vehicleBurnPos" position="0,0.56,1.0754" direction="0,1,0"/>
+	<Helper name="navLight" position="-1.3,-3.5,2.26" direction="0,0,0" part="chassis"/>
  </Helpers>
  <Actions>
  </Actions>
@@ -135,15 +139,13 @@
     <View class="FirstPerson" canRotate="1" rotationMin="-20,0,-70" rotationMax="20,0,70">
      <FirstPerson offset="0,0,0.25" relativeToHorizon="0.5" />
     </View>
-		 <!--
-    <View class="ActionThirdPerson" canRotate="1" rotationMax="0,0,45">
+	<!-- <View class="ActionThirdPerson" canRotate="1" rotationMax="0,0,45">
      <ActionThirdPerson cameraPosOffset="0,0,0.75" cameraAimOffset="0,0,1" lagSpeed="10" velocityMult="0.5,-0.2,0.25" heightAboveWater="0.75" />
-    </View>
-		-->
-		 <View class="ThirdPerson" canRotate="1">
-			 <ThirdPerson distance="7" heightoffset="5" speed="50"/>
-		 </View>
-	 </Views>
+    </View>-->
+	<View class="ThirdPerson" canRotate="1">
+	 <ThirdPerson distance="7" heightoffset="5" speed="50"/>
+	</View>
+   </Views>
    <SeatActions>
     <SeatAction class="Sound">
      <Sound sound="Sounds/vehicles:SpeedBoat:horn" helper="driver_sit_pos" id="seatActionSound1"/>
@@ -153,6 +155,13 @@
       <Actions anglesMax="0,130,0"/>
      </SteeringWheel>
     </SeatAction>
+	<SeatAction class="Lights">
+     <Lights activation="toggle">
+      <LightParts>
+       <LightPart value="navLight"/>
+      </LightParts>
+     </Lights>
+    </SeatAction>
    </SeatActions>
    <Sounds inout="0" mood="0.6" id="idSeatSoundsLF"/>
   </Seat>
@@ -161,15 +170,10 @@
     <View class="FirstPerson" canRotate="1" rotationMin="-30,0,-70" rotationMax="20,0,70">
      <FirstPerson offset="0,0,0"/>
     </View>
-		 <!--
-    <View class="ActionThirdPerson" canRotate="0">
-     <ActionThirdPerson cameraPosOffset="0,-1.25,0.75" cameraAimOffset="0,0,1" lagSpeed="2" velocityMult="3,0.2,0.25" heightAboveWater="0.75"/>
-    </View>
-		-->
-		 <View class="ThirdPerson" canRotate="1">
-			 <ThirdPerson distance="7" heightoffset="5" speed="50"/>
-		 </View>
-	 </Views>
+	<View class="ThirdPerson" canRotate="1">
+	 <ThirdPerson distance="7" heightoffset="5" speed="50"/>
+	</View>
+   </Views>
    <SeatActions />
    <Sounds inout="1"/>
   </Seat>
@@ -178,15 +182,10 @@
     <View class="FirstPerson" canRotate="1" rotationMin="-30,0,-70" rotationMax="20,0,70">
      <FirstPerson offset="0,0,0"/>
     </View>
-		 <!--
-    <View class="ActionThirdPerson" canRotate="0">
-     <ActionThirdPerson cameraPosOffset="0,-1.25,0.75" cameraAimOffset="0,0,1" lagSpeed="2" velocityMult="3,0.2,0.25" heightAboveWater="0.75"/>
-    </View>
-		-->
-		 <View class="ThirdPerson" canRotate="1">
-			 <ThirdPerson distance="7" heightoffset="5" speed="50"/>
-		 </View>
-	 </Views>
+	<View class="ThirdPerson" canRotate="1">
+	 <ThirdPerson distance="7" heightoffset="5" speed="50"/>
+	</View>
+   </Views>
    <SeatActions />
    <Sounds inout="1"/>
   </Seat>
@@ -195,15 +194,10 @@
     <View class="FirstPerson" canRotate="1" rotationMin="-30,0,-70" rotationMax="20,0,70">
      <FirstPerson offset="0,0,0"/>
     </View>
-		 <!--
-    <View class="ActionThirdPerson" canRotate="0">
-     <ActionThirdPerson cameraPosOffset="0,-1.25,0.75" cameraAimOffset="0,0,1" lagSpeed="2" velocityMult="3,0.2,0.25" heightAboveWater="0.75"/>
-    </View>
-		-->
-		 <View class="ThirdPerson" canRotate="1">
-			 <ThirdPerson distance="7" heightoffset="5" speed="50"/>
-		 </View>
-	 </Views>
+	<View class="ThirdPerson" canRotate="1">
+	 <ThirdPerson distance="7" heightoffset="5" speed="50"/>
+	</View>
+   </Views>
    <SeatActions />
    <Sounds inout="1"/>
   </Seat>
@@ -212,15 +206,10 @@
     <View class="FirstPerson" canRotate="1" rotationMin="-30,0,-70" rotationMax="20,0,70">
      <FirstPerson offset="0,0,0"/>
     </View>
-		 <!--
-    <View class="ActionThirdPerson" canRotate="0">
-     <ActionThirdPerson cameraPosOffset="0,-1.25,0.75" cameraAimOffset="0,0,1" lagSpeed="2" velocityMult="3,0.2,0.25" heightAboveWater="0.75"/>
-    </View>
-		-->
-		 <View class="ThirdPerson" canRotate="1">
-			 <ThirdPerson distance="7" heightoffset="5" speed="50"/>
-		 </View>
-	 </Views>
+	<View class="ThirdPerson" canRotate="1">
+	 <ThirdPerson distance="7" heightoffset="5" speed="50"/>
+	</View>
+   </Views>
    <SeatActions />
    <Sounds inout="1"/>
   </Seat>
@@ -229,15 +218,10 @@
     <View class="FirstPerson" canRotate="1" rotationMin="-30,0,-70" rotationMax="20,0,70">
      <FirstPerson offset="0,0,0"/>
     </View>
-		 <!--
-    <View class="ActionThirdPerson" canRotate="0">
-     <ActionThirdPerson cameraPosOffset="0,-1.25,0.75" cameraAimOffset="0,0,1" lagSpeed="2" velocityMult="3,0.2,0.25" heightAboveWater="0.75"/>
-    </View>
-		-->
-		 <View class="ThirdPerson" canRotate="1">
-			 <ThirdPerson distance="7" heightoffset="5" speed="50"/>
-		 </View>
-	 </Views>
+	<View class="ThirdPerson" canRotate="1">
+	 <ThirdPerson distance="7" heightoffset="5" speed="50"/>
+	</View>
+   </Views>
    <SeatActions />
    <Sounds inout="1"/>
   </Seat>
@@ -246,15 +230,10 @@
     <View class="FirstPerson" canRotate="1" rotationMin="-30,0,-70" rotationMax="20,0,70">
      <FirstPerson offset="0,0,0"/>
     </View>
-		 <!--
-    <View class="ActionThirdPerson" canRotate="0">
-     <ActionThirdPerson cameraPosOffset="0,-1.25,0.75" cameraAimOffset="0,0,1" lagSpeed="2" velocityMult="3,0.2,0.25" heightAboveWater="0.75"/>
-    </View>
-		-->
-		 <View class="ThirdPerson" canRotate="1">
-			 <ThirdPerson distance="7" heightoffset="5" speed="50"/>
-		 </View>
-	 </Views>
+	<View class="ThirdPerson" canRotate="1">
+	 <ThirdPerson distance="7" heightoffset="5" speed="50"/>
+	</View>
+   </Views>
    <SeatActions />
    <Sounds inout="1"/>
   </Seat>

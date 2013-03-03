@@ -27,9 +27,11 @@ function MusicEndTheme:OnLoad(stm)
 end
 
 function MusicEndTheme:CliSrv_OnInit()
+	self:RegisterForAreaEvents(1);
 end
 
 function MusicEndTheme:OnShutDown()
+	self:RegisterForAreaEvents(0);
 end
 
 function MusicEndTheme:Client_OnEnterArea( player,areaId )

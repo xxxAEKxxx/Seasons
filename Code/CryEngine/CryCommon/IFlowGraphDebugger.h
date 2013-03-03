@@ -15,13 +15,10 @@
 #ifndef __IFLOWGRAPHDEBUGGER_H__
 #define __IFLOWGRAPHDEBUGGER_H__
 
-#if _MSC_VER > 1000
-#pragma once
-#endif // _MSC_VER > 1000
-
 #include <IFlowSystem.h>
 #include <CryExtension/ICryUnknown.h>
 #include <CryExtension/CryCreateClassInstance.h>
+
 
 static const char* IFlowGraphDebuggerExtensionName = "FlowGraphDebugger";
 
@@ -141,7 +138,7 @@ protected:
 
 struct IFlowGraphDebugger : public ICryUnknown
 {
-	CRYINTERFACE_DECLARE( IFlowGraphDebugger, 0x416CE2E1B23B4017, 0xAD93D04DA67E90E6 )
+	CRYINTERFACE_DECLARE(IFlowGraphDebugger, 0x416CE2E1B23B4017, 0xAD93D04DA67E90E6)
 
 public:
 	// Adds a new breakpoint for a specific flownode and port
@@ -172,19 +169,19 @@ public:
 	virtual bool EnableTracepoint(IFlowGraphPtr pFlowgraph, const SFlowAddress& addr, bool enable) = 0;
 
 	// Checks whether a breakpoint is enabled or not 
-	virtual bool IsBreakpointEnabled(IFlowGraphPtr pFlowgraph, const SFlowAddress& addr) = 0;
+	virtual bool IsBreakpointEnabled(IFlowGraphPtr pFlowgraph, const SFlowAddress& addr) const = 0;
 
 	// Checks whether a given flow address is tracepoint or not 
-	virtual bool IsTracepoint(IFlowGraphPtr pFlowgraph, const SFlowAddress& addr) = 0;
+	virtual bool IsTracepoint(IFlowGraphPtr pFlowgraph, const SFlowAddress& addr) const = 0;
 
 	// Returns information about the current breakpoint
-	virtual const SBreakPoint& GetBreakpoint() = 0;
+	virtual const SBreakPoint& GetBreakpoint() const = 0;
 
 	// Invalidates the SFlowAdress and the flowgraph pointer of the stored breakpoint
 	virtual void InvalidateBreakpoint() = 0;
 
 	// Returns true if a breakpoint was hit, false otherwise
-	virtual bool BreakpointHit() = 0;
+	virtual bool BreakpointHit() const = 0;
 
 	// Adds a new listener who is interested to listen to certain debug actions like adding a new breakpoint etc.
 	virtual bool RegisterListener(IFlowGraphDebugListener* pListener, const char* name) = 0;
@@ -211,12 +208,15 @@ public:
 	virtual IFlowGraphPtr GetRootGraph(IFlowGraphPtr pFlowGraph) const = 0;
 };
 
-DECLARE_BOOST_POINTERS( IFlowGraphDebugger );
+DECLARE_BOOST_POINTERS(IFlowGraphDebugger);
 
 static IFlowGraphDebuggerPtr GetIFlowGraphDebuggerPtr()
 {
 	IFlowGraphDebuggerPtr pFlowGraphDebugger;
-	CryCreateClassInstance(IFlowGraphDebuggerExtensionName, pFlowGraphDebugger);
+	if (!CryCreateClassInstance(IFlowGraphDebuggerExtensionName, pFlowGraphDebugger))
+	{
+		CryWarning(VALIDATOR_MODULE_FLOWGRAPH, VALIDATOR_ERROR, "Could not create class instance of extension: %s", IFlowGraphDebuggerExtensionName);
+	}
 	return pFlowGraphDebugger;
 }
 

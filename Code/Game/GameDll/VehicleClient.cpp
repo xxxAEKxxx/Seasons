@@ -392,6 +392,11 @@ void CVehicleClient::OnEnterVehicleSeat(IVehicleSeat* pSeat)
 		if (viewId != InvalidVehicleViewId)
 			pSeat->SetView(viewId);
 
+		// Set custom draw near z range for camera motion blur
+		const bool bForceValue = true;
+		const float customDrawNearZRange = 0.05f;
+		gEnv->p3DEngine->SetPostEffectParam( "MotionBlur_DrawNearZRangeOverride", customDrawNearZRange, bForceValue );
+
 		if(IActor *pPassengerActor = g_pGame->GetIGameFramework()->GetIActorSystem()->GetActor(pSeat->GetPassenger()))
 		{
 			if(pPassengerActor->IsPlayer())
@@ -428,6 +433,10 @@ void CVehicleClient::OnExitVehicleSeat(IVehicleSeat* pSeat)
 		  EnableActionMaps(pSeat, false);
 	  }
   }
+
+  // Reset custom draw near z range for camera motion blur
+  const bool bForceValue = true;
+  gEnv->p3DEngine->SetPostEffectParam( "MotionBlur_DrawNearZRangeOverride", 0.0f, bForceValue );
 }
 
 

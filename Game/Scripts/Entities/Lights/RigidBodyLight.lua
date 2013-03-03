@@ -26,6 +26,14 @@ RigidBodyLight =
 				water_resistance = 1000,	
 			},
 		},
+		Sound = {
+			soundTurnOn = "",
+			soundTurnOff = "",
+			soundDestroy = "",
+			soundIdle = "",
+			soundRun = "",
+			vOffset	= {x=0, y=0, z=0},
+		},
 	},
 	
 	PropertiesInstance = 
@@ -33,16 +41,21 @@ RigidBodyLight =
 	  bTurnedOn = 1,
 		LightProperties_Base = 
 		{
+			_nVersion = -1,
 			bUseThisLight = 1,
 			Radius = 10,
 			vOffset					= {x=0, y=0, z=0},
 			vDirection			= {x=0, y=1, z=0},
 			Style =
 			{
+				nLightStyle = 0,
+				Rotation = {x=0.0,y=0.0,z=0.0},
+				fAnimationSpeed = 1,
+				nAnimationPhase = 0,
 				fCoronaScale = 1,
 				fCoronaDistSizeFactor = 1,
 				fCoronaDistIntensityFactor = 1,
-				nLightStyle = 0,
+				texture_AttenuationMap = "",
 			},
 			Projector =
 			{
@@ -61,33 +74,48 @@ RigidBodyLight =
 			Options = 
 			{
 				bCastShadow = 0,
-				bIgnoreGeomCaster = 0,
+				nCastShadows = 0,
+				fShadowBias = 1,
+				fShadowSlopeBias = 1,
 				bAffectsThisAreaOnly = 1,
-				bUsedInRealTime=1,
+				bIgnoresVisAreas = 0,
+				--bUsedInRealTime=1,
+				bDeferredLight = 1,
+				bAmbientLight = 0,
 				bFakeLight=0,
-				bDeferredLight = 0,
+				bDeferredClipBounds = 0,
+				bIrradianceVolumes = 0,
+				texture_deferred_cubemap = "",
+				file_deferred_clip_geom = "",
+				nPostEffect=0, -- 0=none, 1= screen space light shaft, 2= flare, 3= volume desaturation ?			
+				
+				bIgnoreGeomCaster = 0,
         nViewDistRatio = 100,
         nGlowSubmatId = 0,
 			},
 			Test = 
 			{
 				bFillLight=0,
-				bNegativeLight=0,
 			},
 		},
 		
 		LightProperties_Destroyed = 
 		{
+			_nVersion = -1,
 			bUseThisLight = 0,
 			Radius = 10,
 			vOffset					= {x=0, y=0, z=0},
 			vDirection			= {x=0, y=1, z=0},
 			Style =
 			{
+				nLightStyle = 0,
+				Rotation = {x=0.0,y=0.0,z=0.0},
+				fAnimationSpeed = 1,
+				nAnimationPhase = 0,
 				fCoronaScale = 1,
 				fCoronaDistSizeFactor = 1,
 				fCoronaDistIntensityFactor = 1,
-				nLightStyle = 0,
+				texture_AttenuationMap = "",
 			},
 			Projector =
 			{
@@ -106,12 +134,17 @@ RigidBodyLight =
 			Options = 
 			{
 				bCastShadow = 0,
-				bIgnoreGeomCaster = 0,
+				nCastShadows = 0,
+				fShadowBias = 1,
+				fShadowSlopeBias = 1,
 				bAffectsThisAreaOnly = 1,
-				bUsedInRealTime=1,
+				bIgnoresVisAreas = 0,
+				bDeferredLight = 1,
+				bAmbientLight = 0,
 				bFakeLight=0,
 				bDeferredClipBounds = 0,
 				bIrradianceVolumes = 0,
+				bDisableX360Opto = 0,
 				texture_deferred_cubemap = "",
 				file_deferred_clip_geom = "",
 				nPostEffect=0, -- 0=none, 1= screen space light shaft, 2= flare, 3= volume desaturation ?			
@@ -120,11 +153,11 @@ RigidBodyLight =
 				
 				bIgnoreGeomCaster = 0,
         nViewDistRatio = 100,
+        nGlowSubmatId = 0,
 			},
 			Test = 
 			{
 				bFillLight=0,
-				bNegativeLight=0,
 			},
 		},
 	},
@@ -166,13 +199,29 @@ MakeDerivedEntity( RigidBodyLight, BasicEntity )
 
 -------------------------------------------------------
 function RigidBodyLight:OnLoad(table)  
+  if (self.lightSlot) then
+  	self:FreeSlot( self.lightSlot );
+  end
+
   self.bRigidBodyActive = table.bRigidBodyActive;
 	self.lightSlot = table.lightSlot;
 	self.origGlowValue = table.origGlowValue;
-	self.materialIsCloned = table.materialIsCloned; 
-	self.lightOn = table.lightOn;
 	self.destroyed = table.destroyed;
 	
+	-- if resuming a game (i.e. also including loading the map and creating this light instance) 
+	-- and the material was cloned in the saved game
+	if( not self.materialIsCloned and table.materialIsCloned) then
+		self:CloneMaterial(0);
+	end
+
+	-- the "or" prevents multiple cloning when loading a game in the same current map
+	self.materialIsCloned = self.materialIsCloned or table.materialIsCloned;
+	self.lightOn = table.lightOn;
+
+  self.runSoundId = 0;
+  self.idleSoundId = 0;
+	self:ShowCorrectLight();
+
 end
 
 -------------------------------------------------------
@@ -191,6 +240,32 @@ function RigidBodyLight:OnSpawn()
 		self.bRigidBodyActive = 1;
 	end
 	self:SetFromProperties();	
+	self:SetupHealthProperties();
+	self:CacheResources("RigidBodyLight.lua");
+end
+
+-------------------------------------------------------
+function RigidBodyLight:CacheResources(requesterName)
+	local textureFlags = 0;
+	if (self.PropertiesInstance.LightProperties_Base.Projector.bProjectInAllDirs ~= 0 and self.PropertiesInstance.LightProperties_Base.Options.bDeferredLight ~= 0) then
+		textureFlags = eGameCacheResourceFlag_TextureReplicateAllSides;
+	end
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Base.Projector.texture_Texture, eGameCacheResourceType_Texture, textureFlags);
+	
+	textureFlags = 0;
+	if (self.PropertiesInstance.LightProperties_Destroyed.Projector.bProjectInAllDirs ~= 0 and self.PropertiesInstance.LightProperties_Destroyed.Options.bDeferredLight ~= 0) then
+		textureFlags = eGameCacheResourceFlag_TextureReplicateAllSides;
+	end
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Destroyed.Projector.texture_Texture, eGameCacheResourceType_Texture, textureFlags);
+
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Base.Style.texture_AttenuationMap, eGameCacheResourceType_Texture, eGameCacheResourceFlag_TextureNoStream);
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Destroyed.Style.texture_AttenuationMap, eGameCacheResourceType_Texture, eGameCacheResourceFlag_TextureNoStream);
+	
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Base.Options.texture_deferred_cubemap, eGameCacheResourceType_TextureDeferredCubemap, 0);
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Destroyed.Options.texture_deferred_cubemap, eGameCacheResourceType_TextureDeferredCubemap, 0);
+	
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Base.Options.file_deferred_clip_geom, eGameCacheResourceType_StaticObject, 0);
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Destroyed.Options.file_deferred_clip_geom, eGameCacheResourceType_StaticObject, 0);
 end
 
 ------------------------------------------------------------------------------------------------------
@@ -198,33 +273,39 @@ function RigidBodyLight:SetFromProperties()
 	local Properties = self.Properties;
   self.destroyed = false;
 	
-	if (Properties.object_Model == "") then
-		do return end;
-	end
+	if (Properties.object_Model ~= "") then
 	
-	self:LoadObject(0,Properties.object_Model);
-	self:CharacterUpdateOnRender(0,1); -- If it is a character force it to update on render.
+		self:LoadObject(0,Properties.object_Model);
+		self:CharacterUpdateOnRender(0,1); -- If it is a character force it to update on render.
+			
+		-- Enabling drawing of the slot.
+		self:DrawSlot(0,1);
 		
-	-- Enabling drawing of the slot.
-	self:DrawSlot(0,1);
-	
-	if (Properties.Physics.bPhysicalize == 1) then
-		self:PhysicalizeThis();
-	end
-	
-	-- Mark AI hideable flag.
-	if (self.Properties.bAutoGenAIHidePts == 1) then
-		self:SetFlags(ENTITY_FLAG_AI_HIDEABLE, 0); -- set
-	else
-		self:SetFlags(ENTITY_FLAG_AI_HIDEABLE, 2); -- remove
+		if (Properties.Physics.bPhysicalize == 1) then
+			self:PhysicalizeThis();
+		end
+		
+		-- Mark AI hideable flag.
+		if (self.Properties.bAutoGenAIHidePts == 1) then
+			self:SetFlags(ENTITY_FLAG_AI_HIDEABLE, 0); -- set
+		else
+			self:SetFlags(ENTITY_FLAG_AI_HIDEABLE, 2); -- remove
+		end
 	end
 	
     -- this is somewhat of a hack: the "or self.lightOn" is there to cover the case when the designer is currently modifying the glow value in the editor. it is irrelevant in pure game
 	if (not self.origGlowValue or self.lightOn) then
     self.origGlowValue = self:GetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow" );
   end
-	
+  
   self.lightOn = self.PropertiesInstance.bTurnedOn==1;
+  if (self.idleSoundId==nil) then
+  	self.idleSoundId = 0;
+  end	
+  if (self.runSoundId==nil) then
+  	self.runSoundId = 0;
+  end	
+  	
   self:ShowCorrectLight();
 end
 
@@ -247,6 +328,19 @@ function RigidBodyLight:OnPropertyChange()
   end
 
 	self:SetFromProperties();
+	if (self.PropertiesInstance.LightProperties_Base.Options.bDeferredClipBounds) then
+		self:UpdateLightClipBounds(self.lightSlot);
+	end
+	-- to avoid loop sounds playing while in editor mode
+	self:StopIdleSound();  
+	self:StopRunSound();
+end
+
+
+function RigidBodyLight.Client:OnLevelLoaded()
+	if (self.PropertiesInstance.LightProperties_Base.Options.bDeferredClipBounds) then
+		self:UpdateLightClipBounds(self.lightSlot);
+	end
 end
 
 ------------------------------------------------------------------------------------------------------
@@ -304,16 +398,64 @@ function RigidBodyLight:Event_Enable()
     self.lightOn = true;
     self:ShowCorrectLight();
 	  self:ActivateOutput( "Enabled", true );
+	  self:PlaySound( self.Properties.Sound.soundTurnOn );
 	end
 end
 
 function RigidBodyLight:Event_Disable()
-  if (not self.destroyed) then
-    self.lightOn = false;
-    self:ShowCorrectLight();
-	  self:ActivateOutput( "Disabled", true );
+	self:SwitchOnOff( false );
+end
+
+function RigidBodyLight:PlaySound( soundName )
+	if ( soundName and soundName~="") then
+		local sndFlags=SOUND_DEFAULT_3D;
+		self:PlaySoundEvent( soundName, self.Properties.Sound.vOffset,g_Vectors.v010,sndFlags, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
 	end
 end
+
+function RigidBodyLight:PlaySoundLoop( soundName )
+	if ( soundName and soundName~="") then
+		local sndFlags=SOUND_DEFAULT_3D;
+		sndFlags = bor( sndFlags, FLAG_SOUND_LOOP );
+		local id = self:PlaySoundEvent( soundName, self.Properties.Sound.vOffset,g_Vectors.v010,sndFlags, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
+		return id;
+	end
+end
+
+function RigidBodyLight:PlayIdleSound()
+	if (self.idleSoundId==0) then
+		self.idleSoundId = self:PlaySoundLoop( self.Properties.Sound.soundIdle );
+  end
+end
+
+function RigidBodyLight:PlayRunSound()
+	if (self.runSoundId==0) then
+		self.runSoundId = self:PlaySoundLoop( self.Properties.Sound.soundRun );
+  end
+end
+
+function RigidBodyLight:StopIdleSound()
+	if (self.idleSoundId~=0) then
+		Sound.StopSound(self.idleSoundId);
+		self.idleSoundId = 0;
+	end
+end
+
+function RigidBodyLight:StopRunSound()
+	if (self.runSoundId~=0) then
+		Sound.StopSound(self.runSoundId);
+		self.runSoundId = 0;
+	end
+end
+
+
+function RigidBodyLight:OnEditorSetGameMode(gameMode)
+	if (gameMode~=true) then
+		self:StopIdleSound();
+		self:StopRunSound();
+	end
+end
+
 
 
 ------------------------------------------------------------------------------------------------------
@@ -329,11 +471,10 @@ function RigidBodyLight:ShowLightOn()
 
   -- glow effect --
   local glowVal = self:GetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow" );
-  if (glowVal~=self.origGlowValue and self.origGlowValue and self.materialIsCloned) then
+  if (self.origGlowValue and glowVal~=self.origGlowValue ) then
     self:SetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow", self.origGlowValue );
   end
 end
-
 
 ------------------------------------------------------------------------------------------------------
 function RigidBodyLight:ShowLightOff()
@@ -347,16 +488,13 @@ function RigidBodyLight:ShowLightOff()
 		self:UseLight(0);
 	end
 
-
   -- glow effect --
-  local currentGlow = self:GetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow" );
-  
-  if (currentGlow>0) then  
-    if (not self.materialIsCloned) then
-      self:CloneMaterial(0);
-      self.materialIsCloned = true;
-    end
-  
+  local glowVal = self:GetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow" );
+  if (glowVal~=0 ) then
+		if (not self.materialIsCloned) then
+			self:CloneMaterial(0);
+			self.materialIsCloned = true;
+		end
     self:SetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow", 0 );
   end
 end
@@ -366,11 +504,48 @@ function RigidBodyLight.Client:OnPhysicsBreak( vPos,nPartId,nOtherPartId )
 	self:ActivateOutput("Break",nPartId+1 );
 	self.destroyed = true;
   self:ShowCorrectLight();
+  self:StopRunSound();
+  self:StopIdleSound();
+  self:PlaySound( self.Properties.Sound.soundDestroy );
+  self:SwitchOnOffChildren( false );
 end
 
-------------------------------------------------------------------------------------------------------
-function RigidBodyLight.Client:OnCollision(hit)
+
+------------------------------------------------------------------------------
+function RigidBodyLight:SwitchOnOffChildren( wantOn )
+	local numChildren = self:GetChildCount();
+	for i=0,numChildren do
+		local child = self:GetChild(i);
+		if (child and child.NotifySwitchOnOffFromParent) then
+			child:NotifySwitchOnOffFromParent( wantOn )
+		end
+	end
 end
+
+function RigidBodyLight:NotifySwitchOnOffFromParent( wantOn )
+  self:SwitchOnOff( wantOn );
+end
+
+function RigidBodyLight:SwitchOnOff( wantOn )
+	if (not self.destroyed) then
+	  local wantOff = wantOn~=true;
+	  if (self.lightOn and wantOff ) then
+		  self.lightOn = false;
+			self:PlaySound( self.Properties.Sound.soundTurnOff );
+		  BroadcastEvent( self, "Disabled" );
+		  self:ShowCorrectLight();
+		  self:SwitchOnOffChildren( wantOn );
+		elseif (self.lightOn~=true and wantOn) then
+      self.lightOn = true;
+			self:PlaySound( self.Properties.Sound.soundTurnOn );
+  	  BroadcastEvent( self, "Enabled" );
+		  self:ShowCorrectLight();
+		  self:SwitchOnOffChildren( wantOn );
+		end
+	end
+end
+    
+
 
 ------------------------------------------------------------------------------------------------------
 function RigidBodyLight:OnDamage( hit )
@@ -382,9 +557,15 @@ end
 ----------------------------------------------------------------------------------------------------
 function RigidBodyLight:ShowCorrectLight()
   if (self.lightOn and not self.destroyed) then
+  	self:StopIdleSound();
+  	self:PlayRunSound();
     self:ShowLightOn();
   else
     self:ShowLightOff();
+  	self:StopRunSound();
+    if (not self.destroyed) then
+      self:PlayIdleSound();
+    end
   end
 end
 
@@ -418,6 +599,11 @@ function RigidBodyLight:UseLight( lightIdx )
 	lt.corona_scale = Style.fCoronaScale;
 	lt.corona_dist_size_factor = Style.fCoronaDistSizeFactor;
 	lt.corona_dist_intensity_factor = Style.fCoronaDistIntensityFactor;
+	lt.rotation = Style.Rotation;
+	lt.anim_speed = Style.fAnimationSpeed;
+	lt.anim_phase = Style.nAnimationPhase;
+	lt.attenuation_map = Style.texture_AttenuationMap;
+	
 	lt.radius = props.Radius;
 	lt.diffuse_color = { x=Color.clrDiffuse.x*diffuse_mul, y=Color.clrDiffuse.y*diffuse_mul, z=Color.clrDiffuse.z*diffuse_mul };
 	if (diffuse_mul ~= 0) then
@@ -432,12 +618,18 @@ function RigidBodyLight:UseLight( lightIdx )
 	lt.proj_nearplane = Projector.fProjectorNearPlane;
 	lt.cubemap = Projector.bProjectInAllDirs;
 	lt.this_area_only = Options.bAffectsThisAreaOnly;
+	lt.hasclipbound = Options.bDeferredClipBounds;
+	lt.ignore_visareas = Options.bIgnoresVisAreas;
+	lt.disable_x360_opto = Options.bDisableX360Opto;
 	lt.realtime = Options.bUsedInRealTime;
+	lt.ambient_light = Options.bAmbientLight;		
+	lt.irradiance_volumes = Options.bIrradianceVolumes;
+	lt.deferred_cubemap = Options.texture_deferred_cubemap;
+	lt.deferred_geom = Options.file_deferred_clip_geom;
 	lt.heatsource = 0;
 	lt.fake = Options.bFakeLight;
 	lt.deferred_light = Options.bDeferredLight;
 	lt.fill_light = props.Test.bFillLight;		
-	lt.negative_light = props.Test.bNegativeLight;
 	lt.indoor_only = 0;
 	lt.has_cbuffer = 0;
 	lt.cast_shadow = Options.nCastShadows;
@@ -470,9 +662,13 @@ function RigidBodyLight:UseLight( lightIdx )
   angles.y = math.atan2( -props.vDirection.z, xyVectorLen );
   angles.z = math.atan2( props.vDirection.y, props.vDirection.x );
 	self:SetSlotAngles(self.lightSlot, angles );
-	self:SetSlotPos(self.lightSlot, props.vOffset );
+	local vec3offset = g_Vectors.temp_v1;
+	vec3offset.x = props.vOffset.x;
+	vec3offset.y = props.vOffset.y;
+	vec3offset.z = props.vOffset.z;
+	self:SetSlotPos(self.lightSlot, vec3offset );
 	
-	if ((props.Options.bCastShadows ~= 0) and (props.Options.bIgnoreGeomCaster ~= 0)) then
+	if ((Options.nCastShadows ~= 0) and (Options.bIgnoreGeomCaster ~= 0)) then
 		self:SetSelfAsLightCasterException( self.lightSlot );
 	end
 end
@@ -493,6 +689,7 @@ RigidBodyLight.Default =
 		  end  
 		end
 	end,
+	
 	OnDamage = RigidBodyLight.OnDamage,
 	OnCollision = RigidBodyLight.OnCollision,
 	OnPhysicsBreak = RigidBodyLight.OnPhysicsBreak,
@@ -508,7 +705,8 @@ RigidBodyLight.Activated =
       self:SetPhysicsProperties( 0,1 );
 		  self:AwakePhysics(1);
 	  end
-	end,
+	end,	
+	
 	OnDamage = RigidBodyLight.OnDamage,
 	OnCollision = RigidBodyLight.OnCollision,
 	OnPhysicsBreak = RigidBodyLight.OnPhysicsBreak,
@@ -537,6 +735,7 @@ RigidBodyLight.FlowEvents =
 		EnableUsable = "bool",
 		Break = "bool",
 		Used = "bool",
+		Health = "float",
 	},
 }
 
@@ -546,13 +745,7 @@ MakeUsable(RigidBodyLight);
 function RigidBodyLight:OnUsed(user, idx)
 	BroadcastEvent(self, "Used")
 	if (not self.destroyed) then
-  	if (self.lightOn) then
-      self.lightOn = false;
-  	  BroadcastEvent( self, "Disabled" );
-	  else
-      self.lightOn = true;
-  	  BroadcastEvent( self, "Enabled" );
-	  end
-    self:ShowCorrectLight();
+	  local wantOn = self.lightOn==false;
+	  self:SwitchOnOff( wantOn );
 	end
 end

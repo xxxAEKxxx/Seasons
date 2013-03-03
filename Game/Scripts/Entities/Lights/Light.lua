@@ -43,17 +43,16 @@ Light =
 		Options = {
 			bCastShadow = 0,
 			nCastShadows = 0,
-			fShadowBias = 100,
+			fShadowBias = 1,
 			fShadowSlopeBias = 1,
 			bAffectsThisAreaOnly = 1,
 			bIgnoresVisAreas = 0,
 			--bUsedInRealTime = 1,
-			bDeferredLight = 1,
-			bAmbientLight = 0,
-			bNegativeLight=0,
+			bAmbientLight = 0,			
 			bFakeLight=0,
 			bDeferredClipBounds = 0,
 			bIrradianceVolumes = 0,
+			bDisableX360Opto = 0,
 			texture_deferred_cubemap = "",
 			file_deferred_clip_geom = "",
 			nPostEffect=0, -- 0=none, 1= screen space light shaft, 2= flare, 3= volume desaturation ?
@@ -180,13 +179,13 @@ function Light:LoadLightToSlot( nSlot )
 	lt.this_area_only = Options.bAffectsThisAreaOnly;
 	lt.hasclipbound = Options.bDeferredClipBounds;
 	lt.ignore_visareas = Options.bIgnoresVisAreas;
+	lt.disable_x360_opto = Options.bDisableX360Opto;
 	lt.realtime = Options.bUsedInRealTime;
 	lt.fake = Options.bFakeLight;
 	lt.deferred_light = Options.bDeferredLight;
 	lt.post_effect = Options.nPostEffect;
 	lt.irradiance_volumes = Options.bIrradianceVolumes;
 	lt.ambient_light = props.Options.bAmbientLight;		
-	lt.negative_light = props.Options.bNegativeLight;
 	lt.indoor_only = 0;
 	lt.has_cbuffer = 0;
 	lt.cast_shadow = Options.nCastShadows;
@@ -216,6 +215,16 @@ function Light:Event_Disable()
 		self:ActivateLight( 0 );
 	end
 end
+
+function Light:NotifySwitchOnOffFromParent(wantOn)
+  local wantOff = wantOn~=true;
+	if (self.bActive == 1 and wantOff) then
+		self:ActivateLight( 0 );
+	elseif (self.bActive == 0 and wantOn) then
+		self:ActivateLight( 1 );
+	end
+end
+
 
 -----------------------------------------------------
 function Light:OnNanoSuitDischarge()

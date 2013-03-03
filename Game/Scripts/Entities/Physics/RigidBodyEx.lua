@@ -191,6 +191,34 @@ function RigidBodyEx:OnReset()
 	end
 	
 	self:SetupHealthProperties();
+
+end
+
+-- Called by gamerules --- resets entity if initial transform is available -------------------------
+function RigidBodyEx:Event_Reset()
+	self:OnReset();
+	BroadcastEvent(self, "Reset");
+	
+	if (self.InitialPosition) then
+		self:SetPos(self.InitialPosition);
+	end
+
+	if (self.InitialAngles) then
+		self:SetWorldAngles(self.InitialAngles);
+	end
+
+	if (self.InitialScale) then
+		self:SetScale(self.InitialScale);
+	end
+end
+
+-- Called by gamerules ------------------------------------------------------------------------------
+-- set initial transform so you can use Event_Reset to return objects to their positions ------------
+------------------------------------------------------------------------------------------------------
+function RigidBodyEx:StoreInitialTransform()
+	self.InitialScale = self:GetScale();
+	self.InitialAngles = self:GetWorldAngles();
+	self.InitialPosition = self:GetPos();
 end
 
 ------------------------------------------------------------------------------------------------------
@@ -332,6 +360,7 @@ RigidBodyEx.FlowEvents =
 {
 	Inputs =
 	{
+		Reset = { RigidBodyEx.Event_Reset, "bool" },
 		Used = { RigidBodyEx.Event_Used, "bool" },
 		EnableUsable = { RigidBodyEx.Event_EnableUsable, "bool" },
 		DisableUsable = { RigidBodyEx.Event_DisableUsable, "bool" },
@@ -350,6 +379,7 @@ RigidBodyEx.FlowEvents =
 	},
 	Outputs =
 	{
+		Reset = "bool",
 		Used = "bool",
 		EnableUsable = "bool",
 		DisableUsable = "bool",

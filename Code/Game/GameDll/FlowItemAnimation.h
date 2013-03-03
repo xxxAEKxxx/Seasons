@@ -26,10 +26,10 @@ public:
 			InputPortConfig<EntityId>("ItemId", _HELP("Set item that will play the animation.")),
 			InputPortConfig<bool>("Busy", true, _HELP("Set item as busy while the animation is playing.")),
 			InputPortConfig<string>("Animation", _HELP("Set the animation to be played.")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig outputs[] = {
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = inputs;
 		config.pOutputPorts = outputs;
@@ -112,10 +112,10 @@ public:
 			InputPortConfig<EntityId>("ItemId", _HELP("Set item that will play the animation.")),
 			InputPortConfig<bool>("Busy", true, _HELP("Set item as busy while the animation is playing.")),
 			InputPortConfig<string>("Animation", _HELP("Set the animation to be played.")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig outputs[] = {
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = inputs;
 		config.pOutputPorts = outputs;

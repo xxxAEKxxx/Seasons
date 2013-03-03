@@ -13,11 +13,18 @@ EnvironmentLight =
 			fSpecularMultiplier = 1,
 			fHDRDynamic = 0,		-- -1=darker..0=normal..1=brighter
 		},
+		Projection = {
+			bBoxProject = 0,
+			fBoxWidth = 10,
+			fBoxHeight = 10,
+			fBoxLength = 10,
+		},
 		Options = {
 			bAffectsThisAreaOnly = 1,
 			bIgnoresVisAreas = 0,
 			bDeferredLight = 1,
 			bDeferredClipBounds = 0,
+			bDisableX360Opto = 0,
 			_texture_deferred_cubemap = "",
 			file_deferred_clip_geom = "",
 		},
@@ -66,6 +73,9 @@ end
 function EnvironmentLight:OnPropertyChange()
 	self:OnReset();
 	self:ActivateLight( self.bActive );
+	if (self.Properties.Options.bDeferredClipBounds) then
+		self:UpdateLightClipBounds(LightSlot);
+	end
 end
 
 function EnvironmentLight:OnUpdate(dt)
@@ -101,6 +111,7 @@ function EnvironmentLight:LoadLightToSlot( nSlot )
 	local Color = props.Color;
 	local Options = props.Options;
 	local OptionsAdvanced = props.OptionsAdvanced;
+	local Projection = props.Projection;
 
 	local diffuse_mul = Color.fDiffuseMultiplier;
 	local specular_mul = Color.fSpecularMultiplier;
@@ -123,7 +134,13 @@ function EnvironmentLight:LoadLightToSlot( nSlot )
 	lt.hdrdyn = Color.fHDRDynamic;
 	lt.this_area_only = Options.bAffectsThisAreaOnly;
 	lt.ignore_visareas = Options.bIgnoresVisAreas;
+	lt.disable_x360_opto = Options.bDisableX360Opto;
 	
+	lt.box_projection = Projection.bBoxProject; -- settings for box projection
+	lt.box_width = Projection.fBoxWidth;
+	lt.box_height = Projection.fBoxHeight;
+	lt.box_length = Projection.fBoxLength;
+
 	lt.lightmap_linear_attenuation = 1;
 	lt.is_rectangle_light = 0;
 	lt.is_sphere_light = 0;
@@ -151,6 +168,16 @@ function EnvironmentLight:Event_Disable()
 		self:ActivateLight( 0 );
 	end
 end
+
+function Light:NotifySwitchOnOffFromParent(wantOn)
+  local wantOff = wantOn~=true;
+	if (self.bActive == 1 and wantOff) then
+		self:ActivateLight( 0 );
+	elseif (self.bActive == 0 and wantOn) then
+		self:ActivateLight( 1 );
+	end
+end
+
 
 -----------------------------------------------------
 function EnvironmentLight:OnNanoSuitDischarge()
@@ -183,9 +210,9 @@ EnvironmentLight.FlowEvents =
 {
 	Inputs =
 	{
-		Active = { Light.Event_Active,"bool" },
-		Enable = { Light.Event_Enable,"bool" },
-		Disable = { Light.Event_Disable,"bool" },
+		Active = { EnvironmentLight.Event_Active,"bool" },
+		Enable = { EnvironmentLight.Event_Enable,"bool" },
+		Disable = { EnvironmentLight.Event_Disable,"bool" },
 	},
 	Outputs =
 	{

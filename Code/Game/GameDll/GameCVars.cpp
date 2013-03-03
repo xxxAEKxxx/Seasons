@@ -1284,6 +1284,10 @@ void CmdGoto(IConsoleCmdArgs *pArgs)
 	{
 		Matrix34 tm = pEntity->GetWorldTM();
 
+		if(ISegmentsManager *pSM = gEnv->p3DEngine->GetSegmentsManager())
+		{
+			vPos = pSM->LocalToAbsolutePosition(vPos, -1);
+		}
 		tm.SetTranslation(vPos);
 
 		if(iArgCount==7

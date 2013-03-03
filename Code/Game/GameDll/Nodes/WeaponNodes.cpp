@@ -91,13 +91,13 @@ static const SInputPortConfig in_ports[] =
 {
 InputPortConfig_Void( "Activate",    _HELP("Activate") ),
 InputPortConfig_Void( "Deactivate",  _HELP("Deactivate") ),
-{0}
+InputPortConfig_Null()
 };
 static const SOutputPortConfig out_ports[] = 
 {
 OutputPortConfig<string>( "AccessoryAdded",   _HELP("Accessory was added")),
 OutputPortConfig<string>( "AccessoryRemoved", _HELP("Accessory was removed")),
-{0}
+OutputPortConfig_Null()
 };
 config.nFlags |= EFLN_TARGET_ENTITY;
 config.pInputPorts = in_ports;
@@ -212,14 +212,14 @@ public:
 		{
 			InputPortConfig<string>( "Weapon",  _HELP("Restrict listening on this weapon. Empty=Listen for all"), 0, _UICONFIG("enum_global:weapon") ),
 			InputPortConfig<string>( "Item",  _HELP("Restrict listening for this accessory. Empty=Listen for all"), 0, _UICONFIG("enum_global:item_givable") ),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig out_ports[] = 
 		{
 			OutputPortConfig<string>( "Weapon", _HELP("Weapon name on Accessory change")),
 			OutputPortConfig<string>( "AccessoryAdded",   _HELP("Accessory was added. Accessory Name will be outputted.")),
 			OutputPortConfig<string>( "AccessoryRemoved", _HELP("Accessory was removed. Accessory Name will be outputted.")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = in_ports;
 		config.pOutputPorts = out_ports;
@@ -274,13 +274,13 @@ public:
 		{
 			InputPortConfig_Void( "Check", _HELP("Trigger this port to check for accessory on the Actor's current weapon" )),
 			InputPortConfig<string>( "Accessory", _HELP("Name of accessory to check for."), 0, _UICONFIG("enum_global:item")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig out_ports[] = 
 		{
 			OutputPortConfig_Void( "False", _HELP("Triggered if accessory is not attached.")),
 			OutputPortConfig_Void( "True",  _HELP("Triggered if accessory is attached.")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.nFlags |= EFLN_TARGET_ENTITY;
 		config.pInputPorts = in_ports;
@@ -326,13 +326,13 @@ public:
 		{
 			InputPortConfig_Void( "Check", _HELP("Trigger this port to check if Actor's current weapon is zoomed" )),
 			InputPortConfig<string>( "Weapon", _HELP("Name of Weapon to check. Empty=All."), 0, _UICONFIG("enum_global:weapon")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig out_ports[] = 
 		{
 			OutputPortConfig_Void( "False", _HELP("Triggered if weapon is not zoomed.")),
 			OutputPortConfig_Void( "True",  _HELP("Triggered if weapon is zoomed.")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.nFlags |= EFLN_TARGET_ENTITY;
 		config.pInputPorts = in_ports;
@@ -396,13 +396,13 @@ public:
 			InputPortConfig_Void( "Detach", _HELP("Trigger to detach accessory from the Actor's weapon" )),
 			InputPortConfig<string>( "Weapon", _HELP("Name of weapon the accessory should be attached/detached"), 0, _UICONFIG("enum_global:weapon")),
 			InputPortConfig<string>( "Accessory", _HELP("Name of accessory"), 0, _UICONFIG("enum_global:item")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig out_ports[] = 
 		{
 			OutputPortConfig_Void( "Attached", _HELP("Triggered if accessory was attached.")),
 			OutputPortConfig_Void( "Detached",  _HELP("Triggered if accessory was detached.")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.nFlags |= EFLN_TARGET_ENTITY;
 		config.pInputPorts = in_ports;

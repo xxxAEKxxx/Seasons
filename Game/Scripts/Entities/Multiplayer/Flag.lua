@@ -15,11 +15,19 @@ Flag =
 {	
 	Properties =
 	{
-		objModel 						= "objects/library/props/flags/mp_flags.cga",
-		teamName						= "";
-		animationTemplate		= "flags_%s_%s";
+		objModel = "objects/props/maritime/windsock/windsock.cga",
+		teamName = "";
+		animationTemplate = "flags_%s_%s";
+	},
+
+	Editor=
+	{
+		Icon = "Checkpoint.bmp",
+		IconOnTop=1,
 	},
 };
+
+
 
 ----------------------------------------------------------------------------------------------------
 function Flag:OnPreFreeze(freeze, vapor)
@@ -27,6 +35,7 @@ function Flag:OnPreFreeze(freeze, vapor)
 		return false; -- don't allow freezing
 	end
 end
+
 
 ----------------------------------------------------------------------------------------------------
 function Flag:CanShatter()
@@ -54,7 +63,7 @@ function Flag:OnSpawn()
 	CryAction.CreateGameObjectForEntity(self.id);
 	CryAction.BindGameObjectToNetwork(self.id);
 	CryAction.ForceGameObjectUpdate(self.id, true);
-	
+
 	self:LoadGeometry(0, self.Properties.objModel);
 	self:Physicalize(0, PE_RIGID, { mass=0 });
 	self:RedirectAnimationToLayer0(0, true);
@@ -66,7 +75,7 @@ end
 function Flag:SetTeam(teamName)
 	if (self.teamName~=teamName) then
 		local action= "";
-		local team	= "";
+		local team = "";
 		local speed = 1;
 
 		if (self.teamName and self.teamName~="") then

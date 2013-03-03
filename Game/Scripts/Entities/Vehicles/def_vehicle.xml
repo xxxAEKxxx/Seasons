@@ -438,6 +438,8 @@
     <Array name="aimPartHands" type="string" optional="1" />
 
 		<Array name="Views" elementName="View" extendable="1">
+				<Property name="name" type="string" optional="1"/>
+
 				<Property name="class" type="string">
 						<Enum>
 								<Value>SteerThirdPerson</Value>
@@ -459,6 +461,8 @@
 				<Property name="rotationVelMax" type="float" optional="1" />
 				<Property name="hidePlayer" type="bool" optional="1" />
 				<Property name="isAvailableRemotely" type="bool" optional="1" />
+				<Property name="isRelaxEnabled" type="bool" optional="1"/>
+				<Property name="relaxTimeMax" type="float" optional="1"/>
 
 				<Array name="HideParts" elementName="HidePart" type="string" extendable="1" optional="1"/>
 
@@ -507,7 +511,10 @@
 				<Table name="ThirdPerson" optional="1">
 						<Property name="distance" type="float" optional="1" min="0" max="100" desc="Camera distance from the vehicle" />
 						<Property name="heightOffset" type="float" min="-10" max="50" optional="1" desc="Optional camera height offset" />
-						<Property name="speed" type="float" optional="1" min="0" max="50" desc="Speed for Thirdperson view rotation" />
+						<Property name="speed" type="float" optional="1" min="0" max="50" desc="(Linear) Speed for Thirdperson view" />
+						<Property name="rotationSpeed" type="float" optional="1" min="0" max="50" desc="Speed for Thirdperson view rotation" />
+						<Property name="pitchLowerLimit" type="float" optional="1" min="-90" max="90" desc="Minimum camera pitch"/>
+						<Property name="pitchUpperLimit" type="float" optional="1" min="-90" max="90" desc="Maximum camera pitch"/>
 				</Table>
 
 				<Table name="ActionThirdPerson" optional="1">

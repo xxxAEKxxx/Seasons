@@ -142,7 +142,10 @@ void CBoidsProxy::SetFlock( CFlock *pFlock )
 
 	pArea->SetFlags( pArea->GetFlags() & IEntityAreaProxy::FLAG_NOT_SERIALIZE );
 	pArea->SetSphere( Vec3(0,0,0),fMaxDist );
-	pArea->AddEntity( m_pEntity->GetId() ); // add itself.
+	if(gEnv->pEntitySystem->EntitiesUseGUIDs())
+		pArea->AddEntity( m_pEntity->GetGuid() );
+	else
+		pArea->AddEntity( m_pEntity->GetId() ); // add itself.
 
 }
 

@@ -275,7 +275,10 @@ function AreaTrigger:Event_Leave(entityId)
 	self:ActivateOutput("Leave", entityId or NULL_ENTITY);
 	
 	if (not self.localOnly and self.isServer and g_localChannelId) then
-		self.otherClients:ClLeave(g_localChannelId, entityId or NULL_ENTITY, self.insideCount);
+		-- This function can be called on level unload, when there's no game (and no RMI server) already
+		if (CryAction.IsRMIServer()) then
+			self.otherClients:ClLeave(g_localChannelId, entityId or NULL_ENTITY, self.insideCount);
+		end
 	end
 end
 

@@ -297,6 +297,7 @@ void CPlayerMovement::ProcessFlyingZeroG()
 				{
 					m_zgDashTimer = 0.0f;
 					m_zgDashWorldDir = desiredWorldVelocity.GetNormalized();
+
 					m_player.PlaySound(CPlayer::ESound_ThrustersDash, true);
 					//m_player.PlaySound(CPlayer::ESound_ThrustersDash02, true);					
 				}
@@ -785,7 +786,7 @@ void CPlayerMovement::ProcessOnGroundOrJumping(CPlayer& player)
 
 		//[Mikko] Do not limit backwards movement when controlling AI, otherwise it will disable sprinting.
 		if (m_player.IsPlayer())
-		{                       //^^[Stas] Added this workaround, other clients are not AIs
+		{                       //^^[Stas] Added this hack, other clients are not AIs
 			if ( moveModule > 1.0f)
 				move /= moveModule;
 		}
@@ -933,7 +934,9 @@ void CPlayerMovement::ProcessOnGroundOrJumping(CPlayer& player)
 			player.GetAnimationGraphState()->SetInput(player.m_inputAction, "jumpMP" );			
 
 			CPlayer* pPlayer = const_cast<CPlayer*>(&m_player);
+
 			pPlayer->PlaySound(CPlayer::ESound_Jump);
+
 			CALL_PLAYER_EVENT_LISTENERS(OnSpecialMove(pPlayer, IPlayerEventListener::eSM_Jump));
 
 			if (m_jumped)

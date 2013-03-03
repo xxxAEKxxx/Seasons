@@ -52,6 +52,32 @@ function BasicEntity:OnSpawn()
 	self:SetFromProperties();	
 end
 
+-- Called by gamerules --- resets entity if initial transform is available -------------------------
+function BasicEntity:Event_Reset()
+	self:OnReset();
+	BroadcastEvent(self, "Reset");
+	
+	if (self.InitialPosition) then
+		self:SetPos(self.InitialPosition);
+	end
+
+	if (self.InitialAngles) then
+		self:SetWorldAngles(self.InitialAngles);
+	end
+
+	if (self.InitialScale) then
+		self:SetScale(self.InitialScale);
+	end
+end
+
+-- Called by gamerules ------------------------------------------------------------------------------
+-- set initial transform so you can use Event_Reset to return objects to their positions ------------
+------------------------------------------------------------------------------------------------------
+function BasicEntity:StoreInitialTransform()
+	self.InitialScale = self:GetScale();
+	self.InitialAngles = self:GetWorldAngles();
+	self.InitialPosition = self:GetPos();
+end
 
 ------------------------------------------------------------------------------------------------------
 function BasicEntity:SetFromProperties()

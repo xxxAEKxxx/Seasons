@@ -741,7 +741,7 @@ void CGameStateRecorder::OnRecordedGameplayEvent(IEntity *pEntity, const Gamepla
 		case eGE_AttachedAccessory: 
 			{
 				// always force attachment of accessory to the current weapon
-				// kind of a workaround, the HUD weapon modifier menu is spawned during timedemo playback 
+				// kind of a hack, the HUD weapon modifier menu is spawned during timedemo playback 
 				// but it doesn't use recorded input events
 				if(!bRecording)
 				{

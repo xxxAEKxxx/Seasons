@@ -103,7 +103,7 @@ void SIKLimb::SetWPos(IEntity *pOwner,const Vec3 &pos,const Vec3 &normal,float b
 	}
 	else if (blendTime<0.001f)
 	{
-		// NOTE Dez 18, 2006: <pvl> this is just a workaround way of telling
+		// NOTE Dez 18, 2006: <pvl> this is just a hacky way of telling
 		// the Update() function that the client code called SetWPos()
 		// in this frame.  Only after the client code stops calling this
 		// function, the "recovery" branch of Update() starts to be
@@ -1000,6 +1000,9 @@ void CActor::Fall(Vec3 hitPos, float sleepTime /*=0.0f*/)
 	IAnimationGraphState* pAGState = GetAnimationGraphState();
 	if ( pAGState && m_pAnimatedCharacter )
 	{
+		// Queue request to move into "FallAndPlay" state
+		pAGState->PushForcedState("FallAndPlay");
+
 		ICharacterInstance* pCharacter = GetEntity()->GetCharacter(0);
 		if ( pCharacter )
 		{
@@ -1319,7 +1322,7 @@ void CActor::Update(SEntityUpdateContext& ctx, int slot)
 	// remove this if AI is not supposed to unfreeze
 	if (m_frozenAmount>0.0f && m_pGameFramework->IsServer() && !IsPlayer())
 	{
-		m_frozenAmount=CLAMP(m_frozenAmount-ctx.fFrameTime/5.0f, 0.0f, 1.0f); // max 3secs frozen (will be reduced by sworkarounding mouse)
+		m_frozenAmount=CLAMP(m_frozenAmount-ctx.fFrameTime/5.0f, 0.0f, 1.0f); // max 3secs frozen (will be reduced by shacking mouse)
 		if (m_frozenAmount<=0.0f)
 			g_pGame->GetGameRules()->FreezeEntity(GetEntityId(), false, false);
 	}

@@ -22,10 +22,10 @@ AdvancedDoor =
 	Properties=
 	{
 		soclasses_SmartObjectClass = "Door",
-		fileModel 					= "objects/library/architecture/village/house_small_a_door_breakable.cgf",
-		ModelSubObject			= "main",
-		fileModelDestroyed	= "",
-		DestroyedSubObject	= "remain",
+		fileModel = "objects/structures/buildings/lighthouse/lighthouse_door.cgf",
+		ModelSubObject = "",
+		fileModelDestroyed = "",
+		DestroyedSubObject = "",
 		fHealth = 100,
 		Mass = 50,
 		bUsePortal = 1,
@@ -42,31 +42,29 @@ AdvancedDoor =
 			InitialAngle = 0,
 			bIsBreachable = 1,
 		},
-		Breakage =
-		{
+		Breakage = {
 			fLifeTime = 10,
 			fExplodeImpulse = 0,
 			bSurfaceEffects = 1,
 		},
-		Destruction =	{
-			bExplode				= 1,
-			Effect					= "explosions.rocket.wood",
-			EffectScale			= 0.2,
-			Radius					= 1,
-			Pressure				= 12,
-			Damage					= 0,
-			Decal						= "",
-			Direction				= {x=0, y=0.0, z=-1},
-			vOffset 				= {x=0, y=0, z=0},
+		Destruction = {
+			bExplode = 1,
+			Effect = "explosions.rocket.wood",
+			EffectScale = 0.2,
+			Radius = 1,
+			Pressure = 12,
+			Damage = 0,
+			Decal = "",
+			Direction = {x=0, y=0.0, z=-1},
+			vOffset = {x=0, y=0, z=0},
 		},
-		Vulnerability	=
-		{
+		Vulnerability = {
 			fDamageTreshold = 0,
 			bExplosion = 1,
 			bCollision = 1,
-			bMelee		 = 1,
-			bBullet		 = 1,
-			bOther	   = 1,
+			bMelee = 1,
+			bBullet = 1,
+			bOther = 1,
 		},
 		Sound = {
 			soundOpenSound = "Sounds/environment:doors:door_wood_1_open",
@@ -74,14 +72,12 @@ AdvancedDoor =
 			soundLockedSound = "Sounds/environment:doors:door_wood_rattle",
 		}
 	},
-	LastHit =
-	{
+	LastHit = {
 		impulse = {x=0,y=0,z=0},
 		pos = {x=0,y=0,z=0},
 	},
 		
-	Editor=
-	{
+	Editor = {
 		Icon="Door.bmp",
 		ShowBounds = 1,
 	},
@@ -137,7 +133,6 @@ function AdvancedDoor:OnReset()
 		AI.ModifySmartObjectStates( self.id, "Locked" );
 	end;
 	self:CheckInitalAngle();
-	
 end;
 
 function AdvancedDoor:CheckInitalAngle()
@@ -190,7 +185,6 @@ function AdvancedDoor:UpdateImpulsePos()
 	self.impulsepos.y = self.impulsepos.y + dirX.y * offset.x + dirY.y * offset.y + dirZ.y * offset.z;
 	self.impulsepos.z = self.impulsepos.z + dirX.z * offset.x + dirY.z * offset.y + dirZ.z * offset.z;
 end;
-
 
 --Set up constraint parameters
 function AdvancedDoor:Apply()
@@ -409,7 +403,6 @@ function AdvancedDoor.Server:OnHit(hit)
 			end;
 		end;
 	end;
-	
 end;
 
 function AdvancedDoor:CheckCollision(hit)
@@ -421,8 +414,7 @@ function AdvancedDoor:CheckCollision(hit)
 	
 	local tmp=hit.weapon;
 	local force=(LengthVector(tmp:GetVelocity())*tmp:GetMass())/1.5;
-	return force;
-	
+	return force;	
 end;
 
 function AdvancedDoor:BreachDoor(user)
@@ -445,8 +437,7 @@ function AdvancedDoor.Client:OnHit(hit, remote)
 	self.LastHit.impulse.z = self.LastHit.impulse.z * hit.damage;
 	
 	--Change
-	self:AddImpulse(-1, hit.pos, hit.dir, 20, 1);
-	
+	self:AddImpulse(-1, hit.pos, hit.dir, 20, 1);	
 end
 
 function AdvancedDoor:Event_ConstraintBroken(sender)
@@ -499,7 +490,6 @@ function AdvancedDoor:OnLoad(tbl)
 	self.impulsedir=tbl.impulsedir;
 	self.leftsided=tbl.leftsided;
 	self.impulsepos=tbl.impulsepos;
-	
 end;
 
 function AdvancedDoor:Play(open)
@@ -517,7 +507,7 @@ function AdvancedDoor:Play(open)
 		else
 			snd=self.Properties.Sound.soundCloseSound;
 		end;
-		self.sndid=self:PlaySoundEvent(snd,g_Vectors.v000,g_Vectors.v010,sndFlags, SOUND_SEMANTIC_MECHANIC_ENTITY);
+		self.sndid=self:PlaySoundEvent(snd,g_Vectors.v000,g_Vectors.v010,sndFlags, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
 	end;
 end;
 
@@ -559,8 +549,7 @@ function AdvancedDoor:CheckBreachDirection(user)
 					return false;
 				end;
 			end;
-		end;
-		
+		end;	
 	end;
 end;
 
@@ -653,8 +642,7 @@ function AdvancedDoor:OpenDoor(user,idx)
 		end;
 	end;
 	force=force*self.Properties.Limits.fSpeed;
-	
-	
+
 	self:UpdateImpulsePos();
 	self:AddImpulse(-1,self.impulsepos,self.impulsedir,force,1);
 end;
@@ -692,7 +680,6 @@ function AdvancedDoor:Close(user,idx)
 	self:UpdateImpulsePos();
 	self:AddImpulse(-1,self.impulsepos,self.impulsedir,force,1);
 end;
-
 
 function AdvancedDoor:IsUsable(user)
 	if(self:GetState()~="Destroyed")then
@@ -740,8 +727,7 @@ function AdvancedDoor:Explode()
 	);
 	if(NumberToBool(self.Properties.Destruction.bExplode))then
 		
-		local expl = self.Properties.Destruction;
-		
+		local expl = self.Properties.Destruction;	
 		local pos = self:GetWorldPos();
 		local dirX = self:GetDirectionVector(0);
 		local dirY = self:GetDirectionVector(1);

@@ -28,12 +28,15 @@ function MusicMoodSelector:OnPropertyChange()
 end
 
 function MusicMoodSelector:CliSrv_OnInit()
+	self:RegisterForAreaEvents(1);
 end
 
 function MusicMoodSelector:OnShutDown()
+	self:RegisterForAreaEvents(0);
 end
 
 function MusicMoodSelector:Client_OnEnterArea( player,areaId )
+	if (g_localActorId ~= player.id) then	return end;	    
 	self.InsideArea=1;
 	MusicMoodSelector.InsideAreaRefCount=MusicMoodSelector.InsideAreaRefCount+1;
 	Sound.SetDefaultMusicMood(self.Properties.sMood);

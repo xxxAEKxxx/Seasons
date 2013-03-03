@@ -380,7 +380,7 @@ bool CGame::Init(IGameFramework *pFramework)
 	//As info from the trophies must be considered when enumerating disk space on PS3, we can't finish the PlatformOS_PS3 init process
 	//without the lobby having been created.
 
-	if (gEnv->pNetwork)
+	if (gEnv->pNetwork && !gEnv->IsEditor())
 	{
 		gEnv->pNetwork->SetMultithreadingMode(INetwork::NETWORK_MT_PRIORITY_NORMAL);
 		gEnv->pNetwork->GetLobby()->SetUserPacketEnd(eGUPD_End);
@@ -450,6 +450,10 @@ bool CGame::Init(IGameFramework *pFramework)
 #if ENABLE_FEATURE_TESTER
 	new CFeatureTester();
 #endif
+
+
+
+
 
 	m_pRayCaster = new GlobalRayCaster;
 	m_pRayCaster->SetQuota(6);
@@ -955,6 +959,7 @@ void CGame::LoadActionMaps(const char* filename)
 	pActionMapMan->AddInputDeviceMapping(eAID_KeyboardMouse, "keyboard");
 	pActionMapMan->AddInputDeviceMapping(eAID_XboxPad, "xboxpad");
 	pActionMapMan->AddInputDeviceMapping(eAID_PS3Pad, "ps3pad");
+	pActionMapMan->AddInputDeviceMapping(eAID_WiiPad, "wiipad");
 
 	// make sure that they are also added to the GameActions.actions file!
 	XmlNodeRef rootNode = m_pFramework->GetISystem()->LoadXmlFromFile(filename);

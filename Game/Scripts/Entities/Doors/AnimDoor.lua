@@ -49,13 +49,11 @@ AnimDoor =
 	bNoAnims = 0,
 	nSoundId = 0,
 	bLocked = false,
-	bNeedUpdate = 0
 }
 
 -------------------------------------------------------
 function AnimDoor:OnLoad(table)
 	self.bLocked = table.bLocked;
-	self.bNeedUpdate = 0;
 	-- start from default pose
 	self:ResetAnimation(0, -1);
 	self:DoStopSound();
@@ -226,48 +224,12 @@ function AnimDoor:Unlock()
 	self.bLocked=false;
 end;
 
-function AnimDoor.Server:OnUpdate(dt)
-	if (self.bNeedUpdate == 0) then
-	  return
-	end
-	
-	if (self.bNoAnims ~= 0 or (self.curAnim ~= "" and self.nDirection ~= 0)) then
-		if (not self:IsAnimationRunning(0,0)) then
-			self.curAnim = "";
-			if (self.nDirection == -1) then
-				-- fully closed
-			
-				--System.Log("Closed");
-				if AI then
-					AI.ModifySmartObjectStates( self.id, "Closed-Open" );
-				end
-				-- deactivate portal when fully closed
-				if (self.portal) then
-					System.ActivatePortal(self:GetWorldPos(), 0, self.id);
-				end
-				self:Activate(0);
-				self.bNeedUpdate = 0;
-				BroadcastEvent(self, "Close");
-			else
-				-- fully open
-				--System.Log("Opened");
-				if AI then
-					AI.ModifySmartObjectStates( self.id, "Open-Closed" );
-				end
-				self:Activate(0);
-				self.bNeedUpdate = 0;
-				BroadcastEvent(self, "Open");
-			end
-	  end
-	end
-end
-
 function AnimDoor:DoPlaySound(sndName)
 	self:DoStopSound();
 	if (sndName and sndName ~= "") then
 		local sndFlags=bor(SOUND_DEFAULT_3D, 0);
 		g_Vectors.temp = self:GetDirectionVector(1);
-		self.nSoundId=self:PlaySoundEvent(sndName, g_Vectors.v000, g_Vectors.temp, sndFlags, SOUND_SEMANTIC_MECHANIC_ENTITY);
+		self.nSoundId=self:PlaySoundEvent(sndName, g_Vectors.v000, g_Vectors.temp, sndFlags, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
 	end
 end;
 
@@ -324,6 +286,9 @@ function AnimDoor:DoPlayAnimation(direction, forceTime, useSound)
 				curTime = self:GetAnimationLength(0, animName) * percentage;
 				self:SetAnimationTime(0,0,curTime);
 			end
+			
+			local animTime = self:GetAnimationLength(0, animName)-self:GetAnimationTime(0, 0);
+			Script.SetTimerForFunction(animTime*1000, "AnimDoor.OnAnimationDoneTimer", self);
 		end
 		self.curAnim = animName;
 	else
@@ -332,8 +297,6 @@ function AnimDoor:DoPlayAnimation(direction, forceTime, useSound)
 
 	self.nDirection = direction;
 	self:ForceCharacterUpdate(0, true);
-	self:Activate(1);
-	self.bNeedUpdate = 1;
 	
 	-- activate portal on opening and on closing!
 	if (self.portal) then
@@ -349,7 +312,29 @@ function AnimDoor:DoPlayAnimation(direction, forceTime, useSound)
 	if (useSound == nil or useSound) then
 		self:DoPlaySound(sndName);
 	end
+end
 
+function AnimDoor:OnAnimationDoneTimer(timerID)	
+	if (self.bNoAnims ~= 0 or (self.curAnim ~= "" and self.nDirection ~= 0)) then
+		self.curAnim = "";
+		if (self.nDirection == -1) then
+			-- fully closed
+			if AI then
+				AI.ModifySmartObjectStates( self.id, "Closed-Open" );
+			end
+			-- deactivate portal when fully closed
+			if (self.portal) then
+				System.ActivatePortal(self:GetWorldPos(), 0, self.id);
+			end
+			BroadcastEvent(self, "Close");
+		else
+			-- fully open
+			if AI then
+				AI.ModifySmartObjectStates( self.id, "Open-Closed" );
+			end
+			BroadcastEvent(self, "Open");
+		end
+	 end
 end
 
 ----------------------------------------------------------------------------------

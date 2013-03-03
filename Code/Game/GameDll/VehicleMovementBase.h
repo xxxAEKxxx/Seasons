@@ -321,6 +321,7 @@ public:
 	virtual void ProcessEvent(SEntityEvent& event);
 	virtual void SetSoundMasterVolume(float vol);
 	virtual void AllowBoosting(const bool allowBoosting) { m_allowBoosting = allowBoosting; }
+	virtual void SetMaxSpeed(const float maxSpeed) { m_maxSpeed = maxSpeed; }
 
 	virtual float GetEnginePedal(){ return m_movementAction.power; }
 

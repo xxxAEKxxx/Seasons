@@ -8,7 +8,7 @@
 		<ammo name="bullet" amount="30" />
 	</accessoryAmmo>-->
 	<geometry>
-		<firstperson name="Objects/library/pickups/ammo_box/ammo_box.cgf"/>
-		<thirdperson name="Objects/library/pickups/ammo_box/ammo_box.cgf"/>
+		<firstperson name="Objects/weapons/ammo/ammo_box/ammo_box.cgf"/>
+		<thirdperson name="Objects/weapons/ammo/ammo_box/ammo_box.cgf"/>
 	</geometry>
 </item>

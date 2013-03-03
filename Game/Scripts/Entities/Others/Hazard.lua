@@ -100,16 +100,20 @@ function Hazard.Client:InitFX()
 end;
 
 function Hazard.Client:AddScreenEffect(entId)
-	local ent=System.GetEntity(entId);
-	if(ent)then
-		self:AddScreenEffect(ent);
+	if (entId == g_localActorId) then
+		local ent=System.GetEntity(entId);
+		if(ent)then
+			self:AddScreenEffect(ent);
+		end
 	end
 end;
 
 function Hazard.Client:RemoveScreenEffect(entId)
-	local ent=System.GetEntity(entId);
-	if (ent) then
-		self:RemoveScreenEffect(ent);
+	if (entId == g_localActorId) then
+		local ent=System.GetEntity(entId);
+		if (ent) then
+			self:RemoveScreenEffect(ent);
+		end
 	end
 end;
 
@@ -159,7 +163,7 @@ function Hazard:HandleEntity(ent)
 	local dist;
 	
 	if(ent~=nil and ent.actor~=nil)then
-		if(self.Properties.Damage.bOnlyPlayer==1 and not ent.actor:IsPlayer())then return;end;
+		if(self.Properties.Damage.bOnlyPlayer==1 and (ent.id ~= g_localActorId))then return;end;
 		local dmg=self.Properties.Damage.fDamage;
 		
 		if(dmg>0)then
@@ -175,7 +179,7 @@ function Hazard:HandleEntities()
 end;
 
 function Hazard:AddScreenEffect(ent)
-	if(ent.actor:IsPlayer())then
+	if(ent.id == g_localActorId)then
 		local dmg=self.Properties.Damage.eiHazardType;
 		if(dmg==1)then
 			if(self.fx.fire.active~=1)then
@@ -210,7 +214,7 @@ function Hazard:AddScreenEffect(ent)
 end;
 
 function Hazard:RemoveScreenEffect(ent)
-	if(ent.actor:IsPlayer())then
+	if(ent.id == g_localActorId)then
 		local dmg=self.dmg;
 		if(self.fx[dmg])then
 			if(self.fx[dmg].active==1)then
@@ -278,31 +282,40 @@ end;
 Hazard.Server.Activated=
 {
 	OnBeginState = function(self)
+		if(System.IsEditor() and not System.IsEditorGameMode())then
+			return;
+		end
 		if(table.getn(self.ents)>0)then
 			self:SetTimer(CHECK_TIMER,1000);
 			for i,v in pairs(self.ents) do
-				if(v.actor)then
+				if(v.id == g_localActorId)then
 					self.onClient:AddScreenEffect(v.actor:GetChannel(),v.id);
 				end;
 			end;
 		end;
 	end,
 	OnEnterArea = function(self,entity,areaId)
+		if(System.IsEditor() and not System.IsEditorGameMode())then
+			return;
+		end
 		self:ActivateOutput("Enter",true);
 		table.insert(self.ents,entity);
 		self:SetTimer(CHECK_TIMER,1000);
 		-- give initial damage
 		self:HandleEntity(entity);
-		if(entity.actor)then
+		if(entity.id == g_localActorId)then
 			self.onClient:AddScreenEffect(entity.actor:GetChannel(), entity.id);
 		end;
 	end,
 	OnLeaveArea = function(self,entity,areaId)
+		if(System.IsEditor() and not System.IsEditorGameMode())then
+			return;
+		end
 		for i,v in pairs(self.ents) do
 			if(v==entity)then
 				self:ActivateOutput("Leave",true);
 				table.remove(self.ents,i);
-				if(v.actor)then
+				if(v.id == g_localActorId)then
 					self.onClient:RemoveScreenEffect(v.actor:GetChannel(), v.id);
 				end;
 				break;
@@ -343,16 +356,25 @@ Hazard.Client.Deactivated=
 Hazard.Server.Deactivated=
 {
 	OnBeginState = function(self)
+		if(System.IsEditor() and not System.IsEditorGameMode())then
+			return;
+		end
 		for i,v in pairs(self.ents) do
-			if(v.actor and v.actor:IsPlayer())then
+			if(v.id == g_localActorId)then
 				self.onClient:RemoveScreenEffect(v.actor:GetChannel(), v.id);
 			end;
 		end;
 	end,
 	OnEnterArea = function(self,entity,areaId)
+		if(System.IsEditor() and not System.IsEditorGameMode())then
+			return;
+		end
 		table.insert(self.ents,entity);
 	end,
 	OnLeaveArea = function(self,entity,areaId)
+		if(System.IsEditor() and not System.IsEditorGameMode())then
+			return;
+		end
 		for i,v in pairs(self.ents) do
 			if(v==entity)then
 				table.remove(self.ents,i);

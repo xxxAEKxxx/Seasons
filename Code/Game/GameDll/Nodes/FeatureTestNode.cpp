@@ -83,7 +83,7 @@ void CFlowNode_FeatureTest::GetConfiguration(SFlowNodeConfig& config)
 
 		InputPortConfig_Void			("Succeeded",		_HELP("Trigger to indicated the feature test has passed. Cleanup will then be triggered.")),
 		InputPortConfig_Void			("Failed",			_HELP("Trigger to indicated the feature test has filed.")),
-		{0}
+		InputPortConfig_Null()
 	};
 
 	static const SOutputPortConfig outputs[] = {
@@ -99,7 +99,7 @@ void CFlowNode_FeatureTest::GetConfiguration(SFlowNodeConfig& config)
 		OutputPortConfig<bool>		("Entity6Passed",		_HELP("Outputs true when Entity6 has successfully run the test. Only used if Sequential is true and Entity6 is set.")),
 
 		OutputPortConfig<bool>		("AllPassed",				_HELP("Outputs true when the test has been successfully run and all sequential entities passed their tests.")),
-		{0}
+		OutputPortConfig_Null()
 	};
 
 	config.pInputPorts = inputs;
@@ -441,7 +441,7 @@ bool CFlowNode_FeatureTest::StartNextTestRun()
 		ActivateOutput(&m_actInfo, eOutputPorts_Start, true);
 	}
 
-	// Additional workaround to ensure eyePosition (and therefore AI) doesn't track camera position.
+	// Additional hack to ensure eyePosition (and therefore AI) doesn't track camera position.
 	// See CPlayerMovementController::UpdateMovementState() for details.
 	CPlayer* pPlayerActor = static_cast<CPlayer*>(gEnv->pGame->GetIGameFramework()->GetClientActor());
 	if (pPlayerActor)
@@ -661,7 +661,7 @@ void CFlowNode_WatchCodeCheckpoint::GetConfiguration(SFlowNodeConfig& config)
 		InputPortConfig_Void("StartWatching",		_HELP("Trigger to begin observing code checkpoint.")),
 		InputPortConfig<string>("Name",	_HELP("Name of the checkpoint to watch.")),
 		InputPortConfig_Void("StopWatching",		_HELP("Trigger to stop watching the code point and output checkpoint status.")),
-		{0}
+		InputPortConfig_Null()
 	};
 
 	static const SOutputPortConfig outputs[] = {
@@ -669,7 +669,7 @@ void CFlowNode_WatchCodeCheckpoint::GetConfiguration(SFlowNodeConfig& config)
 		OutputPortConfig<bool>("Found",		_HELP("Triggered on StopWatching input. Output if this point was hit at least once since the last StartWatching request.")),
 		OutputPortConfig<bool>("NotFound",		_HELP("Triggered on StopWatching input. Output if this point was not hit at least once since the last StartWatching request.")),
 		OutputPortConfig<int>("TotalHits",		_HELP("Triggered on StopWatching input. Outputs the total number of hits for the checkpoint since program start.")),
-		{0}
+		OutputPortConfig_Null()
 	};
 
 	config.pInputPorts = inputs;
@@ -842,14 +842,14 @@ void CFlowNode_ListenForCommunication::GetConfiguration(SFlowNodeConfig& config)
 		InputPortConfig<string>("Name",	_HELP("Name of the communication to listen for."), _HELP("Name"), _UICONFIG("enum_global:communications")),
 		InputPortConfig<float>("Timeout",	30.0f,	_HELP("Length of time to listen for tracked communication.")),
 		InputPortConfig<EntityId> ("Entity", 0,			_HELP("Entity id for which the communication will be played.")),
-		{0}
+		InputPortConfig_Null()
 	};
 
 	static const SOutputPortConfig outputs[] = {
 		OutputPortConfig<bool>("CommunicationEncountered",		_HELP("Triggered and returns true if communication encountered, or returns false if timeout value reached.")),
 		OutputPortConfig<bool>("Success",		_HELP("Triggered and returns true if communication encountered.")),
 		OutputPortConfig<bool>("Failure",		_HELP("Triggered and returns true if timeout limit reached.")),
-		{0}
+		OutputPortConfig_Null()
 	};
 
 	config.pInputPorts = inputs;
@@ -984,7 +984,7 @@ void CFlowNode_SimulateInput::GetConfiguration( SFlowNodeConfig& config )
 		InputPortConfig_Void( "Hold", _HELP("Simulate hold event")),
 		InputPortConfig_Void( "Release", _HELP("Simulate relase" )),
 		InputPortConfig<float>( "Value", 0.0f, _HELP("Value between 0 and 1" )),
-		{0}
+		InputPortConfig_Null()
 	};
 
 	static const SOutputPortConfig out_ports[] = 
@@ -992,7 +992,7 @@ void CFlowNode_SimulateInput::GetConfiguration( SFlowNodeConfig& config )
 		OutputPortConfig_Void( "Pressed", _HELP("Pressed" )),
 		OutputPortConfig_Void( "Held", _HELP("Held")),
 		OutputPortConfig_Void( "Released", _HELP("Released" )),
-		{0}
+		OutputPortConfig_Null()
 	};
 
 	config.sDescription = _HELP("Simulate player actions input");

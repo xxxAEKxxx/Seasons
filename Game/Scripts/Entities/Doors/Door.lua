@@ -25,7 +25,7 @@ Door =
 			soundSoundOnMove 				= "",
 			soundSoundOnStop 				= "",
 			soundSoundOnStopClosed 	= "",
-			fVolume = 200,
+			fVolume = 1.0,
 			fRange = 50,
 		},		
 		Rotation = 
@@ -36,7 +36,7 @@ Door =
 			fRange 					= 90,
 			sAxis 					= "z",
 			bRelativeToUser = 1,
-			sFrontAxis			= "y",
+			sFrontAxis			= "-x",
 		},
 		Slide = 
 		{
@@ -48,8 +48,8 @@ Door =
 		},
 		fUseDistance = 2.5,
 		bLocked = 0,
-		bSquashPlayers = 0,
 		bActivatePortal = 0,
+		fMass = 0,
   },
   	
 	PhysParams = 
@@ -148,7 +148,6 @@ function Door:OnSave(table)
 end
 
 function Door:OnPropertyChange()
-	self.bNeedReload = 1;
 	self:Reset();
 end
 
@@ -170,26 +169,27 @@ end
 function Door:OnDestroy()
 end
 
---function Door.Server:OnInit()
-	--self.bNeedReload = 1;
-	--self:Reset();
---end
+function Door.Server:OnStartGame()
+	self:Reset();
+end
 
---function Door.Client:OnInit()
-	--self.bNeedReload = 1;
-	--self:Reset();
---end
+function Door.Client:OnStartGame()
+	self:Reset();
+end
 
 
 function Door:DoPhysicalize()
 	if (self.currModel ~= self.Properties.fileModel) then
 		CryAction.ActivateExtensionForGameObject(self.id, "ScriptControlledPhysics", false);
 		self:LoadObject( 0,self.Properties.fileModel );
-		self:Physicalize(0,PE_RIGID,self.PhysParams);
 		CryAction.ActivateExtensionForGameObject(self.id, "ScriptControlledPhysics", true);			
 	end
 	
-	if (tonumber(self.Properties.bSquashPlayers)==0) then
+	--reload physics params
+	self:Physicalize(0,PE_RIGID,self.PhysParams);
+	
+	--door can squash us when it has a mass!
+	if (self.Properties.fMass > 0) then
 		self:SetPhysicParams(PHYSICPARAM_FLAGS, {flags_mask=pef_cannot_squash_players, flags=pef_cannot_squash_players});
 	end
 	self.currModel = self.Properties.fileModel;
@@ -204,15 +204,10 @@ end
 
 function Door:Reset(onSpawn)
 	--Log( "Door:Reset" );
-
-	if (self.bNeedReload and self.bNeedReload == 0) then
-	  -- Skip Reloads when not neccesarry.
-		do return end;
-	end
-	self.bNeedReload = 0;
 	
 	--Log( "Door:Reset Reload" );
 	
+	self.PhysParams.mass = self.Properties.fMass;
 	if (onSpawn) then
 		CreateDoor(self);
 	end
@@ -319,7 +314,7 @@ end
 
 function Door:IsUsable(user)
 
-	if (not user) then
+	if (not user or self.locked == true) then
 		return 0;
 	end
 
@@ -401,10 +396,12 @@ function Door:Update(frameTime)
 	--update sounds
 	if (stopped and (not self.stopSoundPlayed)) then
 		local soundsP = self.Properties.Sounds;	
-		Sound.Play(soundsP.soundSoundOnStop, self:GetWorldPos(), SOUND_DEFAULT_3D, SOUND_SEMANTIC_MECHANIC_ENTITY);
+		local offset = {x = 0, y = 0, z = 0 };
+		
+		self:PlaySoundEventEx(soundsP.soundSoundOnStop, SOUND_DEFAULT_3D, 0, soundsP.fVolume, offset, soundsP.fRange, soundsP.fRange, SOUND_SEMANTIC_MECHANIC_ENTITY);
 
 		if (self.action==DOOR_CLOSE) then
-			Sound.Play(soundsP.soundSoundOnStopClosed, self:GetWorldPos(), SOUND_DEFAULT_3D, SOUND_SEMANTIC_MECHANIC_ENTITY);
+			self:PlaySoundEventEx(soundsP.soundSoundOnStopClosed, SOUND_DEFAULT_3D, 0, soundsP.fVolume, offset, soundsP.fRange, soundsP.fRange, SOUND_SEMANTIC_MECHANIC_ENTITY);
 		end
 
 		self.stopSoundPlayed = true;
@@ -488,8 +485,7 @@ function Door:Slide(open)
 	end
 
 	self.slideUpdate = 1;
-	self.bNeedReload = 1;
-
+	
 	self:Activate(1);
 	self:Sound(open);
 end
@@ -518,10 +514,9 @@ function Door:Rotate(open, fwd)
 		System.ActivatePortal(self:GetWorldPos(), 1, self.id);
 	end
 	
-	self.scp:RotateToAngles(self.goalAngle, self.scp:GetAngularSpeed(), self.Properties.Rotation.fSpeed, self.Properties.Rotation.fAcceleration, self.Properties.Rotation.fStopTime);
+	self.scp:RotateToAngles(self.goalAngle, self.scp:GetAngularSpeed(), self.Properties.Rotation.fSpeed, self.Properties.Rotation.fAcceleration, self.Properties.Rotation.fStopTime, true);
 
 	self.rotationUpdate = 1;	
-	self.bNeedReload = 1;
 	
 	self:Activate(1);
 	self:Sound(open);
@@ -531,7 +526,9 @@ end
 function Door:Sound(open)
 	--sounds
 	local soundsP = self.Properties.Sounds;	
-	Sound.Play(soundsP.soundSoundOnMove, self:GetWorldPos(), SOUND_DEFAULT_3D, SOUND_SEMANTIC_MECHANIC_ENTITY);
+	
+	local offset = {x = 0, y = 0, z = 0 };
+	self:PlaySoundEventEx(soundsP.soundSoundOnMove, SOUND_DEFAULT_3D, 0, soundsP.fVolume, offset, soundsP.fRange, soundsP.fRange, SOUND_SEMANTIC_MECHANIC_ENTITY);
 	self.stopSoundPlayed = nil;		
 end
 
@@ -567,7 +564,7 @@ function Door:Open(user, mode)
 				NormalizeVector(userForward);
 				
 				local dot = dotproduct3d(self.frontAxis, userForward);
-							
+				
 				if (dot<0) then
 					fwd=false;
 				end
@@ -614,18 +611,12 @@ function Door:Event_Close(sender)
 end
 
 function Door:Event_UnLock(sender)	
-	if (self.locked ~= 0) then
-		self.bNeedReload = 1;
-	end
-	self.locked = 0;
+	self.locked = false;
 	if AI then AI.ModifySmartObjectStates( self.id, "-Locked" ) end;
 end
 
 function Door:Event_Lock(sender)
-	if (self.locked ~= 1) then
-		self.bNeedReload = 1;
-	end
-	self.locked = 1;
+	self.locked = true;
 	if AI then AI.ModifySmartObjectStates( self.id, "Locked" ) end;
 end
 

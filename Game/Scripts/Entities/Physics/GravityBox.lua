@@ -8,8 +8,14 @@ GravityBox = {
 		Gravity = { x=0,y=0,z=0 },
 		Falloff = { x=0,y=0,z=0 },
 	},
-	
+
 	_PhysTable = { Area={}, },
+
+	Editor = {
+		Icon = "GravitySphere.bmp",
+		IconOnTop=0,
+	},
+
 }
 
 -------------------------------------------------------
@@ -52,7 +58,7 @@ end
 ------------------------------------------------------------------------------------------------------
 -- OnReset called only by the editor.
 ------------------------------------------------------------------------------------------------------
-function GravityBox:OnReset()	
+function GravityBox:OnReset()
 	self.bActive = self.Properties.bActive;
 	self:PhysicalizeThis();
 end

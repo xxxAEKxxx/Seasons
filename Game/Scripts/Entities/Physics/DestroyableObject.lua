@@ -423,9 +423,9 @@ function DestroyableObject:Explode()
 	
 	-- play the dead sound after explosion
 	if (self.dead ~= true) then
-		self:PlaySoundEvent(self.Properties.Sounds.sound_Dying,g_Vectors.v000,g_Vectors.v001,0,SOUND_SEMANTIC_MECHANIC_ENTITY);
+		self:PlaySoundEvent(self.Properties.Sounds.sound_Dying,g_Vectors.v000,g_Vectors.v001,0, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
 	end
-	self:PlaySoundEvent(self.Properties.Sounds.sound_Dead,g_Vectors.v000,g_Vectors.v001,0,SOUND_SEMANTIC_MECHANIC_ENTITY);
+	self:PlaySoundEvent(self.Properties.Sounds.sound_Dead,g_Vectors.v000,g_Vectors.v001,0, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
 	
 	self.exploded = true;
 	
@@ -475,7 +475,7 @@ function DestroyableObject:Die(hit)
 		self.health = 0;
 	end
 	
-	self:PlaySoundEvent(self.Properties.Sounds.sound_Dying,g_Vectors.v000,g_Vectors.v001,0,SOUND_SEMANTIC_MECHANIC_ENTITY);
+	self:PlaySoundEvent(self.Properties.Sounds.sound_Dying,g_Vectors.v000,g_Vectors.v001,0, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
 
 	-- if we didn't explode yet
 	if (not self.exploded) then
@@ -584,7 +584,7 @@ end
 DestroyableObject.Client.Alive =
 {
 	OnBeginState=function(self)
-		self:PlaySoundEvent(self.Properties.Sounds.sound_Alive,g_Vectors.v000,g_Vectors.v001,0,SOUND_SEMANTIC_MECHANIC_ENTITY);
+		self:PlaySoundEvent(self.Properties.Sounds.sound_Alive,g_Vectors.v000,g_Vectors.v001,0, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
 	end,
 	
 }
@@ -628,9 +628,12 @@ function DestroyableObject:Event_Hit( sender )
 	BroadcastEvent( self,"Hit" );
 	end
 
+----------------------------------------------------------------------------------------------------
 function DestroyableObject:Event_Reset( sender )
 	self:OnReset();
 	BroadcastEvent( self,"Reset" );
+	
+	self:RestorePhysicalState();
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -644,6 +647,7 @@ function DestroyableObject:Event_Explode( sender )
 	self:Die();
 end
 
+----------------------------------------------------------------------------------------------------
 function DestroyableObject:OnUsed(user, idx)
 	if idx == 2 then
 		BroadcastEvent(self, "Used")
@@ -671,6 +675,7 @@ function DestroyableObject:IsUsable(user)
 	return ret or 0
 end
 
+----------------------------------------------------------------------------------------------------
 function DestroyableObject:GetUsableMessage(idx)
 	if (self.Properties.bUsable == 1 and self.bTemporaryUsable == 1) then
 		return self.Properties.UseText;
@@ -719,7 +724,7 @@ DestroyableObject.FlowEvents =
 }
 
 ------------------------------------------------------------------------------------------------------
-function DestroyableObject:SavePhysicalState()
+function DestroyableObject:StoreInitialTransform()
   self.initPos = self:GetPos();
   self.initRot = self:GetWorldAngles();
   self.initScale = self:GetScale();

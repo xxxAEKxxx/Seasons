@@ -115,7 +115,7 @@ struct SGrabStats
 	/// Where grabbing anim expects the object to be grabbed to be. Given in grabber's local coord frame.
 	Vec3 grabbedObjOfs;
 
-	// NOTE Aug 2, 2007: <pvl> this is a bad workaround but what can I do if neither
+	// NOTE Aug 2, 2007: <pvl> this is a bad hack but what can I do if neither
 	// Ivo nor Anton can help.
 	// While reaching out for something to grab, the grabbing limb is retargetter
 	// using IK so that its tip should end up where the grabbed entity is.  For

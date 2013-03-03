@@ -47,7 +47,6 @@ void CRocket::HandleEvent(const SGameObjectEvent &event)
 
 	if (event.event == eGFE_OnCollision)
 	{		
-		EventPhysCollision *pCollision = (EventPhysCollision *)event.ptr;
 		if (m_safeExplosion>0.0f)
 		{
 			float dp2=(m_launchLoc-GetEntity()->GetWorldPos()).len2();
@@ -55,7 +54,12 @@ void CRocket::HandleEvent(const SGameObjectEvent &event)
 				return;
 		}
 
-		if(pCollision && pCollision->pEntity[0]->GetType()==PE_PARTICLE)
+		const EventPhysCollision* pCollision = static_cast<EventPhysCollision*>(event.ptr);
+
+		if (!pCollision)
+			return;
+
+		if (pCollision->pEntity[0] && pCollision->pEntity[0]->GetType()==PE_PARTICLE)
 		{
 			float bouncy, friction;
 			uint32	pierceabilityMat;
@@ -63,20 +67,18 @@ void CRocket::HandleEvent(const SGameObjectEvent &event)
 
 			pe_params_particle params;
 			
-			if(pCollision->pEntity[0]->GetParams(&params)==0)
+			if (pCollision->pEntity[0]->GetParams(&params)==0)
 				SetDefaultParticleParams(&params);
 			
-			if((params.velocity>1.0f) && (pCollision->idmat[1] != CBullet::GetWaterMaterialId())
+			if ((params.velocity>1.0f) && (pCollision->idmat[1] != CBullet::GetWaterMaterialId())
 				&& (!pCollision->pEntity[1] || (pCollision->pEntity[1]->GetType() != PE_LIVING && pCollision->pEntity[1]->GetType() != PE_ARTICULATED)))
 			{
-				if(pierceabilityMat>params.iPierceability)
+				if (pierceabilityMat>params.iPierceability)
 					return;
 			}
-
 		}
 
     IEntity* pTarget = pCollision->iForeignData[1]==PHYS_FOREIGN_ID_ENTITY ? (IEntity*)pCollision->pForeignData[1] : 0;
-
     Explode(true, true, pCollision->pt, pCollision->n, pCollision->vloc[0], pTarget?pTarget->GetId():0);
 	}
 }

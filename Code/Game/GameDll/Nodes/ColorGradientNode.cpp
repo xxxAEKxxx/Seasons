@@ -23,7 +23,7 @@ const SInputPortConfig CFlowNode_ColorGradient::inputPorts[] =
 	InputPortConfig_Void("Trigger", _HELP("")),
 	InputPortConfig<string>("tex_TexturePath", _HELP("Path to the Color Chart texture.")),
 	InputPortConfig<float>("TransitionTime", _HELP("Fade in time (Seconds).")),
-	{0},    
+	InputPortConfig_Null()
 };
 
 CFlowNode_ColorGradient::CFlowNode_ColorGradient(SActivationInfo* activationInformation) :

@@ -167,11 +167,11 @@ CustomAmmoPickup.Properties.Count=30;
 
 
 ----------------------------------------------------------------------------------------------------
-CreateItemTable("ShiTen");
+CreateItemTable("MountedGun");
 
-ShiTen.Properties.bMounted=1;
-ShiTen.Properties.bUsable=1;
-ShiTen.Properties.MountedLimits = {
+MountedGun.Properties.bMounted=1;
+MountedGun.Properties.bUsable=1;
+MountedGun.Properties.MountedLimits = {
 			pitchMin = -22,
 			pitchMax = 60,
 			yaw = 70,
@@ -179,20 +179,20 @@ ShiTen.Properties.MountedLimits = {
 
 
 -----------------------------------------------------------------------------------------------------
-function ShiTen:OnReset()
+function MountedGun:OnReset()
 	self.item:SetMountedAngleLimits( self.Properties.MountedLimits.pitchMin,
 																	self.Properties.MountedLimits.pitchMax,
 																	self.Properties.MountedLimits.yaw	);
 end
 
 ----------------------------------------------------------------------------------------------------
-function ShiTen:OnSpawn()
+function MountedGun:OnSpawn()
 	self:OnReset();
 end
 
 
 ----------------------------------------------------------------------------------------------------
-function ShiTen:OnUsed(user)
+function MountedGun:OnUsed(user)
 	if (user.actor:IsPlayer()) then
 		Item.OnUsed(self, user);
 	else

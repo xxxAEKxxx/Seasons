@@ -68,6 +68,7 @@
 #include "Environment/Tornado.h"
 #include "Environment/Shake.h"
 #include "Environment/Rain.h"
+#include "Environment/Snow.h"
 
 #include "Environment/BattleDust.h"
 
@@ -191,6 +192,7 @@ void InitGameFactory(IGameFramework *pFramework)
 	REGISTER_GAME_OBJECT(pFramework, Tornado, "Scripts/Entities/Environment/Tornado.lua");
 	REGISTER_GAME_OBJECT(pFramework, Shake, "Scripts/Entities/Environment/Shake.lua");
 	REGISTER_GAME_OBJECT(pFramework, Rain, "Scripts/Entities/Environment/Rain.lua");
+	REGISTER_GAME_OBJECT(pFramework, Snow, "Scripts/Entities/Environment/Snow.lua");
 
 	REGISTER_GAME_OBJECT(pFramework, AnimatedCharacterSample, "Scripts/Entities/Samples/AnimatedCharacterSample.lua");
 

@@ -366,38 +366,38 @@ ActorShared =
 	{
 		pain =
 		{
-			{"languages/dialog/ai_player/pain_01.wav"},
-			{"languages/dialog/ai_player/pain_02.wav"},
-			{"languages/dialog/ai_player/pain_03.wav"},
-			{"languages/dialog/ai_player/pain_04.wav"},
-			{"languages/dialog/ai_player/pain_05.wav"},
+			{"ai_player/pain_01"},
+			{"ai_player/pain_02"},
+			{"ai_player/pain_03"},
+			{"ai_player/pain_04"},
+			{"ai_player/pain_05"},
 		},
 		
 		pain_mp =
 		{
-			{"languages/dialog/ai_npc_01/pain_01.wav"},
-			{"languages/dialog/ai_npc_01/pain_02.wav"},
-			{"languages/dialog/ai_npc_01/pain_03.wav"},
-			{"languages/dialog/ai_npc_01/pain_04.wav"},
-			{"languages/dialog/ai_npc_01/pain_05.wav"},
+			{"ai_npc_01/pain_01"},
+			{"ai_npc_01/pain_02"},
+			{"ai_npc_01/pain_03"},
+			{"ai_npc_01/pain_04"},
+			{"ai_npc_01/pain_05"},
 		},
 		
 		death =
 		{
-			{"languages/dialog/ai_player/death_01.wav"},
-			{"languages/dialog/ai_player/death_02.wav"},
-			{"languages/dialog/ai_player/death_03.wav"},
-			{"languages/dialog/ai_player/death_04.wav"},
-			{"languages/dialog/ai_player/death_05.wav"},
+			{"ai_player/death_01"},
+			{"ai_player/death_02"},
+			{"ai_player/death_03"},
+			{"ai_player/death_04"},
+			{"ai_player/death_05"},
 		},
 		
 		death_mp =
 		{	
-			{"languages/dialog/ai_npc_01/death_01.wav"},
-			{"languages/dialog/ai_npc_01/death_02.wav"},
-			{"languages/dialog/ai_npc_01/death_03.wav"},
-			{"languages/dialog/ai_npc_01/death_04.wav"},
-			{"languages/dialog/ai_npc_01/death_05.wav"},
+			{"ai_npc_01/death_01"},
+			{"ai_npc_01/death_02"},
+			{"ai_npc_01/death_03"},
+			{"ai_npc_01/death_04"},
+			{"ai_npc_01/death_05"},
 		},
 	},
 	 
@@ -444,7 +444,7 @@ function PlayRandomSound(emitter,sounds)
 	local sound = GetRandomSound(sounds);
 	
 	if (sound) then
-		return emitter:PlaySoundEventEx(sound[1], SOUND_DEFAULT_3D, 1, g_Vectors.v000, 0, 0, SOUND_SEMANTIC_AI_READABILITY);
+		return emitter:PlaySoundEventEx(sound[1], SOUND_DEFAULT_3D, 0, 1, g_Vectors.v000, 0, 0, SOUND_SEMANTIC_AI_READABILITY);
 	end
 	
 	return nil;
@@ -631,7 +631,7 @@ BasicActorParams =
 			
 			min_slide_angle = 45.0,
 			max_climb_angle = 50.0,
-			min_fall_angle = 50.0,
+			min_fall_angle = 70.0,
 			
 			timeImpulseRecover = 1.0,
 			
@@ -1110,7 +1110,7 @@ function BasicActor:UpdateSounds(frameTime)
 			end
 		end
 		
-		local sound = self:PlaySoundEvent(stanceSound, g_Vectors.v000, g_Vectors.v010, SOUND_DEFAULT_3D, SOUND_SEMANTIC_PLAYER_FOLEY);
+		local sound = self:PlaySoundEvent(stanceSound, g_Vectors.v000, g_Vectors.v010, SOUND_DEFAULT_3D, 0, SOUND_SEMANTIC_PLAYER_FOLEY);
 		
 		--Log("stance changed, last:"..oldStance..", current:"..newStance);
 	end
@@ -1411,7 +1411,9 @@ end
 function BasicActor.Server:OnDeadHit(hit)
 	--Log("BasicActor.Server:OnDeadHit()");
 	local frameID = System.GetFrameID();
-	if ((frameID - self.lastDeathImpulse) > 10) then
+	
+	--Fire/Burn should not apply impulses to dead bodies
+	if ((frameID - self.lastDeathImpulse) > 10 and not hit.type == "fire") then
 		--marcok: talk to me before touching this
 		local dir = g_Vectors.temp_v2;
 		CopyVector(dir, hit.dir);
@@ -1751,7 +1753,7 @@ function BasicActor:OnPostFreeze(freeze)
 	if (freeze and self.actor:IsLocalClient()) then
 		System.SetScreenFx("ScreenFrost_CenterAmount", 1);
 		System.SetScreenFx("ScreenFrost_Amount", 1);
-		self:PlaySoundEvent("sounds/interface:hud:freeze_player", g_Vectors.v000, g_Vectors.v010, SOUND_2D, SOUND_SEMANTIC_PLAYER_FOLEY);
+		self:PlaySoundEvent("sounds/interface:hud:freeze_player", g_Vectors.v000, g_Vectors.v010, SOUND_2D, 0, SOUND_SEMANTIC_PLAYER_FOLEY);
 		System.ClearKeyState();
 	 	AI.FreeSignal(1, "OnPlayerFrozen", self:GetPos(), 20, self.id);
 	elseif (not freeze) then
@@ -1782,7 +1784,7 @@ function BasicActor:KnockedOutByDoor(hit,mass,vel)
 	if(self==g_localActor or self.Properties.species==0 or self:IsDead())then return;end;
 	local force=clamp((mass*vel)*0.02,0,100);
 	if(force>3)then
-		self:PlaySoundEvent("Sounds/physics:foleys/player:bodyhit",{x=0,y=0,z=0.6},g_Vectors.v010, SOUND_DEFAULT_3D, SOUND_SEMANTIC_PLAYER_FOLEY);
+		self:PlaySoundEvent("Sounds/physics:foleys/player:bodyhit",{x=0,y=0,z=0.6},g_Vectors.v010, SOUND_DEFAULT_3D, 0, SOUND_SEMANTIC_PLAYER_FOLEY);
 		self:Kill(true, NULL_ENTITY, NULL_ENTITY);
 	end;
 end;
@@ -1978,7 +1980,7 @@ function BasicActor.Client:OnHit(hit)
 				end
 				
 				if (sound and (sound~="")) then
-					self:PlaySoundEvent(sound, g_Vectors.v000, g_Vectors.v010, SOUND_2D, SOUND_SEMANTIC_PLAYER_FOLEY);
+					self:PlaySoundEvent(sound, g_Vectors.v000, g_Vectors.v010, SOUND_2D, 0, SOUND_SEMANTIC_PLAYER_FOLEY);
 				end
 			end
 			
@@ -2100,7 +2102,7 @@ function BasicActor:DoPainSounds(dead)
 		
 		if (sound) then
 			local sndFlags = bor(bor(SOUND_EVENT, SOUND_VOICE), SOUND_DEFAULT_3D);
-			self.lastPainSound = self:PlaySoundEvent(sound[1], g_Vectors.v000, g_Vectors.v010, sndFlags, SOUND_SEMANTIC_PLAYER_FOLEY);
+			self.lastPainSound = self:PlaySoundEvent(sound[1], g_Vectors.v000, g_Vectors.v010, sndFlags, 0, SOUND_SEMANTIC_PLAYER_FOLEY);
 			self.lastPainTime = _time;
 		end
 		
@@ -2154,7 +2156,7 @@ function BasicActor:MakeBloodSplats(effect, radius, targetPos)
 --			System.Log("BLOOD: Splat scale="..tostring(scale));
 			System.SetScreenFx("BloodSplats_Scale", scale);
 			CryAction.ActivateEffect(effect);
-			self:PlaySoundEvent("sounds/interface:hud:hud_blood", g_Vectors.v000, g_Vectors.v010, SOUND_2D, SOUND_SEMANTIC_PLAYER_FOLEY);
+			self:PlaySoundEvent("sounds/interface:hud:hud_blood", g_Vectors.v000, g_Vectors.v010, SOUND_2D, 0, SOUND_SEMANTIC_PLAYER_FOLEY);
 		end
 	end
 end
@@ -2438,7 +2440,7 @@ function BasicActor:ScriptEvent(event,value,str)
 			
 		Particle.SpawnEffect("water.body_splash.corpse", ppos, g_Vectors.v001, 1.0);
 		if(not str) then
-			self:PlaySoundEvent("sounds/physics:foleys/player:dive_in", g_Vectors.v000, g_Vectors.v010, SOUND_DEFAULT_3D, SOUND_SEMANTIC_PLAYER_FOLEY);
+			self:PlaySoundEvent("sounds/physics:foleys/player:dive_in", g_Vectors.v000, g_Vectors.v010, SOUND_DEFAULT_3D, 0, SOUND_SEMANTIC_PLAYER_FOLEY);
 		end
 	elseif (event == "profileChanged") then
 		if (str == "ragdoll") then
@@ -2460,7 +2462,7 @@ function BasicActor:ScriptEvent(event,value,str)
 --			self.isFallen = 1;
 --		end
 	elseif (event == "jumped") then
-		local sound = self:PlaySoundEvent("sounds/physics:foleys/player:jump_on", g_Vectors.v000, g_Vectors.v010, SOUND_DEFAULT_3D, SOUND_SEMANTIC_PLAYER_FOLEY);
+		local sound = self:PlaySoundEvent("sounds/physics:foleys/player:jump_on", g_Vectors.v000, g_Vectors.v010, SOUND_DEFAULT_3D, 0, SOUND_SEMANTIC_PLAYER_FOLEY);
 	end
 end
 
@@ -2691,8 +2693,8 @@ function BasicActor:OnCloaking(state)
 		if (state == 3) then
 			self.camoStartTime = _time;
 					
-			self:PlaySoundEvent("Sounds/interface:suit:suit_deep_freeze", g_Vectors.v000, g_Vectors.v010, 0, SOUND_SEMANTIC_PLAYER_FOLEY);
-			self:PlaySoundEvent("Sounds/interface:suit:breathing_in_mask_cold_oneshot", g_Vectors.v000, g_Vectors.v010, 0, SOUND_SEMANTIC_PLAYER_FOLEY);
+			self:PlaySoundEvent("Sounds/interface:suit:suit_deep_freeze", g_Vectors.v000, g_Vectors.v010, 0, 0, SOUND_SEMANTIC_PLAYER_FOLEY);
+			self:PlaySoundEvent("Sounds/interface:suit:breathing_in_mask_cold_oneshot", g_Vectors.v000, g_Vectors.v010, 0, 0, SOUND_SEMANTIC_PLAYER_FOLEY);
 						
 			if (self.actor:GetChannel()>0) then
 				--System.SetScreenFx("ScreenFrost_Amount", 0);

@@ -433,7 +433,7 @@ public:
 
 	virtual void Draw(bool draw);
 	virtual void BindInputs( IAnimationGraphState * pAGState );
-	//marcok: GC workaround
+	//marcok: GC hack
 	virtual bool ShouldSwim();
 	virtual bool IsSwimming() {	return m_bSwimming; }
 	virtual bool IsSprinting();

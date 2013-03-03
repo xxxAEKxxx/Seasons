@@ -69,6 +69,7 @@ function SoundMoodVolume:CliSrv_OnInit()
 	
 	self:SetSoundEffectRadius(self.Properties.OuterRadius);
 	self.Initialized=1;
+  self:RegisterForAreaEvents(1);
 	self:GoToCorrectState();
 end
 
@@ -84,6 +85,7 @@ end
 
 ----------------------------------------------------------------------------------------
 function SoundMoodVolume:OnShutDown()
+	self:RegisterForAreaEvents(0);
 end
 
 ----------------------------------------------------------------------------------------

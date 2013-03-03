@@ -449,6 +449,7 @@ SoundExclusivePreset.Client={
 		OnBeginState=function(self)
 		--	System.Log("SetTimer");
 			self:SetTimer(0,200);
+			self:RegisterForAreaEvents(1);
 		end,
 		OnTimer=SoundExclusivePreset.Client_Active_OnTimer,
 		OnProceedFadeArea=SoundExclusivePreset.Client_Active_OnProceedFadeArea,

@@ -27,11 +27,11 @@ public:
 		static const SInputPortConfig inputs[] = {
 			InputPortConfig_Void("Activate", _HELP("Tell the tornado to actually wander to the new [Target]")),
 				InputPortConfig<EntityId>("Target", _HELP("Set a new wandering target for the tornado")),
-			{0}
+			InputPortConfig_Null()
 		};
 		static const SOutputPortConfig outputs[] = {
 			OutputPortConfig_Void("Done", _HELP("Triggered when target has been reached")),
-			{0}
+			OutputPortConfig_Null()
 		};
 		config.pInputPorts = inputs;
 		config.pOutputPorts = outputs;

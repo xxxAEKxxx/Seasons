@@ -55,6 +55,11 @@ function SimpleIndirectLight:OnInit()
 	self:SetFlags(ENTITY_FLAG_CLIENT_ONLY, 0);
 	--self:NetPresent(0);
 	self:OnReset();
+	self:CacheResources("SimpleIndirectLight.lua");
+end
+
+function SimpleIndirectLight:CacheResources(requesterName)
+	Game.CacheResource(requesterName, self.Properties.Projector.texture_Texture, eGameCacheResourceType_Texture, 0);
 end
 
 function SimpleIndirectLight:OnShutDown()
@@ -157,6 +162,16 @@ function SimpleIndirectLight:Event_Disable()
 		self:ActivateLight( 0 );
 	end
 end
+
+function Light:NotifySwitchOnOffFromParent(wantOn)
+  local wantOff = wantOn~=true;
+	if (self.bActive == 1 and wantOff) then
+		self:ActivateLight( 0 );
+	elseif (self.bActive == 0 and wantOn) then
+		self:ActivateLight( 1 );
+	end
+end
+
 
 ------------------------------------------------------------------------------------------------------
 -- Event Handlers

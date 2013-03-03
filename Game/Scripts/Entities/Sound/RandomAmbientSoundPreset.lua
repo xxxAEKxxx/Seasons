@@ -170,7 +170,6 @@ function RandomAmbientSoundPreset:LoadSounds()
 			if(self.Sounds[i] and self.Sounds[i].Sound) then
 				Sound.SetSoundVolume(self.Sounds[i].Sound, tonumber(Element.Volume) * self.fLastFadeCoeff * self.Properties.fScale);
 				Sound.SetWeatherAndPerceptionFlags(self.Sounds[i].Sound,self.Properties.bWeatherEffected,self.Properties.bPerception);
-				Sound.AddToScaleGroup(self.Sounds[i].Sound, SOUNDSCALE_UNDERWATER);
 				--System.Log("Setting sound "..Element.Sound.." volume "..tonumber(Element.Volume)*self.fLastFadeCoeff);
 			end	
 		end--if table
@@ -432,6 +431,7 @@ RandomAmbientSoundPreset.Server={
 
 RandomAmbientSoundPreset.Client={
 	OnInit=function(self)
+		self:RegisterForAreaEvents(1);
 		self:CliSrv_OnInit()
 		self:OnMove();
 		self:LoadSounds();

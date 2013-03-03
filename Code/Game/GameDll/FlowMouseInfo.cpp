@@ -179,7 +179,7 @@ public:
 			InputPortConfig<bool>("UpdateAlways", false, _HELP("If enabled it will always update the flownode")),
 			InputPortConfig<string>("RaySelection", "All", _HELP("Sets what should cause a ray hit"), "Ray Selection", _UICONFIG("enum_string: All=All, Terrain=Terrain, Rigid=Rigid, Static=Static, Water=Water, Living=Living")),
 			InputPortConfig<string>("Key", "NUM0",  _HELP("Sets the modal mode activation key"), "Modal mode key", _UICONFIG("enum_string: A=A,B=B,C=C,D=D,E=E,F=F,G=G,H=H,I=I,J=J,K=K,L=L,M=M,N=N,O=O,P=P,Q=Q,R=R,S=S,T=T,U=U,V=V,X=X,Y=Y,Z=Z,LEFT=LEFT,RIGHT=RIGHT,UP=UP,DOWN=DOWN,0=0,1=1,2=2,3=3,4=4,5=5,6=6,7=7,8=8,9=9,MOUSE1=MOUSE1, MOUSE2=MOUSE2, MOUSE3=MOUSE3, MOUSE4=MOUSE4, MOUSE5=MOUSE5, MOUSE6=MOUSE6, MOUSE7=MOUSE7, MOUSE8=MOUSE8,NUM0=NUM0,NUM1=NUM1,NUM2=NUM2,NUM3=NUM3,NUM4=NUM4,NUM5=NUM5,NUM6=NUM6,NUM7=NUM7,NUM8=NUM8,NUM9=NUM9,NUMENTER=NUMENTER,F1=F1,F2=F2,F3=F3,F4=F4,F5=F5,F6=F6,F7=F7,F8=F8,F9=F9,F10=F10")),
-			{0}
+			InputPortConfig_Null()
 		};
 
 		static const SOutputPortConfig outputs[] =
@@ -195,7 +195,7 @@ public:
 			OutputPortConfig<Vec3>("HitPos", _HELP("Hit position of the mouse cursor in world coordinates")),
 			OutputPortConfig<Vec3>("HitDir", _HELP("Direction from the camera position to the mouse cursor position")),
 			OutputPortConfig<EntityId>("SelectedEntityIDs", _HELP("EntityID's of the selected entities")),
-			{0}
+			OutputPortConfig_Null()
 		};
 
 		config.pInputPorts = inputs;

@@ -5,7 +5,7 @@ FogVolume = {
 	Properties = {
 		bActive = 1,
 		
-		VolumeType = 0,						
+		eiVolumeType = 0,						
 		Size = { x = 1, y = 1, z = 1 },		
 		color_Color = { x = 1, y = 1, z = 1 },
 		fHDRDynamic = 0,		-- -1=darker..0=normal..1=brighter
@@ -94,6 +94,7 @@ end
 -------------------------------------------------------
 function FogVolume:Event_Hide()
 	self:DeleteFogVolume();
+	BroadcastEvent(self, "Hide");
 end
 
 -------------------------------------------------------
@@ -101,6 +102,7 @@ end
 -------------------------------------------------------
 function FogVolume:Event_Show()	
 	self:CreateFogVolume();
+	BroadcastEvent(self, "Show");
 end
 
 -------------------------------------------------------

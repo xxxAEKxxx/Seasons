@@ -20,6 +20,8 @@ History:
 #include "VehicleActionEntityAttachment.h"
 #include "GameCVars.h"
 #include "IItemSystem.h"
+#include "WeaponSystem.h"
+#include "Projectile.h"
 
 class CVehicleActionEntityAttachment;
 
@@ -101,14 +103,14 @@ void CFlowVehicleEntityAttachment::GetConfiguration(SFlowNodeConfig& nodeConfig)
 	static const SInputPortConfig pInConfig[] = 
 	{
 		InputPortConfig_Void("DropAttachmentTrigger", _HELP("Trigger to drop the attachment")),
-		{0}
+		InputPortConfig_Null()
 	};
 
 	static const SOutputPortConfig pOutConfig[] = 
 	{
 		OutputPortConfig<int>("EntityId", _HELP("Entity Id of the attachment")),
 		OutputPortConfig<bool>("IsAttached", _HELP("If the attachment is still attached")),
-		{0}
+		OutputPortConfig_Null()
 	};
 
 	nodeConfig.sDescription = _HELP("Handle the entity attachment used as vehicle action");
@@ -227,7 +229,7 @@ public:
 		{
 			InputPortConfig_Void  ("SetLimit", _HELP("Trigger to set limit")),
 			InputPortConfig<float>("Limit", _HELP("Altitude limit in meters")),
-			{0}
+			InputPortConfig_Null()
 		};
 
 		nodeConfig.sDescription = _HELP("Set Vehicle's Maximum Altitude");
@@ -259,7 +261,8 @@ public:
 
 	enum InputPorts
 	{
-		eI_Activate = 0,
+		eI_Activate,
+		eI_Paused,
 	};
 
 	enum OutputPorts
@@ -272,7 +275,7 @@ public:
 		s->Add(*this);
 	}
 
-	virtual IFlowNodePtr Clone( SActivationInfo *pActInfo )
+	virtual IFlowNodePtr Clone(SActivationInfo *pActInfo)
 	{
 		return new CFlowPlayerVehicleGetSpeed(pActInfo);
 	}
@@ -281,37 +284,64 @@ public:
 	{
 		static const SInputPortConfig pInConfig[] = 
 		{
-			InputPortConfig_Void  ("Activate", _HELP("Activate")),
-			{0}
+			InputPortConfig_Void  ( "Get", _HELP("Get current value") ),
+			InputPortConfig<bool> ( "Paused", true, _HELP("Pause output") ),
+			InputPortConfig_Null()
 		};
 			
-		static const SOutputPortConfig out_config[] = {
+		static const SOutputPortConfig pOutConfig[] = 
+		{
 			OutputPortConfig<float>( "Speed", "vehicle speed" ),
-			{0}
+			OutputPortConfig_Null()
 		};
 
-		nodeConfig.sDescription = _HELP("Get speed of the players vehicle");
+		nodeConfig.sDescription = _HELP( "Get speed of the players vehicle" );
 		nodeConfig.pInputPorts = pInConfig;
-		nodeConfig.pOutputPorts = out_config;
+		nodeConfig.pOutputPorts = pOutConfig;
 		nodeConfig.SetCategory(EFLN_ADVANCED);
 	}
 
-	virtual void ProcessEvent(EFlowEvent flowEvent, SActivationInfo* pActivationInfo)
+	f32 GetVehicleSpeed()
 	{
-		if (flowEvent == eFE_Activate)
+		IActor* pActor = gEnv->pGameFramework->GetClientActor();
+		SVehicleStatus state;
+		if(pActor)
 		{
-			IActor* pActor = gEnv->pGameFramework->GetClientActor();
-			SVehicleStatus state;
-			if(pActor)
+			IVehicle* pVehicle = pActor->GetLinkedVehicle();
+			if(pVehicle)
 			{
-				IVehicle* pVehicle = pActor->GetLinkedVehicle();
-				if(pVehicle)
-				{
-					state = pVehicle->GetStatus();
-				}
+				state = pVehicle->GetStatus();
+				return state.vel.len();
 			}
-			
-			ActivateOutput( pActivationInfo, eO_Speed, state.vel.len() );
+		}
+		return 0.f;
+	}
+
+	virtual void ProcessEvent(EFlowEvent flowEvent, SActivationInfo* pActInfo)
+	{
+		switch (flowEvent)
+		{	
+			case eFE_Initialize:
+			{
+				pActInfo->pGraph->SetRegularlyUpdated(pActInfo->myID, !(GetPortBool(pActInfo, eI_Paused)));
+				break;
+			}
+		
+			case eFE_Activate:
+			{
+				if(IsPortActive(pActInfo, eI_Activate))
+					ActivateOutput(pActInfo, eO_Speed, GetVehicleSpeed());
+
+				pActInfo->pGraph->SetRegularlyUpdated(pActInfo->myID, !(GetPortBool(pActInfo, eI_Paused)));
+				break;
+			}
+
+			case eFE_Update:
+			{
+				if(!(GetPortBool(pActInfo, eI_Paused)) && GetVehicleSpeed()>0.f)
+					ActivateOutput(pActInfo, eO_Speed, GetVehicleSpeed());
+				break;
+			}
 		}
 	}
 };
@@ -342,7 +372,7 @@ public:
 			InputPortConfig_AnyType( "Enabled",	"Enable Third Person Camera Adjustment" ),
 			InputPortConfig_AnyType( "Disabled","Disable Third Person Camera Adjustment" ),
 			InputPortConfig<float>( "Adjustment",	"Camera height adjustment" ),
-			{0}
+			InputPortConfig_Null()
 		};
 		config.pInputPorts = in_config;
 		config.SetCategory(EFLN_DEBUG);
@@ -404,7 +434,7 @@ public:
 		static const SInputPortConfig in_config[] = {
 			InputPortConfig_AnyType( "Enabled",	"Enable boosting on this vehicle" ),
 			InputPortConfig_AnyType( "Disabled","Disable boosting on this vehicle" ),
-			{0}
+			InputPortConfig_Null()
 		};
 
 		config.nFlags |= EFLN_TARGET_ENTITY;
@@ -446,15 +476,20 @@ public:
 					assert(pVehicleSystem);
 
 					IVehicle* pVehicle = pVehicleSystem->GetVehicle(m_vehicleId);
-					IVehicleMovement* pVehicleMovement = pVehicle->GetMovement();
-					
-					if(IsPortActive(pActInfo,EIP_Enabled))
+					if(pVehicle)
 					{
-						pVehicleMovement->AllowBoosting(true);
-					}
-					else if(IsPortActive(pActInfo, EIP_Disabled))
-					{
-						pVehicleMovement->AllowBoosting(false);
+						IVehicleMovement* pVehicleMovement = pVehicle->GetMovement();
+						if(pVehicleMovement)
+						{
+							if(IsPortActive(pActInfo,EIP_Enabled))
+							{
+								pVehicleMovement->AllowBoosting(true);
+							}
+							else if(IsPortActive(pActInfo, EIP_Disabled))
+							{
+								pVehicleMovement->AllowBoosting(false);
+							}
+						}
 					}
 				}
 			}
@@ -509,12 +544,12 @@ public:
 			InputPortConfig_Void   ( "Trigger", _HELP("show debug informations on screen") ),
 			InputPortConfig<float> ( "Size", 1.5f, _HELP("font size")),
 			InputPortConfig<string>( "vehicleParts_Parts", _HELP("select vehicle parts"), 0, _UICONFIG("ref_entity=entityId") ),
-			{0}
+			InputPortConfig_Null()
 		};
 
 		static const SOutputPortConfig out_config[] = 
 		{
-			{0}
+			OutputPortConfig_Null()
 		};
 
 		config.nFlags |= EFLN_TARGET_ENTITY;
@@ -743,12 +778,12 @@ public:
 		static const SInputPortConfig pInConfig[] = 
 		{
 			InputPortConfig_Void  ("Get", _HELP("Get id")),
-			{0}
+			InputPortConfig_Null()
 		};
 
 		static const SOutputPortConfig out_config[] = {
 			OutputPortConfig<EntityId>( "Id", "vehicle id" ),
-			{0}
+			OutputPortConfig_Null()
 		};
 
 		nodeConfig.sDescription = _HELP("Get id of the players vehicle");
@@ -777,6 +812,90 @@ public:
 	}
 };
 
+
+class CFlowLaunchProjectileNode: public CFlowBaseNode<eNCT_Instanced>
+{
+public:
+	enum EInputs
+	{
+		IN_LAUNCH,
+		IN_PROJ,
+		IN_POS,
+		IN_DIR,
+		IN_VEL
+	};
+	enum EOutputs
+	{
+		OUT_OK
+	};
+
+	CFlowLaunchProjectileNode( SActivationInfo * pActInfo )
+	{
+	}
+
+	virtual void GetConfiguration(SFlowNodeConfig& config)
+	{
+		static const SInputPortConfig inputs[] = {
+			InputPortConfig_Void("Launch", _HELP("Launch projectile")),
+			InputPortConfig<string>("Projectile", _HELP("Launch projectile"), 0, _UICONFIG("enum_global:ammos") ),
+			InputPortConfig<Vec3>("Pos", _HELP("position of launch")),
+			InputPortConfig<Vec3>("Dir", _HELP("direction for projectile")),
+			InputPortConfig<Vec3>("Vel", _HELP("velocity of projectile")),
+			InputPortConfig_Null()
+		};
+		static const SOutputPortConfig outputs[] = {
+			OutputPortConfig_Void( "launched", _HELP("outputs after launch") ),
+			OutputPortConfig_Null()
+		};    
+		config.pInputPorts = inputs;
+		config.pOutputPorts = outputs;
+		config.sDescription = _HELP("Launches a projectile");
+		config.SetCategory(EFLN_APPROVED);
+	}
+
+	virtual void ProcessEvent( EFlowEvent event, SActivationInfo *pActInfo )
+	{
+		switch (event)
+		{
+		case eFE_Activate:
+			if (IsPortActive(pActInfo, IN_LAUNCH))
+			{
+				string classname = GetPortString(pActInfo, IN_PROJ);
+				IEntityClass *pClass = gEnv->pEntitySystem->GetClassRegistry()->FindClass(classname);
+				if(!pClass)
+				{
+					CryLogAlways("Flownode LaunchProjectile: class not found");
+					return;
+				}
+				CProjectile* proj = g_pGame->GetWeaponSystem()->SpawnAmmo(pClass, true);
+				
+				if(!proj)
+				{
+					CryLogAlways("Flownode LaunchProjectile: class found, no projectile");
+					return;
+				}
+				
+				Vec3  pos = GetPortVec3(pActInfo, IN_POS);
+				Vec3  dir = GetPortVec3(pActInfo, IN_DIR);
+				Vec3  vel = GetPortVec3(pActInfo, IN_VEL);
+				proj->Launch(pos, dir, vel);
+				ActivateOutput(pActInfo, OUT_OK, true);
+			}
+		}
+	}
+
+	virtual void GetMemoryUsage(ICrySizer * s) const
+	{
+		s->Add(*this);
+	}
+
+	virtual IFlowNodePtr Clone( SActivationInfo *pActInfo )
+	{
+		return new CFlowLaunchProjectileNode(pActInfo);
+	}
+
+};
+
 REGISTER_FLOW_NODE("Vehicle:EntityAttachment", CFlowVehicleEntityAttachment);
 REGISTER_FLOW_NODE("Game:SetVehicleAltitudeLimit", CFlowVehicleSetAltitudeLimit);
 REGISTER_FLOW_NODE("Game:GetPlayerVehicleSpeed", CFlowPlayerVehicleGetSpeed);
@@ -785,3 +904,5 @@ REGISTER_FLOW_NODE("Vehicle:ToggleBoost", CFlowPlayerVehicleToggleBoost);
 
 REGISTER_FLOW_NODE( "Vehicle:ThirdPersonCameraAdjustment", CFlowNode_CameraThirdPersonAdjustment );
 REGISTER_FLOW_NODE( "Vehicle:DebugDraw", CFlowNode_VehicleDebugDraw );
+
+REGISTER_FLOW_NODE( "Game:LaunchProjectile", CFlowLaunchProjectileNode);

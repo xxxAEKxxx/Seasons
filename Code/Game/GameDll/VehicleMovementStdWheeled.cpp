@@ -964,7 +964,7 @@ void CVehicleMovementStdWheeled::UpdateSounds(const float deltaTime)
 		else
 		{
 			// don't allow rpm to rev up when in 1st forward/backward gear and clutch is disengaged.
-			// a bit workaround, but it prevents the sound glitch
+			// a bit hacky, but it prevents the sound glitch
 			if (m_vehicleStatus.clutch < 0.9f && (m_vehicleStatus.iCurGear == 0 || m_vehicleStatus.iCurGear == 2))
 			{
 				rpmScale = min(m_rpmScale, rpmScale);

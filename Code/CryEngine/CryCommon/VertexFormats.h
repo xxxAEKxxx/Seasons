@@ -259,6 +259,65 @@ struct Vec3f16 : public CryHalf4
   }
 };
 
+_inline Vec3 ToVec3(const CryHalf4& h)
+{
+	Vec3 v;
+
+	v.x = CryConvertHalfToFloat(h.x);
+	v.y = CryConvertHalfToFloat(h.y);
+	v.z = CryConvertHalfToFloat(h.z);
+	return v;
+}
+
+_inline CryHalf4 ToHalf3(const Vec3& sl)
+{
+	CryHalf4 out;
+
+
+
+
+
+
+
+
+
+
+
+
+
+	out.x = CryConvertFloatToHalf(sl.x);
+	out.y = CryConvertFloatToHalf(sl.y);
+	out.z = CryConvertFloatToHalf(sl.z);
+	out.w = CryConvertFloatToHalf(1.0f);
+
+
+	return out;
+}
+
+_inline CryHalf4 ToHalf3(const Vec4A& sl)
+{
+	CryHalf4 out;
+
+
+
+
+
+
+
+
+
+
+
+
+	out.x = CryConvertFloatToHalf(sl.x);
+	out.y = CryConvertFloatToHalf(sl.y);
+	out.z = CryConvertFloatToHalf(sl.z);
+	out.w = CryConvertFloatToHalf(sl.w);
+
+
+	return out;
+}
+
 #ifndef FP16_MESH
 struct Vec2f16 : public Vec2
 #else
@@ -355,7 +414,7 @@ struct SVF_P3S_N4B_C4B_T2S
 
 struct SVF_P2S_N4B_C4B_T1F
 {
-	Vec2f16 xy;
+	CryHalf2 xy;
 	UCol normal;
 	UCol color;
 	float z;

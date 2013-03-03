@@ -1157,6 +1157,7 @@ void CProjectile::Ricochet(EventPhysCollision *pCollision)
 			{
 				if (intersect==0x2)
 					entry=pCollision->pt;
+
 				RicochetSound(entry, ricochetDir);
 
 				//gEnv->pRenderer->GetIRenderAuxGeom()->DrawLine(entry, ColorB(255, 255, 255, 255), entry+ricochetDir, ColorB(255, 255, 255, 255), 2);

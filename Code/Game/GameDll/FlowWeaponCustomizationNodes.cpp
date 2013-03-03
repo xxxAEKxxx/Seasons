@@ -13,13 +13,13 @@ void CFlashUIInventoryNode::GetConfiguration( SFlowNodeConfig &config )
 {
 	static const SInputPortConfig in_config[] = {
 		InputPortConfig_Void( "Call", "Calls the function" ),
-		{0}
+		InputPortConfig_Null()
 	};
 
 	static const SOutputPortConfig out_config[] = {
 		OutputPortConfig_Void( "OnCall", "Triggered if this node starts the action" ),
 		OutputPortConfig<string>( "Args", "Comma separated argument string" ),
-		{0}
+		OutputPortConfig_Null()
 	};
 
 
@@ -100,13 +100,13 @@ void CFlashUIGetEquippedAccessoriesNode::GetConfiguration( SFlowNodeConfig &conf
 	static const SInputPortConfig in_config[] = {
 		InputPortConfig_Void( "Call", "Calls the function" ),
 		InputPortConfig<string>( "Weapon", "Weapon to get the equipment for" ),
-		{0}
+		InputPortConfig_Null()
 	};
 
 	static const SOutputPortConfig out_config[] = {
 		OutputPortConfig_Void( "OnCall", "Triggered if this node starts the action" ),
 		OutputPortConfig<string>( "Args", "Comma separated argument string" ),
-		{0}
+		OutputPortConfig_Null()
 	};
 
 
@@ -165,13 +165,13 @@ void CFlashUIGetCompatibleAccessoriesNode ::GetConfiguration( SFlowNodeConfig &c
 	static const SInputPortConfig in_config[] = {
 		InputPortConfig_Void( "Call", "Calls the function" ),
 		InputPortConfig<string>( "Weapon", "Weapon to get the equipment for" ),
-		{0}
+		InputPortConfig_Null()
 	};
 
 	static const SOutputPortConfig out_config[] = {
 		OutputPortConfig_Void( "OnCall", "Triggered if this node starts the action" ),
 		OutputPortConfig<string>( "Args", "Comma separated argument string" ),
-		{0}
+		OutputPortConfig_Null()
 	};
 
 
@@ -243,14 +243,14 @@ void CFlashUICheckAccessoryState ::GetConfiguration( SFlowNodeConfig &config )
 		InputPortConfig_Void( "Call", "Calls the function" ),
 		InputPortConfig<string>( "Accessory", "Accessory we are checking" ),
 		InputPortConfig<string>( "Weapon", "Weapon we are checking" ),
-		{0}
+		InputPortConfig_Null()
 	};
 
 	static const SOutputPortConfig out_config[] = {
 		OutputPortConfig<bool>( "Equipped", "Accessory is equipped" ),
 		OutputPortConfig<bool>( "InInventory", "Accessory is in inventory, not equipped" ),
 		OutputPortConfig<bool>( "DontHave", "Entity does not possess accessory" ),
-		{0}
+		OutputPortConfig_Null()
 	};
 
 

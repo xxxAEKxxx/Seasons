@@ -48,7 +48,7 @@ public:
 			InputPortConfig<bool>   ("Skipable", true, _HELP("If true, player can skip video by pressing on of the skip keys (see ActionMap)")),
 			InputPortConfig<int>    ("AudioChannel", 0, _HELP("Audio channel")),
 			InputPortConfig<int>    ("SubtitleChannel", 0, _HELP("Subtitle channel")),
-			{0}
+			InputPortConfig_Null()
 		};
 
 		static const SOutputPortConfig outputs[] = {
@@ -58,7 +58,7 @@ public:
 			OutputPortConfig_Void  ("OnResume",	_HELP("Triggered once the video resumes")),
 			OutputPortConfig_Void  ("OnLooped",	_HELP("Triggered once the video looped and start again")),
 			OutputPortConfig_Void  ("OnVideoNotFound",	_HELP("Triggered on Video was not found")),
-			{0}
+			OutputPortConfig_Null()
 		};
 
 		config.pInputPorts = inputs;

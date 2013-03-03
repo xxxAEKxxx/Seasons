@@ -163,7 +163,7 @@ void CCameraInputHelper::UpdateCameraInput(Ang3 &deltaRotation, const float fram
 	CCameraOverrides *pCamOverride = g_pGame->GetCameraManager()->GetCamOverrides();
 	int eCamOverrideMode = pCamOverride->GetCameraOverride();
 
-	//the ECO_LOWCOVER fading is a workaround, causing problems when inputs are changed during the fade
+	//the ECO_LOWCOVER fading is a hack, causing problems when inputs are changed during the fade
 	//in combat mode all inputs have to be passed through to synchronize the camera direction in other modes
 	if((stickMag>0.01f && eCamOverrideMode != ECO_LOWCOVER))
 	{

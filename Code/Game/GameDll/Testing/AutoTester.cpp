@@ -419,9 +419,9 @@ void CAutoTester::WriteResults(TBitfield flags, const string * additionalTestSui
 		return;
 	}
 
-	// test workaround
+	// test hack
 	//DesignerWarning(0, "test warning");
-	// test workaround
+	// test hack
 
 	const char * mapName;
 	string gameRulesName;

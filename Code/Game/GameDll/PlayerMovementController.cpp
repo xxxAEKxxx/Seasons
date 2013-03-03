@@ -291,7 +291,7 @@ bool CPlayerMovementController::RequestMovement( CMovementRequest& request )
 		if (m_state.HasDesiredSpeedAtTarget())
 			pTrigger->SetInput("DesiredSpeed", m_state.GetDesiredSpeedAtTarget());
 		else
-			pTrigger->SetInput("DesiredSpeed", 0.0f); // TODO: workaround to test
+			pTrigger->SetInput("DesiredSpeed", 0.0f); // TODO: hack to test
 	}
 */
 
@@ -787,7 +787,7 @@ bool CPlayerMovementController::UpdateNormal( float frameTime, SActorFrameMoveme
 	{
     static float criticalDistance = 5.0f;
     float distance = (pAnimTarget->position - playerPos).GetLength();
-		// workaround: DistanceToPathEnd is bogus values. Using true distance to anim target pos instead.
+		// HACK: DistanceToPathEnd is bogus values. Using true distance to anim target pos instead.
 		pAnimTarget->allowActivation = m_state.GetDistanceToPathEnd() < criticalDistance && distance < criticalDistance;
 	}
 

@@ -602,7 +602,7 @@ void CLam::UpdateTPLaser(float frameTime, CItem* parent)
 	Vec3 hitPos(0,0,0);
 	float laserLength = 0.0f;
 
-	// workaround??: Use player movement controller locations, or else the laser
+	// HACK??: Use player movement controller locations, or else the laser
 	// pops all over the place when character out of the screen.
 	CActor *pActor = parent->GetOwnerActor();
 	if (pActor && (!pActor->IsPlayer() || charNotVisible))

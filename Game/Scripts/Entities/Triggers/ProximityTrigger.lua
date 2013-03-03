@@ -124,6 +124,8 @@ function ProximityTrigger:OnReset()
 	if (not self.localOnly) then
 		self.triggeredPP={};
 		self.triggeredOncePP={};
+	else
+		self:SetFlags(ENTITY_FLAG_CLIENT_ONLY,0);
 	end
 	
 	self.triggeredOnce=nil;
@@ -485,7 +487,7 @@ end
 function ProximityTrigger.Client:OnLeaveArea(entity, areaId)
 	if (entity.actor) then
 		if (self.usable and self.enabled) then
-			self:LockUsability(true);
+			self:LockUsability(false);
 		end
 	end
 	

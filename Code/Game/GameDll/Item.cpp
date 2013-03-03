@@ -1802,7 +1802,7 @@ bool CItem::CanPickUp(EntityId userId) const
 		uint8 uniqueId = m_pItemSystem->GetItemUniqueId(GetEntity()->GetClass()->GetName());
 		if (pInventory && (pInventory->GetCountOfUniqueId(uniqueId)>0))
 		{
-			//A bit workaround (kits have uniqueId 1)
+			//A bit hacky (kits have uniqueId 1)
 			if(pActor->IsClient() && (uniqueId==1))
 				g_pGame->GetGameRules()->OnTextMessage(eTextMessageCenter, "@mp_CannotCarryMoreKit");
 			return false;

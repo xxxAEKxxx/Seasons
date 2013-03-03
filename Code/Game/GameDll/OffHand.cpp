@@ -831,7 +831,7 @@ void COffHand::UpdateGrabbedNPCState()
 	{
 		RunEffectOnGrabbedNPC(pActor);
 
-		// workaround for playing a different facial animation after 5 seconds
+		// hack for playing a different facial animation after 5 seconds
 		pStats->grabbedTimer += gEnv->pTimer->GetFrameTime();
 		if ( m_grabbedNPCSpecies == eGCT_HUMAN && pStats->grabbedTimer > 5.2f )
 			pActor->SetAnimationInput( "Action", "grabStruggleFP2" );
@@ -1513,7 +1513,7 @@ void COffHand::EndSwitchGrenade()
 //===============================================================================
 void COffHand::PerformThrowPlayer(int activationMode, EntityId throwableId, int oldFMId /* = 0 */, bool isLivingEnt /*=false*/)
 {
-	//GDCE workaround: no throw
+	//GDCE hack: no throw
 	if(g_pGameCVars->g_disable_throw)
 		return;
 
@@ -1620,7 +1620,7 @@ void COffHand::PerformThrowPlayer(int activationMode, EntityId throwableId, int 
 //--------------
 int COffHand::CanPerformPickUp(CActor *pActor, bool getEntityInfo /*= false*/)
 {
-	//GDCE workaround: no pick up
+	//GDCE hack: no pick up
 	if(g_pGameCVars->g_disable_pickup)
 		return OH_NO_GRAB;
 
@@ -1936,7 +1936,7 @@ int COffHand::CheckItemsInProximity(Vec3 pos, Vec3 dir, bool getEntityInfo)
 //==========================================================================================
 bool COffHand::PerformPickUp()
 {
-	//GDCE workaround: no pick up
+	//GDCE hack: no pick up
 	if(g_pGameCVars->g_disable_pickup)
 		return false;
 
@@ -2287,7 +2287,7 @@ void COffHand::StartPickUpItem()
 	}
 
 	//No animation in MP
-	//GDCE workaround no pickup
+	//GDCE hack no pickup
 	if(gEnv->bMultiplayer ||g_pGameCVars->g_disable_pickup)
 	{
 		m_currentState = eOHS_PICKING_ITEM2;
@@ -2391,7 +2391,7 @@ void COffHand::EndPickUpItem()
 //=======================================================================================
 void COffHand::PickUpObject(bool isLivingEnt /* = false */)
 {	
-	//GDCE workaround: no pick up
+	//GDCE hack: no pick up
 	if(g_pGameCVars->g_disable_pickup)
 		CancelAction();
 
@@ -2479,7 +2479,7 @@ void COffHand::PickUpObject(bool isLivingEnt /* = false */)
 //=========================================================================================
 void COffHand::ThrowObject(int activationMode, bool isLivingEnt /*= false*/)
 {
-	//GDCE workaround: no throwing
+	//GDCE hack: no throwing
 	if(g_pGameCVars->g_disable_throw)
 		return;
 
@@ -2507,7 +2507,7 @@ void COffHand::ThrowObject(int activationMode, bool isLivingEnt /*= false*/)
 //==========================================================================================
 bool COffHand::GrabNPC()
 {
-	//GDCE workaround: no grabbing
+	//GDCE hack: no grabbing
 	if(g_pGameCVars->g_disable_grab)
 		return false;
 

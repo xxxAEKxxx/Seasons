@@ -93,12 +93,14 @@ DestroyableLight =
 			},
 		},
 
-		Sounds = {
-			sound_Alive = "",
-			sound_Dead = "",
-			sound_Dying = "",
+		Sound = {
+			soundTurnOn = "",
+			soundTurnOff = "",
+			soundDestroy = "",
+			soundIdle = "",
+			soundRun = "",
+			vOffset	= {x=0, y=0, z=0},
 			fAISoundRadius = 30,
-			bStopSoundsOnDestroyed = 1,
 		},
 				
 		Physics = {																							-- Particle pieces always physicalised as rigid bodies
@@ -116,29 +118,37 @@ DestroyableLight =
 				sleep_speed = 0.04,
 				damping = 0,
 			},
+			MP =
+			{
+				bHackDontSyncPos=0,		-- hack this wont work properly, but for MP last minute, we need to turn off sycning for some props
+			},
 		},
 	},
-	
+
 	PropertiesInstance = 
 	{
-	  bTurnedOn = 1,
+		bTurnedOn = 1,
 		-- End of destroyable object properties
 		
 		-- Light properties ----------------------------------------------------
 		
 		LightProperties_Base = 
 		{
-					
+			_nVersion = -1,
 			bUseThisLight = 1,
 			Radius = 10,
 			vOffset				= {x=0, y=0, z=0},
 			vDirection			= {x=0, y=1, z=0},
 			Style =
 			{
+				nLightStyle = 0,
+				Rotation = {x=0.0,y=0.0,z=0.0},
+				fAnimationSpeed = 1,
+				nAnimationPhase = 0,
 				fCoronaScale = 1,
 				fCoronaDistSizeFactor = 1,
 				fCoronaDistIntensityFactor = 1,
-				nLightStyle = 0,
+				texture_AttenuationMap = "",
 			},
 			Projector =
 			{
@@ -155,9 +165,13 @@ DestroyableLight =
 			},
 			Options = {
 				nCastShadows = 0,
-				bIgnoreGeomCaster = 0,
+				fShadowBias = 1,
+				fShadowSlopeBias = 1,
 				bAffectsThisAreaOnly = 1,
-				bUsedInRealTime=1,
+				bIgnoresVisAreas = 0,
+				--bUsedInRealTime=1,
+				bDeferredLight = 1,
+				bAmbientLight = 0,
 				bFakeLight=0,
 				bDeferredClipBounds = 0,
 				bIrradianceVolumes = 0,
@@ -173,23 +187,26 @@ DestroyableLight =
  			},
 			Test = {
 				bFillLight=0,
-				bNegativeLight=0,
 			},
 		},
 		
 		LightProperties_Destroyed = 
 		{
-					
+			_nVersion = -1,
 			bUseThisLight = 0,
 			Radius = 10,
 			vOffset					= {x=0, y=0, z=0},
 			vDirection			= {x=0, y=1, z=0},
 			Style =
 			{
+				nLightStyle = 0,
+				Rotation = {x=0.0,y=0.0,z=0.0},
+				fAnimationSpeed = 1,
+				nAnimationPhase = 0,
 				fCoronaScale = 1,
 				fCoronaDistSizeFactor = 1,
 				fCoronaDistIntensityFactor = 1,
-				nLightStyle = 0,
+				texture_AttenuationMap = "",
 			},
 			Projector =
 			{
@@ -206,20 +223,37 @@ DestroyableLight =
 			},
 			Options = {
 				nCastShadows = 0,
-				bIgnoreGeomCaster = 0,
+				fShadowBias = 1,
+				fShadowSlopeBias = 1,
 				bAffectsThisAreaOnly = 1,
-				bUsedInRealTime=1,
+				bIgnoresVisAreas = 0,
+				--bUsedInRealTime=1,
+				bDeferredLight = 1,
+				bAmbientLight = 0,
 				bFakeLight=0,
-				bDeferredLight = 0,
+				bDeferredClipBounds = 0,
+				bIrradianceVolumes = 0,
+				bDisableX360Opto = 0,
+				texture_deferred_cubemap = "",
+				file_deferred_clip_geom = "",
+				nPostEffect=0, -- 0=none, 1= screen space light shaft, 2= flare, 3= volume desaturation ?			
+				
+				bIgnoreGeomCaster = 0,
         nViewDistRatio = 100,
+        nGlowSubmatId = 0,
  			},
 			Test = {
 				bFillLight=0,
-				bNegativeLight=0,
 			},
 		},
 		-- End of light properties ----------------------------------------------------
 	},
+
+	Editor=
+	{
+		IsScalable = false;
+	},
+
 	
 	_LightTable = {},
 	
@@ -236,6 +270,9 @@ DestroyableLight =
 
 -------------------------------------------------------
 function DestroyableLight:OnLoad(table)	
+  if (self.lightSlot) then
+  	self:FreeSlot( self.lightSlot );
+  end
 	self.bUsable = table.bUsable;
 	self.shooterId = table.shooterId;
 	self.health = table.health;
@@ -269,7 +306,9 @@ function DestroyableLight:OnLoad(table)
 	if (self:GetState() ~= table.state) then
 	  self:GotoState(table.state)
 	end
-	
+
+  self.runSoundId = 0;
+  self.idleSoundId = 0;
 	self:ShowCorrectLight();
 end
 
@@ -297,7 +336,7 @@ end
 function DestroyableLight:CommonInit()
 	self.bReloadGeoms = 1;
 	self.bUsable = self.Properties.bUsable;
-	self.lightOn = self.PropertiesInstance.bTurnedOn;
+	self.lightOn = self.PropertiesInstance.bTurnedOn==1;
 	if (not self.bInitialized) then
 		self.LastHit = {
 			impulse = {x=0,y=0,z=0},
@@ -313,19 +352,52 @@ end
 ----------------------------------------------------------------------------------------------------
 function DestroyableLight.Server:OnInit()
 	self:CommonInit();
-	self:PreLoadParticleEffect( self.Properties.Explosion.Effect );
 end
 
 ----------------------------------------------------------------------------------------------------
 function DestroyableLight.Client:OnInit()
 	self:CommonInit();
 	self:ShowCorrectLight();
+	self:CacheResources("DestroyableLight.lua");
+end
+
+-------------------------------------------------------
+function DestroyableLight:CacheResources(requesterName)
+	local textureFlags = 0;
+	if (self.PropertiesInstance.LightProperties_Base.Projector.bProjectInAllDirs ~= 0 and self.PropertiesInstance.LightProperties_Base.Options.bDeferredLight ~= 0) then
+		textureFlags = eGameCacheResourceFlag_TextureReplicateAllSides;
+	end
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Base.Projector.texture_Texture, eGameCacheResourceType_Texture, textureFlags);
+	
+	textureFlags = 0;
+	if (self.PropertiesInstance.LightProperties_Destroyed.Projector.bProjectInAllDirs ~= 0 and self.PropertiesInstance.LightProperties_Destroyed.Options.bDeferredLight ~= 0) then
+		textureFlags = eGameCacheResourceFlag_TextureReplicateAllSides;
+	end
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Destroyed.Projector.texture_Texture, eGameCacheResourceType_Texture, textureFlags);
+	
+	self:PreLoadParticleEffect( self.Properties.Explosion.Effect );
+	self:PreLoadParticleEffect( self.Properties.Explosion.DelayEffect.Effect );
+	
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Base.Style.texture_AttenuationMap, eGameCacheResourceType_Texture, eGameCacheResourceFlag_TextureNoStream);
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Destroyed.Style.texture_AttenuationMap, eGameCacheResourceType_Texture, eGameCacheResourceFlag_TextureNoStream);
+	
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Base.Options.texture_deferred_cubemap, eGameCacheResourceType_TextureDeferredCubemap, 0);
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Destroyed.Options.texture_deferred_cubemap, eGameCacheResourceType_TextureDeferredCubemap, 0);
+	
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Base.Options.file_deferred_clip_geom, eGameCacheResourceType_StaticObject, 0);
+	Game.CacheResource(requesterName, self.PropertiesInstance.LightProperties_Destroyed.Options.file_deferred_clip_geom, eGameCacheResourceType_StaticObject, 0);
 end
 
 ----------------------------------------------------------------------------------------------------
 function DestroyableLight:OnPropertyChange()
 	self.bReloadGeoms = 1;
 	self:Reload();
+	if (self.PropertiesInstance.LightProperties_Base.Options.bDeferredClipBounds) then
+		self:UpdateLightClipBounds(self.lightSlot);
+	end
+	-- to avoid loop sounds playing while in editor mode
+	self:StopIdleSound();  
+	self:StopRunSound();
 end
 
 
@@ -336,14 +408,14 @@ end
 ----------------------------------------------------------------------------------------------------
 function DestroyableLight:OnReset()
 	self:RemoveEffect();
-	
+
 	if (self:GetState() ~= "Alive") then
 		self:Reload();
-  else
-    self.lightOn = self.PropertiesInstance.bTurnedOn==1;
-    self:ShowCorrectLight();
+	else
+		self.lightOn = self.PropertiesInstance.bTurnedOn==1;
+		self:ShowCorrectLight();
 	end
-	
+
 	self:AwakePhysics(0);
 end
 
@@ -383,24 +455,31 @@ function DestroyableLight:Reload()
 		self:SetCurrentSlot(0);
 		self:PhysicalizeThis(0);
 		
-    -- this is somewhat of a hack: the "or self.lightOn" is there to cover the case when the designer is currently modifying the glow value in the editor. it is irrelevant in pure game
+		-- this is somewhat of a hack: the "or self.lightOn" is there to cover the case when the designer is currently modifying the glow value in the editor. it is irrelevant in pure game
 		if (not self.origGlowValue or self.lightOn) then
-      self.origGlowValue = self:GetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow" );
-    end
+			self.origGlowValue = self:GetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow" );
+		end
 	end
-	
 
-	self:StopAllSounds(); 	-- stop old sounds
 	
 	self.bReloadGeoms = 0;
 	self:GotoState( "Alive" );
 	self.lightOn = self.PropertiesInstance.bTurnedOn==1;
+  if (self.idleSoundId==nil) then
+  	self.idleSoundId = 0;
+  end	
+  if (self.runSoundId==nil) then
+  	self.runSoundId = 0;
+  end	
 	self:ShowCorrectLight();
-	
 end
 
 ------------------------------------------------------------------------------------------------------
 function DestroyableLight:PhysicalizeThis( nSlot )
+	if (self.Properties.Physics.MP.bHackDontSyncPos==1) then
+		CryAction.DontSyncPhysics(self.id);
+	end
+
 	local Physics = self.Properties.Physics;
 	-- Init physics.
 	EntityCommon.PhysicalizeRigid( self,nSlot,Physics,self.bRigidBodyActive );
@@ -501,16 +580,12 @@ function DestroyableLight:Explode()
 		g_gameRules:CreateExplosion(self.shooterId,self.id,expl.Damage,explo_pos,finalExploDir,expl.Radius,nil,expl.Pressure,expl.HoleSize, nil, nil, expl.MinRadius, expl.MinPhysRadius, expl.PhysRadius);
 	end
 	
-	-- play the dead sound after explosion
-	if (self.dead ~= true) then
-		self:PlaySoundEvent(self.Properties.Sounds.sound_Dying,g_Vectors.v000,g_Vectors.v001,0,SOUND_SEMANTIC_MECHANIC_ENTITY);
-	end
-	self:PlaySoundEvent(self.Properties.Sounds.sound_Dead,g_Vectors.v000,g_Vectors.v001,0,SOUND_SEMANTIC_MECHANIC_ENTITY);
-	
 	self.exploded = true;
 	
+	self:PlaySound( self.Properties.Sound.soundDestroy );
+	
 	-- ai sound event	
-	local aiRadius = self.Properties.Sounds.fAISoundRadius;
+	local aiRadius = self.Properties.Sound.fAISoundRadius;
 	if (aiRadius > 0) then
 		if(self.shooterId) then
 			AI.SoundEvent(self:GetWorldPos(), aiRadius, AISOUND_EXPLOSION, self.shooterId);
@@ -536,7 +611,6 @@ function DestroyableLight:Die(shooterId)
 		self.health = 0;
 	end
 	
-	self:PlaySoundEvent(self.Properties.Sounds.sound_Dying,g_Vectors.v000,g_Vectors.v001,0,SOUND_SEMANTIC_MECHANIC_ENTITY);
 
 	-- if we didn't explode yet
 	if (not self.exploded) then
@@ -649,6 +723,11 @@ function DestroyableLight:UseLight( lightIdx )
 	lt.corona_scale = Style.fCoronaScale;
 	lt.corona_dist_size_factor = Style.fCoronaDistSizeFactor;
 	lt.corona_dist_intensity_factor = Style.fCoronaDistIntensityFactor;
+	lt.rotation = Style.Rotation;
+	lt.anim_speed = Style.fAnimationSpeed;
+	lt.anim_phase = Style.nAnimationPhase;
+	lt.attenuation_map = Style.texture_AttenuationMap;
+	
 	lt.radius = props.Radius;
 	lt.diffuse_color = { x=Color.clrDiffuse.x*diffuse_mul, y=Color.clrDiffuse.y*diffuse_mul, z=Color.clrDiffuse.z*diffuse_mul };
 	if (diffuse_mul ~= 0) then
@@ -663,12 +742,18 @@ function DestroyableLight:UseLight( lightIdx )
 	lt.proj_nearplane = Projector.fProjectorNearPlane;
 	lt.cubemap = Projector.bProjectInAllDirs;
 	lt.this_area_only = Options.bAffectsThisAreaOnly;
+	lt.hasclipbound = Options.bDeferredClipBounds;
+	lt.ignore_visareas = Options.bIgnoresVisAreas;
+	lt.disable_x360_opto = Options.bDisableX360Opto;
 	lt.realtime = Options.bUsedInRealTime;
+	lt.ambient_light = Options.bAmbientLight;		
+	lt.irradiance_volumes = Options.bIrradianceVolumes;
+	lt.deferred_cubemap = Options.texture_deferred_cubemap;
+	lt.deferred_geom = Options.file_deferred_clip_geom;
 	lt.heatsource = 0;
 	lt.fake = Options.bFakeLight;
 	lt.deferred_light = Options.bDeferredLight;
 	lt.fill_light = props.Test.bFillLight;		
-	lt.negative_light = props.Test.bNegativeLight;
 	lt.indoor_only = 0;
 	lt.has_cbuffer = 0;
 	lt.cast_shadow = Options.nCastShadows;
@@ -692,19 +777,58 @@ function DestroyableLight:UseLight( lightIdx )
 	lt.RAE_FallOff = 2;
 	lt.RAE_VisareaNumber = 0;
 
-  lt.viewDistRatio = Options.nViewDistRatio;
+  	lt.viewDistRatio = Options.nViewDistRatio;
 	self.lightSlot = self:LoadLight( -1 ,lt );
-  local angles = g_Vectors.temp_v1;
-  angles.x = 0;
-  local xyVectorLen = math.sqrt( props.vDirection.x*props.vDirection.x + props.vDirection.y*props.vDirection.y );
-  angles.y = math.atan2( -props.vDirection.z, xyVectorLen );
-  angles.z = math.atan2( props.vDirection.y, props.vDirection.x );
+	local angles = g_Vectors.temp_v1;
+  	angles.x = 0;
+  	local xyVectorLen = math.sqrt( props.vDirection.x*props.vDirection.x + props.vDirection.y*props.vDirection.y );
+  	angles.y = math.atan2( -props.vDirection.z, xyVectorLen );
+  	angles.z = math.atan2( props.vDirection.y, props.vDirection.x );
 	self:SetSlotAngles(self.lightSlot, angles );
-	self:SetSlotPos(self.lightSlot, props.vOffset );
+	local vec3offset = g_Vectors.temp_v1;
+	vec3offset.x = props.vOffset.x;
+	vec3offset.y = props.vOffset.y;
+	vec3offset.z = props.vOffset.z;
+	self:SetSlotPos(self.lightSlot, vec3offset );
 	
-	if ((props.Options.nCastShadows ~= 0) and (props.Options.bIgnoreGeomCaster ~= 0)) then
+	if ((Options.nCastShadows ~= 0) and (Options.bIgnoreGeomCaster ~= 0)) then
 		self:SetSelfAsLightCasterException( self.lightSlot );
 	end
+end
+
+------------------------------------------------------------------------------
+function DestroyableLight:SwitchOnOffChildren( wantOn )
+	local numChildren = self:GetChildCount();
+	for i=0,numChildren do
+		local child = self:GetChild(i);
+		if (child and child.NotifySwitchOnOffFromParent) then
+			child:NotifySwitchOnOffFromParent( wantOn )
+		end
+	end
+end
+
+function DestroyableLight:NotifySwitchOnOffFromParent( wantOn )
+  self:SwitchOnOff( wantOn );
+end
+
+
+function DestroyableLight:SwitchOnOff( wantOn )
+	if (not self.dead) then
+	  local wantOff = wantOn~=true;
+	  if (self.lightOn and wantOff ) then
+		  self.lightOn = false;
+			self:PlaySound( self.Properties.Sound.soundTurnOff );
+		  BroadcastEvent( self, "LightOff" );
+		  self:ShowCorrectLight();
+		  self:SwitchOnOffChildren( wantOn );
+		elseif (self.lightOn~=true and wantOn) then
+      self.lightOn = true;
+			self:PlaySound( self.Properties.Sound.soundTurnOn );
+  	  BroadcastEvent( self, "LightOn" );
+		  self:ShowCorrectLight();
+		  self:SwitchOnOffChildren( wantOn );
+		end
+  end
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -713,9 +837,15 @@ end
 DestroyableLight.Client.Alive =
 {
 	OnBeginState=function(self)
-		self:PlaySoundEvent(self.Properties.Sounds.sound_Alive,g_Vectors.v000,g_Vectors.v001,0,SOUND_SEMANTIC_MECHANIC_ENTITY);
 		self:ShowCorrectLight();
 	end,
+	
+	OnLevelLoaded=function(self)
+  	if (self.PropertiesInstance.LightProperties_Base.Options.bDeferredClipBounds) then
+		  self:UpdateLightClipBounds(self.lightSlot);
+		 end
+	end,
+	
 }
 DestroyableLight.Server.Alive =
 {
@@ -724,7 +854,14 @@ DestroyableLight.Server.Alive =
 			self:GotoState( "Dead" );
 		end
 	end,
+	
+	OnLevelLoaded=function(self)
+  	if (self.PropertiesInstance.LightProperties_Base.Options.bDeferredClipBounds) then
+		  self:UpdateLightClipBounds(self.lightSlot);
+		 end
+	end,
 }
+
 
 ----------------------------------------------------------------------------------------------------
 -- Dead State
@@ -732,9 +869,7 @@ DestroyableLight.Server.Alive =
 DestroyableLight.Client.Dead =
 {
 	OnBeginState=function(self)
-		if(self.Properties.Sounds.bStopSoundsOnDestroyed == 1) then
-			self:StopAllSounds();
-		end
+		self:SwitchOnOff(false);
 		self:ShowCorrectLight();
 		if (not CryAction.IsServer()) then
 			self:RemoveEffect();
@@ -799,27 +934,19 @@ end
 
 ------------------------------------------------------------------------------------------------------
 function DestroyableLight:Event_LightOn()
-  if (not self.dead) then
-    self.lightOn = true;
-    self:ShowLightOn()
-	  BroadcastEvent( self, "LightOn" );
-	end;
+  self:SwitchOnOff( true );
 end
 
 
 ------------------------------------------------------------------------------------------------------
 function DestroyableLight:Event_LightOff()
-  if (not self.dead) then
-    self.lightOn = false;
-    self:ShowLightOff()
-  	BroadcastEvent( self, "LightOff" );
-	end;
+  self:SwitchOnOff( false );
 end
 
 
 ------------------------------------------------------------------------------------------------------
 function DestroyableLight:ShowLightOn()
-  -- light source --
+	-- light source --
 	if (self.lightSlot ~= (-1)) then
 		self:FreeSlot(self.lightSlot);
 		self.lightSlot = -1;
@@ -828,18 +955,18 @@ function DestroyableLight:ShowLightOn()
 		self:UseLight(1);
 	end
 
-  -- glow effect --
-  local glowVal = self:GetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow" );
-  if (glowVal~=self.origGlowValue and self.origGlowValue and self.materialIsCloned) then
-    self:SetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow", self.origGlowValue );
-  end
+	-- glow effect --
+	local glowVal = self:GetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow" );
+	if (glowVal~=self.origGlowValue and self.origGlowValue and self.materialIsCloned) then
+		self:SetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow", self.origGlowValue );
+	end
 end
 
 
 ------------------------------------------------------------------------------------------------------
 function DestroyableLight:ShowLightOff()
 
-  -- light source --
+	-- light source --
 	if (self.lightSlot ~= (-1)) then
 		self:FreeSlot(self.lightSlot);
 		self.lightSlot = -1;
@@ -849,26 +976,86 @@ function DestroyableLight:ShowLightOff()
 	end
 
 
-  -- glow effect --
-  local currentGlow = self:GetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow" );
+	-- glow effect --
+	local currentGlow = self:GetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow" );
+
+	if (currentGlow>0) then  
+		if (not self.materialIsCloned) then
+			self:CloneMaterial(0);
+			self.materialIsCloned = true;
+		end
   
-  if (currentGlow>0) then  
-    if (not self.materialIsCloned) then
-      self:CloneMaterial(0);
-      self.materialIsCloned = true;
-    end
-  
-    self:SetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow", 0 );
+		self:SetMaterialFloat(0, self.PropertiesInstance.LightProperties_Base.Options.nGlowSubmatId, "glow", 0.0001 );  -- if we use 0 and we clone the material, the glow is forever lost. Not sure if this is intended.
+	end
+end
+
+
+function DestroyableLight:PlaySound( soundName )
+	if ( soundName and soundName~="") then
+		local sndFlags=SOUND_DEFAULT_3D;
+		self:PlaySoundEvent( soundName, self.Properties.Sound.vOffset,g_Vectors.v010,sndFlags, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
+	end
+end
+
+function DestroyableLight:PlaySoundLoop( soundName )
+	if ( soundName and soundName~="") then
+		local sndFlags=SOUND_DEFAULT_3D;
+		sndFlags = bor( sndFlags, FLAG_SOUND_LOOP );
+		local id = self:PlaySoundEvent( soundName, self.Properties.Sound.vOffset,g_Vectors.v010,sndFlags, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
+		return id;
+	end
+end
+
+function DestroyableLight:PlayIdleSound()
+	if (self.idleSoundId==0) then
+		self.idleSoundId = self:PlaySoundLoop( self.Properties.Sound.soundIdle );
   end
 end
+
+function DestroyableLight:PlayRunSound()
+	if (self.runSoundId==0) then
+		self.runSoundId = self:PlaySoundLoop( self.Properties.Sound.soundRun );
+  end
+end
+
+function DestroyableLight:StopIdleSound()
+	if (self.idleSoundId~=0) then
+		Sound.StopSound(self.idleSoundId);
+		self.idleSoundId = 0;
+	end
+end
+
+function DestroyableLight:StopRunSound()
+	if (self.runSoundId~=0) then
+		Sound.StopSound(self.runSoundId);
+		self.runSoundId = 0;
+	end
+end
+
+
+function DestroyableLight:OnEditorSetGameMode(gameMode)
+	if (gameMode~=true) then
+		self:StopIdleSound();
+		self:StopRunSound();
+	end
+end
+
 
 
 ----------------------------------------------------------------------------------------------------
 function DestroyableLight:ShowCorrectLight()
   if (self.lightOn and not self.dead) then
+  	self:StopIdleSound();
+  	self:PlayRunSound();
     self:ShowLightOn();
   else
     self:ShowLightOff();
+  	self:StopRunSound();
+    if (self.dead) then
+      self:StopIdleSound();
+    else
+    	self:PlayIdleSound();
+    end
   end
 end
 
@@ -930,14 +1117,8 @@ end
 function DestroyableLight:OnUsed(user, idx)
 	BroadcastEvent(self, "Used")
 	if (not self.dead) then
-  	if (self.lightOn) then
-      self.lightOn = false;
-	    BroadcastEvent( self, "LightOff" );
-	  else
-      self.lightOn = true;
-  	  BroadcastEvent( self, "LightOn" );
-	  end
-    self:ShowCorrectLight();
+	  local wantOn = self.lightOn==false;
+	  self:SwitchOnOff( wantOn );
 	end
 end
 
@@ -948,3 +1129,9 @@ MakePickable(DestroyableLight);
 --MakeTargetableByAI(DestroyableLight);
 --MakeKillable(DestroyableLight);
 
+
+function DestroyableLight:Event_Dead()
+  self:Die();
+	self:TriggerEvent(AIEVENT_DISABLE);
+	BroadcastEvent(self, "Dead");
+end

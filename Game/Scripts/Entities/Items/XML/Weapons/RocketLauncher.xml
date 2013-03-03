@@ -99,6 +99,7 @@
 				<param name="damage" value="300" />
 				<param name="secondary_damage" value="1" />
 				<param name="ai_vs_player_damage" value="200" />
+				<param name="helper_tp" value="weapon_term" />
 			</fire>
 			<recoil>
 				<param name="max_recoil" value="10" />

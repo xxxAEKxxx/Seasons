@@ -11,6 +11,7 @@ History:
 
 *************************************************************************/
 #include "StdAfx.h"
+#include "ScriptBind_GameRules.h"
 #include "GameRules.h"
 #include "Game.h"
 #include "GameCVars.h"

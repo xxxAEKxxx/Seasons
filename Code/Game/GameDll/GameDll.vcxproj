@@ -505,6 +505,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Environment\Snow.cpp" />
     <ClCompile Include="FlowWeaponCustomizationNodes.cpp" />
     <ClCompile Include="GameDll.cpp" />
     <ClCompile Include="GameRulesHostMigration.cpp" />
@@ -758,6 +759,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Environment\Snow.h" />
     <ClInclude Include="FlowWeaponCustomizationNodes.h" />
     <ClInclude Include="GameRulesManager.h" />
     <ClInclude Include="GameStartup.h" />

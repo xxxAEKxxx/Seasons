@@ -38,7 +38,7 @@ DeadBody = {
 		soclasses_SmartObjectClass = "",
 		bResting = 0,
 		
-		object_Model = "objects/characters/neutral_male/sdk_character_male_v2.cdf",	
+		object_Model = "Objects/Characters/sdk_player/sdk_player.cdf",	
 		lying_gravityz = -5.0,
 		lying_damping = 1.5,
 		bCollidesWithPlayers = 0,
@@ -52,11 +52,11 @@ DeadBody = {
 			water_damping = 0,
 			water_resistance = 1000,	
 		},
+	},
   	
-		Editor = {
-			Icon = "DeadBody.bmp",
-			IconOnTop=1,
-		},
+	Editor = {
+		Icon = "DeadBody.bmp",
+		IconOnTop=1,
 	},
 }
 
@@ -144,7 +144,6 @@ end
 --------------------------------------------------------------------------------------------------------
 function DeadBody:PhysicalizeThis()
 	local Properties = self.Properties;
-		
 	self.PhysParams.mass = Properties.Mass;
 	
 	self:Physicalize( 0, PE_ARTICULATED, self.PhysParams );

@@ -206,7 +206,7 @@ void CPlayerRotation::GetStanceAngleLimits(float & minAngle,float & maxAngle)
 		params.bNoAreaContacts = true;
 		n = gEnv->pPhysicalWorld->PrimitiveWorldIntersection(primitives::cylinder::type, &cyl, Vec3(0,0,2), 
 			ent_static|ent_terrain, &contacts, 0,
-			geom_colltype_player, &params, 0, 0, pIgnore, pIgnore[1]?2:1), lockContacts;
+			geom_colltype_player, &params, 0, 0, pIgnore, pIgnore[1]?2:1, lockContacts);
 		int ret = (int)n;
 		
 		geom_contact *currentc = contacts;

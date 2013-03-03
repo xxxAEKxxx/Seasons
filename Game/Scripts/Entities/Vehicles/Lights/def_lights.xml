@@ -22,6 +22,8 @@
 	<Property name="HDRDynamic"					    type="float" 	optional="1" />	
 	<Property name="castShadows"					type="bool" 	optional="1" />	
 	<Property name="animSpeed"						type="float" 	optional="1" />	
-	<Property name="animPhase"						type="int" 		optional="1" />	
+	<Property name="animPhase"						type="int" 		optional="1" />
+	<Property name="timeOffFrom"						type="float" 		optional="1" />
+	<Property name="timeOffTo"						type="float" 		optional="1" />
 	</Array>  
 </Definition>

@@ -19,6 +19,21 @@
 #include <IFlashUI.h>
 #include "Game.h"
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 IUIEventSystemFactory* IUIEventSystemFactory::s_pFirst = NULL;
 IUIEventSystemFactory* IUIEventSystemFactory::s_pLast;
 

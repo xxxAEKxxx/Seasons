@@ -46,9 +46,11 @@ function MusicThemeSelector:OnPropertyChange()
 end
 
 function MusicThemeSelector:CliSrv_OnInit()
+	self:RegisterForAreaEvents(1);
 end
 
 function MusicThemeSelector:OnShutDown()
+	self:RegisterForAreaEvents(0);
 end
 
 function MusicThemeSelector:SetTheme()

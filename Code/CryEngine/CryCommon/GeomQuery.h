@@ -304,7 +304,7 @@ inline float SphereExtent(EGeomForm eForm, float fRadius)
 	}
 }
 
-inline Vec3 SphereRandomPoint(EGeomForm eForm, float fRadius)
+inline void SphereRandomPos(PosNorm& ran, EGeomForm eForm, float fRadius)
 {
 	switch (eForm)
 	{
@@ -312,18 +312,30 @@ inline Vec3 SphereRandomPoint(EGeomForm eForm, float fRadius)
 			assert(0);
 		case GeomForm_Vertices:
 		case GeomForm_Edges:
-			return Vec3(0.f);
+			ran.vPos.zero();
+			ran.vNorm.zero();
+			return;
 		case GeomForm_Surface:
 		case GeomForm_Volume:
 		{
-			Vec3 pos;
-			do 
+			// Generate point on surface, as normal.
+			float fPhi = Random(gf_PI2);
+			float fZ = Random(-1.f, 1.f);
+			float fH = sqrt_tpl(1.f - fZ*fZ);
+			sincos_tpl(fPhi, &ran.vNorm.y, &ran.vNorm.x);
+			ran.vNorm.x *= fH;
+			ran.vNorm.y *= fH;
+			ran.vNorm.z = fZ;
+
+			ran.vPos = ran.vNorm;
+			if (eForm == GeomForm_Volume)
 			{
-				pos( BiRandom(1.f), BiRandom(1.f), BiRandom(1.f) );
-			} while (pos.GetLengthSquared() > 1.f);
-			if (eForm == GeomForm_Surface)
-				pos.Normalize();
-			return pos * fRadius;
+				float fV = Random(1.f);
+				float fR = cry_powf(fV, 0.333333f);
+				ran.vPos *= fR;
+			}
+			ran.vPos *= fRadius;
+			break;
 		}
 	}
 }

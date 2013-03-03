@@ -18,7 +18,7 @@ AnimatedCharacterSample =
 	
 	Properties =
 	{
-		objModel = "Objects/Characters/neutral_male/sdk_character_male_v2.cdf",
+		objModel = "Objects/Characters/sdk_player/sdk_player.cdf",
 	},
 
 	Editor = 

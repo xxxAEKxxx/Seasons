@@ -135,6 +135,7 @@ CWeaponSystem::CWeaponSystem(CGame *pGame, ISystem *pSystem)
 	m_pPrecache = gEnv->pConsole->GetCVar("i_precache");
 
 	CBullet::EntityClass = gEnv->pEntitySystem->GetClassRegistry()->FindClass("Bullet");
+
 	CBullet::SetWaterMaterialId();
 
 	m_pGame->GetIGameFramework()->GetILevelSystem()->AddListener(this);

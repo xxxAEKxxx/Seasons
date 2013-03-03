@@ -77,7 +77,6 @@ function MissionHint:OnReset()
 	self.soundid = nil;
 	self:ActivateOutput( "Done",false );
 
-	Sound.SetGroupScale(SOUNDSCALE_MISSIONHINT, 1.0);
 end
 ----------------------------------------------------------------------------------------
 MissionHint["Server"] = {
@@ -113,7 +112,6 @@ MissionHint["Client"] = {
 				--System.Log("sound stopped - sound scale to normal");
 				Sound.StopSound(self.soundid)
 				self.soundid = nil;
-				Sound.SetGroupScale(SOUNDSCALE_MISSIONHINT, 1.0);
 			else
 				-- Sound still playing.
 				-- set another timer.
@@ -145,7 +143,6 @@ function MissionHint:Play()
 
 	if(self.soundid~=nil and Sound.IsPlaying(self.soundid) )then
 		Sound.StopSound(self.soundid);
-		Sound.SetGroupScale(SOUNDSCALE_MISSIONHINT, 1.0);
 		self.SkipCount = self.SkipCount+1;
 	end
 
@@ -185,7 +182,7 @@ function MissionHint:Play()
 
 	--Game:PlaySubtitle(self.soundid);
 	--System.Log("Try to play 4 "..self.soundName);
-	self.soundid = self:PlaySoundEvent(self.soundName, g_Vectors.v000, g_Vectors.v010, sndFlags, SOUND_SEMANTIC_DIALOG);
+	self.soundid = self:PlaySoundEvent(self.soundName, g_Vectors.v000, g_Vectors.v010, sndFlags, 0, SOUND_SEMANTIC_DIALOG);
 	--System.Log("Now playing 4 "..self.soundid);
 	--Sound.PlaySound(self.sound);
 
@@ -193,7 +190,6 @@ function MissionHint:Play()
 	--System.LogToConsole( "Play Sound" );
 
 	if (self.Properties.bScaleDownVolumes==1) then
-		Sound.SetGroupScale(SOUNDSCALE_MISSIONHINT, SOUND_VOLUMESCALEMISSIONHINT);
 	end
 end
 

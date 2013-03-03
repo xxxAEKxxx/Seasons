@@ -5,7 +5,7 @@
 --	$Id$
 --	$DateTime$
 --	Description: Shooting target.
---  
+--
 --------------------------------------------------------------------------
 --  History:
 --  - 8/2006     : Created by Sascha Gundlach
@@ -18,7 +18,7 @@ ShootingTarget =
 	Server = {},
 	Properties=
 	{
-		fileModel 					= "objects/library/architecture/aircraftcarrier/props/misc/target.cgf",
+		fileModel = "",
 		bTurningMode = 1,
 		fIntervallMin = 3,
 		fIntervallMax = 5,
@@ -37,18 +37,18 @@ ACTIVATION_TIMER=0;
 TURN_TIMER=1;
 
 function ShootingTarget:OnReset()
- 	local props=self.Properties;
- 	if(not EmptyString(props.fileModel))then
- 		self:LoadObject(0,props.fileModel);
- 	end;
- 	EntityCommon.PhysicalizeRigid(self,0,self.physics,0);
- 	self.side=0;
- 	self.ended=0;
- 	self:GetAngles(self.initialrot);
- 	CopyVector(self.turnrot,self.initialrot);
- 	self.turnrot.z=self.turnrot.z+(math.pi/2);
- 	self:Activate(1);
- 	self:GotoState("Deactivated");
+	local props=self.Properties;
+	if(not EmptyString(props.fileModel))then
+		self:LoadObject(0,props.fileModel);
+	end;
+	EntityCommon.PhysicalizeRigid(self,0,self.physics,0);
+	self.side=0;
+	self.ended=0;
+	self:GetAngles(self.initialrot);
+	CopyVector(self.turnrot,self.initialrot);
+	self.turnrot.z=self.turnrot.z+(math.pi/2);
+	self:Activate(1);
+	self:GotoState("Deactivated");
 end;
 
 function ShootingTarget:OnSave(tbl)
@@ -101,7 +101,7 @@ function ShootingTarget.Server:OnHit(hit)
 		dec=string.find(dist,".",1,1)
 		dist=tonumber(string.sub(dist,1,dec-1))
 	end;
-	
+
 	if(self.Properties.bTurningMode==1)then
 		local shooter=0;
 		if(hit.shooter and hit.shooter==g_localActor)then

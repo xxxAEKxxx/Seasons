@@ -39,6 +39,7 @@ VehicleBaseAI =
 		bAutoGenAIHidePts = 0,
 
 		aicharacter_character = "Tank",
+		esBehaviorSelectionTree = "",
 		leaderName = "",
 		followDistance = 5.0,
 		bSpeciesHostility = 1,

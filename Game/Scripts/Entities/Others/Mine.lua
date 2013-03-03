@@ -1,14 +1,14 @@
 --------------------------------------------------------------------------
 --	Crytek Source File.
--- 	Copyright (C), Crytek Studios, 2001-2006.
+--	Copyright (C), Crytek Studios, 2001-2006.
 --------------------------------------------------------------------------
 --	$Id$
 --	$DateTime$
 --	Description: Mine entity
 --  
 --------------------------------------------------------------------------
---  History:
---  - 7/2006     : Created by Sascha Gundlach
+--	History:
+--	- 7/2006     : Created by Sascha Gundlach
 --
 --------------------------------------------------------------------------
 
@@ -16,9 +16,8 @@ Mine =
 {
 	Client = {},
 	Server = {},
-	Properties=
-	{
-		fileModel 					= "objects/weapons/us/av_mine/avmine.cgf",
+	Properties= {
+		fileModel = "objects/weapons/avmine/avmine.cgf",
 		Radius = 2,
 		bAdjustToTerrain = 1,
 		Options = {
@@ -39,70 +38,66 @@ Mine =
 			bCenterExplosion = 1,
 			fDamage = 100,
 		},
-		Destruction =	{
-			Effect					= "explosions.rocket.soil",
-			EffectScale			= 0.2,
-			Radius					= 2,
-			Pressure				= 250,
-			Damage					= 500,
-			Decal						= "textures/decal/explo_decal.dds",
-			DecalScale				= 1,
-			Direction				= {x=0, y=0.0, z=-1},
+		Destruction = {
+			Effect = "explosions.rocket.soil",
+			EffectScale = 0.2,
+			Radius = 2,
+			Pressure = 250,
+			Damage = 500,
+			Decal = "materials/decals/default_blast.mtl",
+			DecalScale = 1,
+			Direction = {x=0, y=0.0, z=-1},
 		},
-		Vulnerability	=
-		{
+		Vulnerability = {
 			fDamageTreshold = 0,
 			bExplosion = 1,
 			bCollision = 1,
-			bMelee		 = 1,
-			bBullet		 = 1,
-			bOther	   = 1,
+			bMelee = 1,
+			bBullet = 1,
+			bOther = 1,
 		},
 	},
-	LastHit =
-	{
+	LastHit = {
 		impulse = {x=0,y=0,z=0},
 		pos = {x=0,y=0,z=0},
 	},
-		
-	Editor=
-	{
+	Editor= {
 		Icon="mine.bmp",
 		ShowBounds = 1,
 	},
 	States = {"Deactivated","Armed","Disarmed","Destroyed"},
 }
 -----------------------------------------------------------------------------------------
-MINE_CHECK											= 1;
-MINE_JUMP												= 2;
+MINE_CHECK	= 1;
+MINE_JUMP	= 2;
 -----------------------------------------------------------------------------------------
 function Mine:OnReset()
 	local props=self.Properties;
- 	if(not EmptyString(props.fileModel))then
- 		self:LoadObject(0,props.fileModel);
- 	end;
- 	local Min={x=-props.Radius/2,y=-props.Radius/2,z=-2.5/2};
+	if(not EmptyString(props.fileModel))then
+		self:LoadObject(0,props.fileModel);
+	end;
+	local Min={x=-props.Radius/2,y=-props.Radius/2,z=-2.5/2};
 	local Max={x=props.Radius/2,y=props.Radius/2,z=2.5/2};
 	self:SetTriggerBBox(Min,Max);
 	EntityCommon.PhysicalizeRigid(self,0,self.physics,0);
- 	--change
- 	self:SetCurrentSlot(0);
- 	if(self.Properties.Claymore.bIsClaymore==0 and self.Properties.Options.bWaterMine==0)then
- 		--Disable for now
- 		--self:SetViewDistRatio(12);--12
- 	end;
- 	self.health=1;
- 	self.ents={};
- 	--Maybe this should work differently later
- 	if(self.Properties.bAdjustToTerrain==1)then
- 		if(self.Properties.Claymore.bIsClaymore==0)then
-	 		local pos={x=0,y=0,z=0};
-	 		CopyVector(pos,self:GetPos());
-	 		pos.z=System.GetTerrainElevation(self:GetPos())-0.01;--better put offset into properties
-	 		self:SetPos(pos);
-	 	end;
- 	end;
- 	self:GotoState("Armed");
+	--change
+	self:SetCurrentSlot(0);
+	if(self.Properties.Claymore.bIsClaymore==0 and self.Properties.Options.bWaterMine==0)then
+		--Disable for now
+		--self:SetViewDistRatio(12);--12
+	end;
+	self.health=1;
+	self.ents={};
+	--Maybe this should work differently later
+	if(self.Properties.bAdjustToTerrain==1)then
+		if(self.Properties.Claymore.bIsClaymore==0)then
+			local pos={x=0,y=0,z=0};
+			CopyVector(pos,self:GetPos());
+			pos.z=System.GetTerrainElevation(self:GetPos())-0.01;--better put offset into properties
+			self:SetPos(pos);
+		end;
+	end;
+	self:GotoState("Armed");
 end;
 
 function Mine:OnSave(tbl)
@@ -116,7 +111,7 @@ function Mine:OnLoad(tbl)
 	self.ents=tbl.ents;
 	self.disarmed=tbl.disarmed;
 	EntityCommon.PhysicalizeRigid(self,0,self.physics,0);
- 	self:SetCurrentSlot(0);
+	self:SetCurrentSlot(0);
 end;
 
 
@@ -144,7 +139,7 @@ function Mine:OnInitCommon()
 			Mass=20,
 		};
 	end;
-	
+
 	self.health=1;
 	self.ents={};
 	self.disarmed=0;
@@ -179,7 +174,7 @@ function Mine:IsUsable(user)
 end;
 
 function Mine:GetUsableMessage(idx)
-	return "press USE to disarm!";
+	return "Press USE to disarm!";
 end;
 
 function Mine:OnUsed()
@@ -207,7 +202,7 @@ function Mine.Server:OnHit(hit)
 		self.shooterId=hit.shooterId;
 		self.health=self.health-damage;
 		if(self.health<=0)then
-			self:GotoState("Destroyed");	
+			self:GotoState("Destroyed");
 		end;
 	end;
 end;
@@ -256,7 +251,7 @@ function Mine:Explode()
 		if (props.Claymore.bIsClaymore~=0) then
 			decalDir = g_Vectors.down;
 		end
-		Particle.CreateDecal(self:GetWorldPos(), decalDir, radius*explosion.DecalScale, 300, explosion.Decal, math.random()*360, decalDir);
+		Particle.CreateMatDecal(self:GetWorldPos(), decalDir, radius*explosion.DecalScale, 300, explosion.Decal, math.random()*360, decalDir);
 	end
 	self:RemoveDecals();
 end;
@@ -271,7 +266,7 @@ function Mine:Jump()
 	CopyVector(impulsepos,self:GetPos());
 	impulsepos.x=impulsepos.x+0.005;
 	self:AddImpulse(-1,impulsepos,{x=0,y=0,z=1},force,1);
-	self:PlaySoundEvent("sounds/weapons:mine:mine_jump",g_Vectors.v000,g_Vectors.v010,SOUND_DEFAULT_3D,SOUND_SEMANTIC_MECHANIC_ENTITY);
+	self:PlaySoundEvent("sounds/weapons:mine:mine_jump",g_Vectors.v000,g_Vectors.v010,SOUND_DEFAULT_3D, 0, SOUND_SEMANTIC_MECHANIC_ENTITY);
 	self:SetTimer(MINE_JUMP,self.Properties.FrogMine.fDetonationDelay*1000);
 end;
 
@@ -346,7 +341,7 @@ end;
 
 Mine.Server.Deactivated=
 {
-	
+
 };
 
 Mine.Server.Armed=
@@ -364,7 +359,7 @@ Mine.Server.Armed=
 				table.insert(self.ents,entity);
 				self:SetTimer(MINE_CHECK,100);
 			else
-				self:GotoState("Destroyed");	
+				self:GotoState("Destroyed");
 			end;
 		end;
 	end,
@@ -382,6 +377,7 @@ Mine.Server.Armed=
 		end;
 	end,
 };
+
 Mine.Server.Disarmed=
 {
 	OnBeginState = function(self)
@@ -394,6 +390,7 @@ Mine.Server.Disarmed=
 		BroadcastEvent(self, "Disarmed")
 	end,
 };
+
 Mine.Server.Destroyed=
 {
 	OnBeginState = function( self )
@@ -415,23 +412,22 @@ Mine.Server.Destroyed=
 	end,
 	OnTimer = function(self,timerId)
 		if(timerId==MINE_JUMP)then
-			self:Explode();	
+			self:Explode();
 		end;
 	end,
 };
+
 -----------------------------------------------------------------------------------
 
 Mine.FlowEvents =
 {
-	Inputs =
-	{
+	Inputs = {
 		Detonated = { Mine.Event_Detonated, "bool" },
 		Disarmed = { Mine.Event_Disarmed, "bool" },
 		Activated = { Mine.Event_Activated, "bool" },
 		Deactivated = { Mine.Event_Deactivated, "bool" },
 	},
-	Outputs =
-	{
+	Outputs = {
 		Detonated = "bool",
 		Disarmed = "bool",
 		Activated = "bool",

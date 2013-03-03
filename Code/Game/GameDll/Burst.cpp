@@ -38,7 +38,7 @@ void CBurst::Update(float frameTime, uint32 frameId)
 
 		if (m_next_shot <= 0.0f)
 		{
-			// workaround: save current burst rate, and fake it so that the CanFire check in CSingle::Shoot passes...
+			// HACK: save current burst rate, and fake it so that the CanFire check in CSingle::Shoot passes...
 			float saved_next_burst=m_next_burst;
 			m_next_burst=0.0f;
 

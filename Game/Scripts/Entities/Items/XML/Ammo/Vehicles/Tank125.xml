@@ -29,9 +29,9 @@
 		<param name="max_phys_radius" value="2.5" />
 		<param name="hole_size" value="2" />
 		<param name="terrain_hole_size" value="6" />
-		<param name="decal" value="textures/decal/explo_decal.dds" />
-		<param name="effect" value="" />
-		<param name="effect_scale" value="1" />
+		<param name="decal" value="" /> <!-- Deprecated, use Material Effects -->
+		<param name="effect" value="" /> <!-- Deprecated, use Material Effects -->
+		<param name="effect_scale" value="" /> <!-- Deprecated, use Material Effects -->
 	</explosion>
 	<params>
 		<param name="lifetime" value="5" />

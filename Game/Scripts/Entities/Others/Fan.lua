@@ -2,47 +2,45 @@ Fan = {
 	Client = {},
 	Server = {},
 	Properties = {
-		fileModel 					= "objects/library/furniture/misc/hillside_cafe_ventilator.cgf",
-		ModelSubObject			= "main",
-		fileModelDestroyed	= "",
-		DestroyedSubObject	= "remain",
+		fileModel = "objects/props/furniture/appliances/ceiling_fan/ceiling_fan.cgf",
+		ModelSubObject = "",
+		fileModelDestroyed = "",
+		DestroyedSubObject = "",
 		MaxSpeed = 0.1,
-		fHealth = 100,
+		fHealth = 10,
 		bTurnedOn = 1,
 		Physics = {
-			bRigidBody=0,
+			bRigidBody = 0,
 			bRigidBodyActive = 0,
 			bRigidBodyAfterDeath =1,
 			bResting = 1,
 			Density = -1,
 			Mass = 150,
 		},
-		Breakage =
-		{
+		Breakage = {
 			fLifeTime = 10,
 			fExplodeImpulse = 0,
 			bSurfaceEffects = 1,
 		},
-		Destruction =	{
-			bExplode				= 1,
-			Effect					= "explosions.rocket.wood",
-			EffectScale			= 0.2,
-			Radius					= 1,
-			Pressure				= 12,
-			Damage					= 0,
-			Decal						= "",
-			Direction				= {x=0, y=0.0, z=-1},
+		Destruction = {
+			bExplode = 1,
+			Effect = "explosions.barrel.wood_explode",
+			EffectScale = 1,
+			Radius = 1,
+			Pressure = 1,
+			Damage = 0,
+			Decal = "",
+			Direction = {x=0, y=0, z=1},
 		},
 	},
-		Editor={
+		Editor = {
 		Icon = "animobject.bmp",
-		IconOnTop=1,
+		IconOnTop = 1,
 	},
 	States = {"TurnedOn","TurnedOff","Accelerating","Decelerating","Destroyed"},
 	fCurrentSpeed = 0,
 	fDesiredSpeed = 0,
-	LastHit =
-	{
+	LastHit = {
 		impulse = {x=0,y=0,z=0},
 		pos = {x=0,y=0,z=0},
 	},
@@ -84,7 +82,6 @@ function Fan:OnReset()
 		self.fCurrentSpeed=0;
 		self:GotoState("TurnedOff");
 	end;
-	
 	self.fDesiredSpeed=self.Properties.MaxSpeed;
 end;
 
@@ -124,7 +121,7 @@ function Fan:Explode()
 	);
 	if(NumberToBool(self.Properties.Destruction.bExplode))then
 		local explosion=self.Properties.Destruction;
-		g_gameRules:CreateExplosion(self.shooterId,self.id,explosion.Damage,self:GetWorldPos(),explosion.Direction,explosion.Radius,nil,explosion.Pressure,explosion.HoleSize,explosion.Effect,explosion.EffectScale);	
+		g_gameRules:CreateExplosion(self.shooterId,self.id,explosion.Damage,self:GetWorldPos(),explosion.Direction,explosion.Radius,nil,explosion.Pressure,explosion.HoleSize,explosion.Effect,explosion.EffectScale);
 	end;
 	self:SetCurrentSlot(1);
 	if(props.Physics.bRigidBodyAfterDeath==1)then
@@ -135,7 +132,7 @@ function Fan:Explode()
 			props.Physics.bRigidBody=tmp;
 	else
 		self:PhysicalizeThis(1);
-	end;	
+	end;
 	self:RemoveDecals();
 	self:AwakePhysics(1);
 end;
@@ -241,14 +238,14 @@ Fan.Server.Accelerating =
 		self:GetAngles(g_Vectors.temp_v1);
 		g_Vectors.temp_v1.z=g_Vectors.temp_v1.z+self.fCurrentSpeed;
 		self:SetAngles(g_Vectors.temp_v1);
-		
+
 		if(self.fCurrentSpeed<=self.fDesiredSpeed)then
 			self.fCurrentSpeed=self.fCurrentSpeed+(self.fDesiredSpeed/100);
 			self:SetTimer(0,25);
 		else
 			self:GotoState("TurnedOn");
 		end;
-		
+
 	end,
 	OnEndState = function( self )
 
@@ -264,7 +261,7 @@ Fan.Server.Decelerating =
 		self:GetAngles(g_Vectors.temp_v1);
 		g_Vectors.temp_v1.z=g_Vectors.temp_v1.z+self.fCurrentSpeed;
 		self:SetAngles(g_Vectors.temp_v1);
-		
+
 		if(self.fCurrentSpeed>0.01)then
 			self.fCurrentSpeed=self.fCurrentSpeed-(self.fDesiredSpeed/100);
 			self:SetTimer(0,25);
@@ -304,16 +301,14 @@ Fan.Server.Destroyed =
 
 Fan.FlowEvents =
 {
-	Inputs =
-	{
+	Inputs = {
 		Switch = { Fan.Event_Switch, "bool" },
 		TurnOn = { Fan.Event_TurnOn, "bool" },
 		TurnOff = { Fan.Event_TurnOff, "bool" },
 		Hit = { Fan.Event_hit, "bool" },
 		Destroyed = { Fan.Event_Destroyed, "bool" },
 	},
-	Outputs =
-	{
+	Outputs = {
 		TurnOn = "bool",
 		TurnOff = "bool",
 		Hit = "bool",
