@@ -235,37 +235,6 @@ function SinglePlayer:CalcExplosionDamage(entity, explosion, obstruction)
 	return explosion.damage*effect;
 end
 
-
-----------------------------------------------------------------------------------------------------
-function SinglePlayer:EquipActor(actor)
-	--Log(">> SinglePlayer:EquipActor(%s) <<", actor:GetName());
-	
-	if(self.game:IsDemoMode() ~= 0) then -- don't equip actors in demo playback mode, only use existing items
-		--Log("Don't Equip : DemoMode");
-		return;
-	end;
-
-	actor.inventory:Destroy();
-
-	if (actor.actor:IsPlayer()) then
-		ItemSystem.GiveItemPack(actor.id, "Singleplayer", false, true);
-	end
-
-	if (not actor.actor:IsPlayer()) then
-		if (actor.Properties) then		
-			local equipmentPack=actor.Properties.equip_EquipmentPack;
-			if (equipmentPack and equipmentPack ~= "") then
-				ItemSystem.GiveItemPack(actor.id, equipmentPack, false, false);
-			end
-
-	  	if(not actor.bGunReady) then
-	  		actor:HolsterItem(true);
-	  	end
-	  end
-	end
-end
-
-
 ----------------------------------------------------------------------------------------------------
 function SinglePlayer:OnShoot(shooter)
 	if (shooter and shooter.OnShoot) then

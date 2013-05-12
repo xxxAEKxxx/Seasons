@@ -949,12 +949,6 @@ function BasicActor:Reset(bFromInit, bIsReload)
 	
 	--E3 hacks
 	BasicActor.ActorLink(self);
-
-	if (bFromInit and CryAction.IsServer()) then
-		if (g_gameRules and g_gameRules.EquipActor) then
-			g_gameRules:EquipActor(self);
-		end
-	end
 end
 
 function BasicActor:ResetLoad()

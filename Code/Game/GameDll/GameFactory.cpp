@@ -205,5 +205,5 @@ void InitGameFactory(IGameFramework *pFramework)
 
 	REGISTER_GAME_OBJECT_EXTENSION(pFramework, ScriptControlledPhysics);
 
-	CGameRulesManager::GetInstance()->Init();
+	//CGameRulesManager::GetInstance()->Init();
 }

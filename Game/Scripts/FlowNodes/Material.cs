@@ -1,5 +1,5 @@
 ﻿using CryEngine;
-using CryEngine.FlowSystem;
+using CryEngine.Flowgraph;
 
 namespace CryGameCode
 {

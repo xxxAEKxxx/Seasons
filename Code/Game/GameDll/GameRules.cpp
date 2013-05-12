@@ -2833,7 +2833,12 @@ EntityId CGameRules::GetPlayerSpawnGroup(CActor *pActor)
 	m_pScriptSystem->PushFuncParam(pActor->GetEntity()->GetScriptTable());
 	m_pScriptSystem->EndCall(ret);*/
 
-	return m_pScript->CallMethod("GetPlayerSpawnGroup", pActor->GetEntityId())->Unbox<bool>();
+	IMonoObject *pResult = *m_pScript->CallMethod("GetPlayerSpawnGroup", pActor->GetEntityId());
+
+	EntityId id = pResult->Unbox<EntityId>();
+	pResult->Release(false);
+
+	return id;
 }
 
 //------------------------------------------------------------------------

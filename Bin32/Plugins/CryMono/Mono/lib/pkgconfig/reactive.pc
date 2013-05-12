@@ -1,6 +1,6 @@
 Name: Reactive Extensions
 Description: Reactive Extensions
-Version: 3.0.5
+Version: 3.0.8
 Libs: 
 -r:/tmp/install/lib/mono/4.5/System.Reactive.Interfaces.dll
 -r:/tmp/install/lib/mono/4.5/System.Reactive.Core.dll
